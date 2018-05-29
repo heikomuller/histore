@@ -49,18 +49,26 @@ class TimeInterval(object):
         else:
             return str(self.start)
 
-    def contains(self, interval):
-        """Returns true if this interval contains the given interval.
+    def contains(self, interval=None, value=None):
+        """Returns true if this interval contains the given interval or value.
+
+        Raises ValueError if both arguments are None of not None.
 
         Parameters
         ----------
-        interval: histore.timestamp.TimeInterval
+        interval: histore.timestamp.TimeInterval, optional
+        value: int, optional
 
         Returns
         -------
         bool
         """
-        return (self.start <= interval.start) and (self.end >= interval.end)
+        if not interval is None and value is None:
+            return (self.start <= interval.start) and (self.end >= interval.end)
+        elif interval is None and not value is None:
+            return self.start <= value <= self.end
+        else:
+            raise ValueError('invalid arguments')
 
     def overlap(self, interval):
 
@@ -97,6 +105,15 @@ class Timestamp(object):
         else:
             self.intervals = list()
 
+    def __str__(self):
+        """Get a string representation of the timestamp.
+
+        Returns
+        -------
+        string
+        """
+        return ','.join([str(interval) for interval in self.intervals])
+
     def append(self, value):
         """Append the given value to the timestamp. Returns a new timestamp.
 
@@ -125,6 +142,26 @@ class Timestamp(object):
                 return Timestamp(intervals)
         else:
             return Timestamp([TimeInterval(value)])
+
+    def contains(self, value):
+        """Returns True if the timestamp contains the given value.
+
+        Parameters
+        ----------
+        value: int
+
+        Returns
+        -------
+        bool
+        """
+        # Search from end of interval list since the majority of requests will
+        # access more recent values (i.e., database versions).
+        for interval in self.intervals[::-1]:
+            if interval.contains(value=value):
+                return True
+            elif interval.end < value:
+                return False
+        return False
 
     def is_empty(self):
         """Returns True if the timestamp is empty.
@@ -156,14 +193,17 @@ class Timestamp(object):
             intervalI = timestamp.intervals[idxI]
             intervalJ = self.intervals[idxJ]
             if intervalI.end < intervalJ.start:
+                is_equal = False
                 idxI += 1
             elif intervalI.start > intervalJ.start:
                 return False;
             elif intervalI.end < intervalJ.end:
                 return False
+            elif intervalI.start == intervalJ.start and intervalI.end == intervalJ.end:
+                idxI += 1
+                idxJ += 1
             else:
-                if intervalI.start != intervalJ.start or intervalI.end != intervalJ.end:
-                    is_equal = False
+                is_equal = False
                 idxJ += 1
 
-        return idxJ == timestamp.intervals and not is_equal;
+        return idxJ == len(self.intervals) and not is_equal

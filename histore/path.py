@@ -4,6 +4,7 @@
 
 """Path expressions reference elements in the document tree."""
 
+
 class Path(object):
     """Path expressions are sequences of node labels."""
     def __init__(self, path):
@@ -26,7 +27,10 @@ class Path(object):
                     raise ValueError('invalid path component \'' + str(label) + '\'')
                 self.elements.append(label)
         else:
-            self.elements = path.split('/')
+            if path.strip() == '':
+                self.elements = list()
+            else:
+                self.elements = path.strip().split('/')
 
     def __repr__(self):
         """Unambiguous string representation of this path object.
@@ -45,6 +49,20 @@ class Path(object):
         string
         """
         return '/'.join(self.elements)
+
+    def concat(self, path):
+        """Returns a new path that is a concatenation of this path and the given
+        path.
+
+        Parameters
+        ----------
+        path: histore.path.Path
+
+        Returns
+        -------
+        histore.document.path.Path
+        """
+        return Path(self.elements + path.elements)
 
     def extend(self, label):
         """Returns a new path that is an extension of the current path by

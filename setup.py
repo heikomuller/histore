@@ -12,6 +12,6 @@ setup(
     packages=['histore'],
     package_data={'': ['LICENSE']},
     install_requires=[
-        'xmltodict'
+        'pyyaml'
     ]
 )

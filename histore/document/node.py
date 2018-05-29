@@ -16,39 +16,6 @@ INTERNAL_NODE = 0
 LEAF_NODE = 1
 
 
-class Document(object):
-    """This class represents the root of a document tree. It contains a list
-    of nodes which are the direct children of the tree root.
-
-    Attributes
-    ----------
-    nodes: list(histore.document.Node)
-        List of document root nodes.
-    """
-    def __init__(self, doc=None, nodes=None):
-        """Initialize the list of root children. The document can either be
-        initialized from a dictionary or using a given list of root children.
-
-        Raises ValueError if both doc and nodes are not None.
-
-        Parameters
-        ----------
-        doc: dict, optional
-            Dictionary representing a document
-        nodes: list(histore.document.Node), optional
-            List of child nodes for document root.
-        """
-        if not doc is None and nodes is None:
-            self.nodes = InternalNode.from_dict('root', doc).children
-        elif doc is None and not nodes is None:
-            self.nodes = list(nodes)
-        elif doc is None and nodes is None:
-            self.nodes = list()
-        else:
-            raise ValueError('invalid arguments for doc and nodes')
-
-
-
 class Node(object):
     """ Base class for document nodes. Each node has a label. There are two
     sub-types: internal nodes and leaf nodes. This class maintains a flag that
@@ -133,7 +100,7 @@ class InternalNode(Node):
         -------
         string
         """
-        return 'InternalNode(%s)' % (self.label)
+        return 'InternalNode(%s, index=%i)' % (self.label, self.index)
 
     def add(self, node, strict=True):
         """Shortcut to append a node to the list of children.
@@ -143,12 +110,12 @@ class InternalNode(Node):
 
         Parameters
         ----------
-        node: histore.document.Node
+        node: histore.document.node.Node
             New child node
 
         Returns
         -------
-        histore.document.Node
+        histore.document.node.Node
         """
         # Ensure that the node index is unique among siblings with the same
         # label.
@@ -176,7 +143,7 @@ class InternalNode(Node):
 
         Returns
         -------
-        histore.document.InternalNode
+        histore.document.node.InternalNode
         """
         children = list()
         for key in doc:
@@ -206,12 +173,12 @@ class InternalNode(Node):
 
         Parameters
         ----------
-        path: string or histore.document.path.Path
+        path: string or histore.path.Path
             Relative path expression referencing a child node.
 
         Returns
         -------
-        histore.document.Node
+        histore.document.node.Node
         """
         if isinstance(path, basestring):
             search_path = Path(path)
@@ -271,4 +238,4 @@ class LeafNode(Node):
         -------
         string
         """
-        return 'LeafNode(%s, %s)' % (self.label, str(self.value))
+        return 'LeafNode(%s, %s, index=%i)' % (self.label, str(self.value), self.index)

@@ -1,10 +1,11 @@
 import unittest
 
-from histore.document import Document, Node, InternalNode, LeafNode
+from histore.document.base import Document
+from histore.document.node import Node, InternalNode, LeafNode
 from histore.path import Path
 
 
-class TestDocumentNodes(unittest.TestCase):
+class TestDocument(unittest.TestCase):
 
     def test_document(self):
         """Test document initialization."""

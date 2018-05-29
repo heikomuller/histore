@@ -12,6 +12,9 @@ class TestPath(unittest.TestCase):
         self.assertEquals(p.length(), 2)
         self.assertEquals(p1.length(), 3)
         self.assertEquals(p1.get(2), 'C')
+        p = Path('')
+        p = p.extend('A')
+        self.assertEquals(str(p), 'A')
 
     def test_match(self):
         """Test path matching."""
