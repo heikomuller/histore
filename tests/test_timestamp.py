@@ -69,6 +69,18 @@ class TestTimestamp(unittest.TestCase):
             Timestamp([TimeInterval(1, 3), TimeInterval(3, 4)])
             Timestamp([TimeInterval(1, 3), TimeInterval(2, 3)])
 
+    def test_timestamp_is_equal(self):
+        """Test contains function of timestamp."""
+        t = Timestamp([TimeInterval(1,5), TimeInterval(7,9), TimeInterval(14,16)])
+        t1 = Timestamp([TimeInterval(1,5), TimeInterval(7,9), TimeInterval(14,16)])
+        t2 = Timestamp([TimeInterval(1,5), TimeInterval(7,9), TimeInterval(14,17)])
+        t3 = Timestamp([TimeInterval(1,5), TimeInterval(7,9), TimeInterval(14,16), TimeInterval(18)])
+        t4 = Timestamp([TimeInterval(1,5), TimeInterval(7,9)])
+        self.assertTrue(t.is_equal(t1))
+        self.assertFalse(t.is_equal(t2))
+        self.assertFalse(t.is_equal(t3))
+        self.assertFalse(t.is_equal(t4))
+
     def test_timestamp_subsets(self):
         """Test timestamp initialization."""
         t = Timestamp([TimeInterval(1, 5), TimeInterval(7,9), TimeInterval(14,16)])

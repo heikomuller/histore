@@ -2,7 +2,7 @@
 # This file is part of OpenClean which is released under the Revised BSD License
 # See file LICENSE for full license details.
 
-from histore.archive.node import ArchiveElement
+from histore.archive.node import ArchiveElement, print_node
 from histore.archive.merge import NestedMerger
 from histore.archive.snapshot import Snapshot
 from histore.document.base import Document
@@ -62,20 +62,20 @@ class Archive(object):
         """
         # Create a handle for the new snapshot
         snapshot = Snapshot(len(self.snapshots), name=name)
+        # Create an archive from the given document with a single root node
+        doc_root = ArchiveElement.from_document(
+            doc=Document(doc=doc),
+            schema=self.schema,
+            version=snapshot.version
+        )
         if self.root is None:
             # This is the first snapshot in the archive. We do not need to
             # merge anything.
-            self.root = ArchiveElement.from_document(
-                doc=Document(doc=doc),
-                schema=self.schema,
-                version=snapshot.version
-            )
+            self.root = doc_root
         else:
-            NestedMerger.merge(
+            self.root = NestedMerger().merge(
                 archive_node=self.root,
-                doc_nodes=Document(doc=doc).nodes,
-                schema=self.schema,
-                path=Path(''),
+                doc_node=doc_root,
                 version=snapshot.version
             )
         self.snapshots.append(snapshot)
@@ -103,3 +103,20 @@ class Archive(object):
         histore.archive.snapshot.Snapshot
         """
         return self.snapshots[version]
+
+
+# ------------------------------------------------------------------------------
+# Helper Methods
+# ------------------------------------------------------------------------------
+
+def print_archive(archive, indent='\t'):
+    """Print nested archive node tree. Primarily for debugging purposes.
+
+    Parameters
+    ----------
+    archive: histore.archive.base.Archive
+    indent: string
+    """
+    print str(archive.root)
+    for node in archive.root.children:
+        print_node(node, indent=indent, depth=1)

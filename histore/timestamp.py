@@ -70,6 +70,19 @@ class TimeInterval(object):
         else:
             raise ValueError('invalid arguments')
 
+    def is_equal(self, interval):
+        """Returns True if the two intervals have equal start and end values.
+
+        Parameters
+        ----------
+        interval: histore.timestamp.TimeInterval
+
+        Returns
+        -------
+        bool
+        """
+        return self.start == interval.start and self.end == interval.end
+        
     def overlap(self, interval):
 
     	if (self.start == interval.start) or (self.start == interval.end) or (self.end == interval.start) or (self.end == interval.end):
@@ -171,6 +184,27 @@ class Timestamp(object):
         bool
         """
         return len(self.intervals) == 0
+
+    def is_equal(self, timestamp):
+        """Returns True if the two timestamps are equal, i.e., represent the
+        same sequence of snapshots. Given that intervals cannot be consecutive,
+        equality means (i) same number of intervals, and (ii) corresponding
+        intervals have same start/end values.
+
+        Parameters
+        ----------
+        timestamp: histore.timestamp.Timestamp
+
+        Returns
+        -------
+        bool
+        """
+        if len(self.intervals)  == len(timestamp.intervals):
+            for i in range(len(self.intervals)):
+                if not self.intervals[i].is_equal(timestamp.intervals[i]):
+                    return False
+            return True
+        return False
 
     def is_subset_of(self, timestamp):
         """Returns true if this timestamp is a true subset of the given

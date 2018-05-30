@@ -30,7 +30,7 @@ class Snapshot(object):
         """
         self.version = version
         self.created_at = created_at if not created_at is None else datetime.datetime.utcnow()
-        self.name = name if not name is None else datetime.datetime.strptime(self.created_at, '%Y-%m-%dT%H:%M:%S.%f')
+        self.name = name if not name is None else self.created_at.isoformat()
         self.archive = archive
 
     def get(self):

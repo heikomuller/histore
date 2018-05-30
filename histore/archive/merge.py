@@ -7,98 +7,29 @@
 dataset schema.
 """
 
-
-class AnnotatedNode(object):
-    """Simple wrapper containing an internal document node and the node key as
-    defined by the document schema.
-    """
-    def __init__(self, node, key=None):
-        """Initialize wrapped document node and node key.
-
-        Parameters
-        ----------
-        node: histore.document.InternalNode
-        key: list
-        """
-        self.node = node
-        self.key = key
-    def __repr__(self):
-        """Unambiguous string representation of this annotated node.
-
-        Returns
-        -------
-        string
-        """
-        return '(node=%s, key=%s)' % (str(self.node), str(self.key))
-
-
-    def compare_to(self, node):
-        """Compare to annotated nodes. Returns -1 if this node is considered
-        lower than the given node, 0 if both nodes are considered equal, and 1
-        if this node is considered greater than the given node.
-
-        Parameters
-        ----------
-        node: histore.archive.merge.AnnotatedNode
-
-        Returns
-        -------
-        int
-        """
-        if self.label < node.label:
-            return -1
-        elif self.label > node.label:
-            return 1
-        else:
-            # If none of the nodes has a key return 0. Else compare the key
-            # values. The keys are expected to be of same length
-            if not self.key is None and node.key is None:
-                return -1
-            elif self.key is None and not node.key is None:
-                return 1
-            elif self.key is None and node.key is None:
-                return 0
-            else:
-                for i in range(len(self.key)):
-                    kv1 = self.key[i]
-                    kv2 = node.key[i]
-                    if kv1 < kv2:
-                        return -1
-                    elif kv1 > kv2:
-                        return 1
-                return 0
-
-    @property
-    def label(self):
-        """Short-cut to get the label of the document node.
-
-        Returns
-        -------
-        string
-        """
-        return self.node.label
+from histore.archive.node import ArchiveElement
 
 
 class NestedMerger(object):
     """The nested merger contains the logic to merge an archive tree and a new
     dataset snapshot.
     """
-    def merge(self, archive_node, doc_nodes, schema, path, version, timestamp=None):
-        """Recirsively merges the children of a given archive node with the
-        list of document nodes. Returns a modified copy of the archive node.
+    def merge(self, archive_node, doc_node, version, positions=None, timestamp=None):
+        """Recirsively merges the children of a node in an archive and a node
+        from a document snapshot. Both nodes are expected to be archive
+        elements. Returns a modified copy of the archive node.
 
         Parameters
         ----------
         archive_node: histore.archive.node.ArchiveElement
             Archive element that mathces the parent of the given document nodes
-        document_nodes: histore.document.node.Node
-            List of document nodes
-        schema: histore.schema.DocumentSchema
-            Document schema used to annotate the nodes
-        path: histore.path.Path
-            Current path under which the nodes in the document appear
+        doc_node: histore.archive.node.ArchiveElement
+            Archive element generated from a document snapshot
         version: int
             Version of the document snapshot
+        positions: list(histore.archive.node.ValueNode)
+            History of index positions for this node among its siblings with the
+            same label (for keyed nodes only)
         timestamp: histore.timestamp.Timestamp, optional
             Timestamp of the archive node in the new archive (may differ from
             timestamp in current archive)
@@ -109,42 +40,44 @@ class NestedMerger(object):
         """
         # Get the timestamp for the archive node in the new archive
         if timestamp is None:
-            t = archive_node.get_timestamp().append(version)
+            t = archive_node.timestamp.append(version)
         else:
             t = timestamp.append(version)
-        # Create a sorted list of annotated document nodes
-        anno_nodes = list()
-        for node in doc_nodes:
-            key = schema.get(path.extend(node.label))
-            if not key is None:
-                anno_nodes.append(AnnotatedNode(node, key=key.annotate(node)))
+        # Create modified copy of the archive node
+        result_node = ArchiveElement(
+            label=archive_node.label,
+            key=archive_node.key,
+            positions=positions,
+            timestamp=t
+        )
+
+        # Populate list of children in modified copy of the archive node by
+        # recursively merging matching nodes from the archive and the document.
+        children = list()
+        arch_idx = 0
+        doc_idx = 0
+        arch_children = archive_node.children
+        doc_children = doc_node.children
+        while arch_idx < len(arch_children) and doc_idx < len(doc_children):
+            arch_child = arch_children[arch_idx]
+            doc_child = doc_children[doc_idx]
+            comp = doc_child.compare_to(arch_child)
+            if comp < 0:
+                # The node has never been in any previous snapshot. Set the
+                # local timestamp to the timestamp of the document snapshot.
+                doc_idx += 1
+            elif comp > 0:
+                # The archive node is not present in this merged snapshot. Get
+                # a copy of the node. If the node does not have a local
+                # timestamp its current timestamp becomes the local timestamp.
+                arch_idx += 1
             else:
-                anno_nodes.append(AnnotatedNode(node))
-        anno_nodes = sort_nodes(anno_nodes)
-
-
-# ------------------------------------------------------------------------------
-# Helper Methods
-# ------------------------------------------------------------------------------
-
-def sort_nodes(nodes):
-    """Sort a list of annotated nodes. Implemented as insertion sort.
-
-    Parameters
-    ----------
-    nodes: list(histore.archive.merge.AnnotatedNode)
-
-    Returns
-    -------
-    list(histore.archive.merge.AnnotatedNode)
-    """
-    for i in range(1, len(nodes)):
-        node = nodes[i]
-        # Move elements of nodes[0..i-1], that are greater than the node one
-        # position ahead of their current position
-        j = i-1
-        while j >= 0 and node.compare_to(nodes[j]) < 0:
-            nodes[j + 1] = nodes[j]
-            j -= 1
-        nodes[j + 1] = node
-    return nodes
+                # Merge
+                arch_idx += 1
+                doc_idx += 1
+        # Add remaining nodes
+        while arch_idx < len(arch_children):
+            arch_idx += 1
+        while doc_idx < len(doc_children):
+            doc_idx += 1
+        # Return new archive node

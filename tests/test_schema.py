@@ -48,6 +48,14 @@ class TestSchema(unittest.TestCase):
                 for child in node.children:
                     if key.matches(Path(node.label).extend(child.label)):
                         self.assertEquals(key.annotate(child), [child.value])
+        # Exception if value-keyed node is not a leaf
+        key = KeyByNodeValue(target_path=Path('modules/command'))
+        for node in doc.nodes:
+            if node.label == 'modules':
+                for child in node.children:
+                    if child.label == 'command':
+                        with self.assertRaises(ValueError):
+                            key.annotate(node)
 
     def test_match(self):
         """Test path matching."""
