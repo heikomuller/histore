@@ -2,7 +2,8 @@ import unittest
 
 from histore.archive.base import Archive
 from histore.path import Path
-from histore.schema import DocumentSchema, KeySpec
+from histore.schema.document import DocumentSchema
+from histore.schema.key import KeyByChildNodes, KeyByNodeIndex
 
 
 class TestArchive(unittest.TestCase):
@@ -19,8 +20,8 @@ class TestArchive(unittest.TestCase):
                 'complete': ['A', 'B', 'C']
             }
         }
-        key1 = KeySpec(target_path=Path('modules'), value_paths=[Path('id'), Path('command/args/A')])
-        key2 = KeySpec(target_path=Path('tasks/complete'))
+        key1 = KeyByChildNodes(target_path=Path('modules'), value_paths=[Path('id'), Path('command/args/A')])
+        key2 = KeyByNodeIndex(target_path=Path('tasks/complete'))
         schema=DocumentSchema(keys=[key1, key2])
         archive = Archive(schema=schema)
         self.assertIsNone(archive.root)
@@ -30,8 +31,6 @@ class TestArchive(unittest.TestCase):
         self.assertEquals(snapshot.name, 'My Snapshot')
         self.assertIsNotNone(archive.root)
         self.assertEquals(archive.length(), 1)
-        print archive.root.to_json_string()
-        print archive.root.to_json_string(schema=schema, compact=True)
 
 if __name__ == '__main__':
     unittest.main()

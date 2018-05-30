@@ -191,8 +191,10 @@ class CompactArchiveSerializer(ArchiveSerializer):
         self.key_paths = list()
         if not schema is None:
             for key in schema.keys():
-                for val_path in key.value_paths:
-                    self.key_paths.append(str(key.target_path.concat(val_path)))
+                if hasattr(key, 'value_paths'):
+                    for value_path in key.value_paths:
+                        path = key.target_path.concat(value_path)
+                        self.key_paths.append(path.to_key())
 
     def to_dict(self, archive):
         """Get dictionary serialization for the given archive.

@@ -3,7 +3,8 @@ import unittest
 from histore.archive.merge import AnnotatedNode, sort_nodes
 from histore.document.base import Document
 from histore.path import Path
-from histore.schema import DocumentSchema, KeySpec
+from histore.schema.document import DocumentSchema
+from histore.schema.key import KeyByChildNodes, KeyByNodeIndex
 
 
 class TestMerge(unittest.TestCase):
@@ -21,8 +22,8 @@ class TestMerge(unittest.TestCase):
                 'complete': ['B', 'A', 'C']
             }
         }
-        key1 = KeySpec(target_path=Path('modules'), value_paths=[Path('id'), Path('command/args/A')])
-        key2 = KeySpec(target_path=Path('tasks/complete'))
+        key1 = KeyByChildNodes(target_path=Path('modules'), value_paths=[Path('id'), Path('command/args/A')])
+        key2 = KeyByNodeIndex(target_path=Path('tasks/complete'))
         schema=DocumentSchema(keys=[key1, key2])
         path = Path('')
         anno_nodes = list()
