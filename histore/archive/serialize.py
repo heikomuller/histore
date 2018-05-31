@@ -115,8 +115,8 @@ class DefaultArchiveSerializer(ArchiveSerializer):
         -------
         dict
         """
-        if not archive.root is None:
-            return self.element_to_dict(archive.root)
+        if not archive.root() is None:
+            return self.element_to_dict(archive.root())
         else:
             return dict()
 
@@ -209,8 +209,8 @@ class CompactArchiveSerializer(ArchiveSerializer):
         -------
         dict
         """
-        if not archive.root is None:
-            return {archive.root.label : self.element_to_dict(archive.root)}
+        if not archive.root() is None:
+            return {archive.root().label : self.element_to_dict(archive.root())}
         else:
             return dict()
 

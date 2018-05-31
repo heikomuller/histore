@@ -17,17 +17,17 @@ class TestTimestamp(unittest.TestCase):
         self.assertTrue(i1.contains(interval=TimeInterval(start=0, end=10)))
         self.assertFalse(i1.contains(interval=TimeInterval(start=0, end=11)))
         self.assertFalse(i1.contains(interval=TimeInterval(start=1, end=11)))
-        self.assertFalse(i1.contains(interval=TimeInterval(start=-1, end=1)))
         # Test overlaps
-        self.assertFalse(i1.overlap(interval=TimeInterval(start=-5, end=-1)))
-        self.assertTrue(i1.overlap(interval=TimeInterval(start=-5, end=0)))
-        self.assertTrue(i1.overlap(interval=TimeInterval(start=-5, end=5)))
-        self.assertTrue(i1.overlap(interval=TimeInterval(start=-5, end=15)))
+        i1 = TimeInterval(start=10, end=20)
+        self.assertFalse(i1.overlap(interval=TimeInterval(start=1, end=5)))
         self.assertTrue(i1.overlap(interval=TimeInterval(start=0, end=10)))
         self.assertTrue(i1.overlap(interval=TimeInterval(start=5, end=15)))
-        self.assertTrue(i1.overlap(interval=TimeInterval(start=9, end=15)))
-        self.assertTrue(i1.overlap(interval=TimeInterval(start=10, end=15)))
-        self.assertFalse(i1.overlap(interval=TimeInterval(start=11, end=15)))
+        self.assertTrue(i1.overlap(interval=TimeInterval(start=5, end=25)))
+        self.assertTrue(i1.overlap(interval=TimeInterval(start=10, end=20)))
+        self.assertTrue(i1.overlap(interval=TimeInterval(start=15, end=25)))
+        self.assertTrue(i1.overlap(interval=TimeInterval(start=19, end=25)))
+        self.assertTrue(i1.overlap(interval=TimeInterval(start=20, end=25)))
+        self.assertFalse(i1.overlap(interval=TimeInterval(start=21, end=25)))
         # Initialize
         with self.assertRaises(ValueError):
             TimeInterval(start=10, end=9)
@@ -59,6 +59,23 @@ class TestTimestamp(unittest.TestCase):
         for value in [0,6,10,11,12,13,17,18]:
             self.assertFalse(t.contains(value=value))
 
+    def test_timestamp_from_string(self):
+        """Test generating timestamps from stings."""
+        t = Timestamp.from_string('5')
+        self.assertEquals(len(t.intervals), 1)
+        self.assertTrue(t.contains(5))
+        t = Timestamp.from_string('1,3,5')
+        self.assertEquals(len(t.intervals), 3)
+        for i in [1,3,5]:
+            self.assertTrue(t.contains(i))
+        t = Timestamp.from_string('1-3,5')
+        self.assertEquals(len(t.intervals), 2)
+        for i in [1,2,3,5]:
+            self.assertTrue(t.contains(i))
+        with self.assertRaises(ValueError):
+            Timestamp.from_string('1,3--5')
+            Timestamp.from_string('abc')
+
     def test_timestamp_init(self):
         """Test timestamp initialization."""
         t = Timestamp()
@@ -68,6 +85,8 @@ class TestTimestamp(unittest.TestCase):
         with self.assertRaises(ValueError):
             Timestamp([TimeInterval(1, 3), TimeInterval(3, 4)])
             Timestamp([TimeInterval(1, 3), TimeInterval(2, 3)])
+            Timestamp([TimeInterval(-1, 3), TimeInterval(2, 3)])
+            Timestamp([TimeInterval(-1)])
 
     def test_timestamp_is_equal(self):
         """Test contains function of timestamp."""

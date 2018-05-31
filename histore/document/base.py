@@ -7,7 +7,7 @@ nodes that have a label and a list of children and leaf nodes that a
 label and contain a scalar value.
 """
 
-from histore.document.node import InternalNode
+from histore.document.node import InternalNode, print_node
 
 
 class Document(object):
@@ -53,11 +53,3 @@ def print_document(document, indent='\t'):
     print 'Document'
     for node in document.nodes:
         print_node(node, indent=indent)
-
-
-def print_node(node, indent='\t'):
-    """Print document node recursively. Primarily intended for debugging."""
-    print indent + str(node)
-    if not node.is_leaf():
-        for child in node.children:
-            print_node(child, indent=indent+indent)

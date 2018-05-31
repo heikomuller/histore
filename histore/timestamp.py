@@ -11,9 +11,11 @@ class TimeInterval(object):
     Ensures that start is lower or equal that end.
     """
     def __init__(self, start, end=None):
-        """Initialize the interval from a given integer pair. Ensures that
-        start is lower or equal than end (if given). If end is None it is
-        assumed to be equal to start
+        """Initialize the interval from a given integer pair. If end is None it
+        is assumed to be equal to start.
+
+        Ensures that start is lower or equal than end (if given). Interval
+        boundaries cannot be negative values.
 
         Parameters
         ----------
@@ -27,6 +29,8 @@ class TimeInterval(object):
             self.end = end
         else:
             self.end = start
+        if self.start < 0:
+            raise ValueError('interval boundaries cannot be negative values \'' + str(self.start) + '\'')
 
     def __repr__(self):
         """Unambiguous string representation of this time interval.
@@ -82,7 +86,7 @@ class TimeInterval(object):
         bool
         """
         return self.start == interval.start and self.end == interval.end
-        
+
     def overlap(self, interval):
 
     	if (self.start == interval.start) or (self.start == interval.end) or (self.end == interval.start) or (self.end == interval.end):
@@ -175,6 +179,30 @@ class Timestamp(object):
             elif interval.end < value:
                 return False
         return False
+
+    @staticmethod
+    def from_string(text):
+        """Create a timestamp instance from a string representation as generated
+        by the __str__ method.
+
+        Parameters
+        ----------
+        text: string
+
+        Returns
+        -------
+        histore.timestamp.Timestamp
+        """
+        intervals = list()
+        for token in text.strip().split(','):
+            pos = token.find('-')
+            if pos > 0:
+                start = int(token[:pos])
+                end = int(token[pos+1:])
+                intervals.append(TimeInterval(start,end))
+            else:
+                intervals.append(TimeInterval(int(token)))
+        return Timestamp(intervals=intervals)
 
     def is_empty(self):
         """Returns True if the timestamp is empty.

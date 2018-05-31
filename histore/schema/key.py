@@ -20,6 +20,14 @@ Histore supports three different types of keys:
 
 from abc import abstractmethod
 
+from histore.path import Path
+
+
+"""Unique identifier for the different key types."""
+INDEX_KEY = 'INDEX'
+PATHVALUES_KEY = 'PATHVALUES'
+VALUE_KEY = 'VALUE'
+
 
 class KeySpec(object):
     """Base class for key specifications. A key specification contains the
@@ -52,6 +60,35 @@ class KeySpec(object):
         """
         raise NotImplementedError
 
+    @staticmethod
+    def from_dict(doc):
+        """Create key specification instance from dictionary serialization.
+        Expects that every key specification to_dict() method add's a 'type'
+        element to the result based on which the key type is identified.
+        Calls the .from_dict() method of the respective class.
+
+        Parameters
+        ----------
+        doc: dict
+            Dictionary representation of key specification as returned by the
+            .to_dict() methods of the subclasses that implement the KeySpec
+            class.
+
+        Returns
+        -------
+        histore.schema.key.KeySpec
+        """
+        if not 'type' in doc:
+            raise ValueError('missing type information for key specification')
+        if doc['type'] == INDEX_KEY:
+            return NodeIndexKey.from_dict(doc)
+        elif doc['type'] == PATHVALUES_KEY:
+            return PathValuesKey.from_dict(doc)
+        elif doc['type'] == VALUE_KEY:
+            return NodeValueKey.from_dict(doc)
+        else:
+            raise ValueError('unknown key specification type \'' + str(doc['type']) + '\'')
+
     def matches(self, path):
         """Shortcut to test whether the key's target path matches the given
         path.
@@ -66,8 +103,140 @@ class KeySpec(object):
         """
         return self.target_path.matches(path)
 
+    @abstractmethod
+    def to_dict(self):
+        """Abstract method to get dictionary serialization for a key
+        specification. Implementing subclasses need to ensure that a 'type'
+        element is added to the returned dictionary. The value of the type is
+        used to identify the type (and class) of the key specification when
+        creating a key specification instance from a dictionary.
 
-class KeyByChildNodes(KeySpec):
+        Returns
+        -------
+        dict
+        """
+        raise NotImplementedError
+
+
+class NodeIndexKey(KeySpec):
+    """Index keys uniquely identify siblings based on their index position (in
+    document order) among the set of siblings with the same label.
+    """
+    def __init__(self, target_path):
+        """Initialize the target path.
+
+        Parameters
+        ----------
+        target_path: histore.document.path.Path
+        """
+        super(NodeIndexKey, self).__init__(target_path)
+
+    def annotate(self, node):
+        """Annotate a given node with a key value that contains the value of
+        the index position of the node among its siblings.
+
+        Parameters
+        ----------
+        node: histore.document.node.InternalNode
+
+        Returns
+        -------
+        list
+        """
+        return [node.index]
+
+    @staticmethod
+    def from_dict(doc):
+        """Create node index key specification instance from dictionary
+        serialization.
+
+        Parameters
+        ----------
+        doc: dict
+            Dictionary representation of key specification as returned by the
+            .to_dict() method.
+
+        Returns
+        -------
+        histore.schema.key.NodeIndexKey
+        """
+        return NodeIndexKey(Path(path=doc['path']))
+
+    def to_dict(self):
+        """Get dictionary serialization of the key specification.
+
+        Returns
+        -------
+        dict
+        """
+        return {
+            'type': INDEX_KEY,
+            'path': self.target_path.elements
+        }
+
+
+class NodeValueKey(KeySpec):
+    """Node value keys are only valid for leaf nodes. This key uses the node
+    value as the key.
+    """
+    def __init__(self, target_path):
+        """Initialize the target path.
+
+        Parameters
+        ----------
+        target_path: histore.document.path.Path
+        """
+        super(NodeValueKey, self).__init__(target_path)
+
+    def annotate(self, node):
+        """Annotate a given node with a key value that contains the value of
+        the node.
+
+        Raises ValueError if the node is not a leaf node.
+
+        Parameters
+        ----------
+        node: histore.document.node.InternalNode
+
+        Returns
+        -------
+        list
+        """
+        if not node.is_leaf():
+            raise ValueError('expected a leaf node instead of \'' + str(node) + '\'')
+        return [node.value]
+
+    @staticmethod
+    def from_dict(doc):
+        """Create node value key specification instance from dictionary
+        serialization.
+
+        Parameters
+        ----------
+        doc: dict
+            Dictionary representation of key specification as returned by the
+            .to_dict() method.
+
+        Returns
+        -------
+        histore.schema.key.NodeValueKey
+        """
+        return NodeValueKey(Path(path=doc['path']))
+
+    def to_dict(self):
+        """Get dictionary serialization of the key specification.
+
+        Returns
+        -------
+        dict
+        """
+        return {
+            'type': VALUE_KEY,
+            'path': self.target_path.elements
+        }
+
+
+class PathValuesKey(KeySpec):
     """Child value keys use the values from a list of child nodes (that in turn
     have to be leaf nodes) as the unique relative key.
     """
@@ -82,7 +251,7 @@ class KeyByChildNodes(KeySpec):
         target_path: histore.document.path.Path
         value_paths: list(histore.document.path.Path)
         """
-        super(KeyByChildNodes, self).__init__(target_path)
+        super(PathValuesKey, self).__init__(target_path)
         if value_paths is None or len(value_paths) == 0:
             raise ValueError('list of value paths cannot be empty')
         self.value_paths = value_paths
@@ -111,62 +280,33 @@ class KeyByChildNodes(KeySpec):
             key.append(child.value)
         return key
 
-
-class KeyByNodeIndex(KeySpec):
-    """Index keys uniquely identify siblings based on their index position (in
-    document order) among the set of siblings with the same label.
-    """
-    def __init__(self, target_path):
-        """Initialize the target path.
+    @staticmethod
+    def from_dict(doc):
+        """Create path values key specification instance from dictionary
+        serialization.
 
         Parameters
         ----------
-        target_path: histore.document.path.Path
-        """
-        super(KeyByNodeIndex, self).__init__(target_path)
-
-    def annotate(self, node):
-        """Annotate a given node with a key value that contains the value of
-        the index position of the node among its siblings.
-
-        Parameters
-        ----------
-        node: histore.document.node.InternalNode
+        doc: dict
+            Dictionary representation of key specification as returned by the
+            .to_dict() method.
 
         Returns
         -------
-        list
+        histore.schema.key.PathValuesKey
         """
-        return [node.index]
+        value_paths = [Path(path=p) for p in doc['values']]
+        return PathValuesKey(Path(path=doc['path']), value_paths=value_paths)
 
-
-class KeyByNodeValue(KeySpec):
-    """Node value keys are only valid for leaf nodes. This key uses the node
-    value as the key.
-    """
-    def __init__(self, target_path):
-        """Initialize the target path.
-
-        Parameters
-        ----------
-        target_path: histore.document.path.Path
-        """
-        super(KeyByNodeValue, self).__init__(target_path)
-
-    def annotate(self, node):
-        """Annotate a given node with a key value that contains the value of
-        the node.
-
-        Raises ValueError if the node is not a leaf node.
-
-        Parameters
-        ----------
-        node: histore.document.node.InternalNode
+    def to_dict(self):
+        """Get dictionary serialization of the key specification.
 
         Returns
         -------
-        list
+        dict
         """
-        if not node.is_leaf():
-            raise ValueError('expected a leaf node instead of \'' + str(node) + '\'')
-        return [node.value]
+        return {
+            'type': PATHVALUES_KEY,
+            'path': self.target_path.elements,
+            'values': [path.elements for path in self.value_paths]
+        }

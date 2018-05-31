@@ -5,7 +5,7 @@
 """A document schema is a list of key specifications."""
 
 from histore.path import Path
-from histore.schema.key import KeyByNodeIndex
+from histore.schema.key import NodeIndexKey, KeySpec
 
 class DocumentSchema(object):
     """A document schema is a collection of key specifications."""
@@ -40,6 +40,22 @@ class DocumentSchema(object):
             raise ValueError('duplicate key for \'' + path + '\'')
         self.elements[path] = key
 
+    @staticmethod
+    def from_dict(doc):
+        """Create document schema from dictionary serialization as returned by
+        the .to_dict() method.
+
+        Parameters
+        ----------
+        doc: dict
+            Dictionary representation of document schema.
+
+        Returns
+        -------
+        histore.schema.document.DocumentSchema
+        """
+        return DocumentSchema(keys=[KeySpec.from_dict(k) for k in doc['keys']])
+
     def get(self, path):
         """Get the key specification for the given target path. Returns None
         if no key for the given target path exists.
@@ -64,6 +80,15 @@ class DocumentSchema(object):
         list(document.schema.KeySpec)
         """
         return self.elements.values()
+
+    def to_dict(self):
+        """Get dictionary serialization for document schema.
+
+        Returns
+        -------
+        dict
+        """
+        return {'keys': [key.to_dict() for key in self.keys()]}
 
 
 class SimpleDocumentSchema(DocumentSchema):
@@ -99,7 +124,7 @@ def add_keyed_elements(schema, doc, path):
     for key in doc:
         if isinstance(doc[key], list):
             target_path = path.extend(key)
-            schema.add(KeyByNodeIndex(target_path=target_path), replace=True)
+            schema.add(NodeIndexKey(target_path=target_path), replace=True)
             for el in doc[key]:
                 if isinstance(el, list):
                     raise ValueError('nested lists are not supported')

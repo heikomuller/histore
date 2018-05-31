@@ -1,42 +1,18 @@
 import unittest
 
 from histore.archive.base import Archive
-from histore.path import Path
-from histore.schema.document import DocumentSchema
-from histore.schema.key import KeyByChildNodes, KeyByNodeIndex
+from histore.archive.snapshot import Snapshot
+from histore.schema.document import SimpleDocumentSchema
 
 
 class TestArchive(unittest.TestCase):
 
-    def test_first_snapshot(self):
-        """Test adding a snapshot to an empty archive."""
-        doc = {
-            'name': 'A',
-            'modules': [
-                {'id': 100, 'command': {'args' : {'A': 1, 'B': 2}}},
-                {'id': 101, 'command': {'args' : {'A': 1, 'B': 2}}}
-            ],
-            'tasks' : {
-                'complete': ['B', 'A', 'C']
-            }
-        }
-        key1 = KeyByChildNodes(target_path=Path('modules'), value_paths=[Path('id'), Path('command/args/A')])
-        key2 = KeyByNodeIndex(target_path=Path('tasks/complete'))
-        schema=DocumentSchema(keys=[key1, key2])
-        archive = Archive(schema=schema)
-        self.assertIsNone(archive.root)
+    def test_initialize(self):
+        """Test initializing a new archive."""
+        archive = Archive()
+        self.assertIsNotNone(archive.schema)
+        self.assertEquals(len(archive.schema.keys()), 0)
         self.assertEquals(archive.length(), 0)
-        snapshot = archive.insert(doc=doc, name='My Snapshot')
-        #print_archive(archive, indent='  ')
-        self.assertEquals(snapshot.version, 0)
-        self.assertEquals(snapshot.name, 'My Snapshot')
-        self.assertIsNotNone(archive.root)
-        self.assertEquals(archive.length(), 1)
-        snapshot = archive.insert(doc=doc)
-        #print archive.root.to_json_string(compact=True, schema=schema)
-
-    def test_sort(self):
-        """Test adding a snapshot to an empty archive."""
         doc = {
             'name': 'A',
             'modules': [
@@ -48,24 +24,40 @@ class TestArchive(unittest.TestCase):
                 'complete': ['B', 'A', 'C']
             }
         }
-        key1 = KeyByChildNodes(target_path=Path('modules'), value_paths=[Path('id'), Path('command/args/A')])
-        key2 = KeyByNodeIndex(target_path=Path('tasks/complete'))
-        schema = DocumentSchema(keys=[key1, key2])
-        archive = Archive(schema=schema)
-        archive.insert(doc=doc)
-        anno_nodes = archive.root.children
-        self.assertEquals(anno_nodes[0].positions[0].value, 2)
-        self.assertEquals(anno_nodes[0].key, [101, 1])
-        self.assertEquals(anno_nodes[1].positions[0].value, 1)
-        self.assertEquals(anno_nodes[1].key, [101, 2])
-        self.assertEquals(anno_nodes[2].positions[0].value, 0)
-        self.assertEquals(anno_nodes[2].key, [200, 1])
-        tasks = anno_nodes[-1]
-        anno_nodes = tasks.children
-        self.assertEquals(anno_nodes[0].positions[0].value, 0)
-        self.assertEquals(anno_nodes[1].positions[0].value, 1)
-        self.assertEquals(anno_nodes[2].positions[0].value, 2)
+        archive = Archive(schema=SimpleDocumentSchema(doc))
+        self.assertIsNotNone(archive.schema)
+        self.assertEquals(len(archive.schema.keys()), 2)
+        self.assertEquals(archive.length(), 0)
+        archive = Archive(
+            schema=SimpleDocumentSchema(doc),
+            snapshots=[Snapshot(0), Snapshot(1)]
+        )
+        self.assertIsNotNone(archive.schema)
+        self.assertEquals(len(archive.schema.keys()), 2)
+        self.assertEquals(archive.length(), 2)
+        with self.assertRaises(ValueError):
+            archive = Archive(
+                schema=SimpleDocumentSchema(doc),
+                snapshots=[Snapshot(0), Snapshot(1), Snapshot(0)]
+            )
 
+    def test_snapshot_serializatin(self):
+        """Test dictionary serialization for snapshot objects."""
+        s = Snapshot(1, name='My Name')
+        c_time = s.created_at
+        self.assertEquals(s.version, 1)
+        self.assertEquals(s.name, 'My Name')
+        self.assertIsNone(s.archive)
+        s = Snapshot.from_dict(s.to_dict())
+        self.assertEquals(s.version, 1)
+        self.assertEquals(s.created_at, c_time)
+        self.assertEquals(s.name, 'My Name')
+        self.assertIsNone(s.archive)
+        s = Snapshot.from_dict(s.to_dict(), archive=Archive())
+        self.assertEquals(s.version, 1)
+        self.assertEquals(s.created_at, c_time)
+        self.assertEquals(s.name, 'My Name')
+        self.assertIsNotNone(s.archive)
 
 if __name__ == '__main__':
     unittest.main()

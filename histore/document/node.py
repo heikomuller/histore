@@ -22,7 +22,9 @@ class Node(object):
     is used to distinguish between the two node types.
 
     Each node has an optional index position that is used to define the order
-    of sibling nodes with the same label.
+    of sibling nodes with the same label. Only those nodes that are members of
+    a list of nodes (e.g., when converting a dictionary into a document) should
+    have an index that is not None.
     """
     def __init__(self, label, node_type, index=None):
         """Set the node label, the type flag that is used to distinguish between
@@ -47,8 +49,8 @@ class Node(object):
         if label is None:
             raise ValueError('invalid element label')
         self.label = label
-        # Set index position. te default is 0.
-        self.index = index if not index is None else 0
+        # Set index position.
+        self.index = index
 
     def __repr__(self):
         """Unambiguous string representation of this path object.
@@ -100,7 +102,7 @@ class InternalNode(Node):
         -------
         string
         """
-        return 'InternalNode(%s, index=%i)' % (self.label, self.index)
+        return 'InternalNode(%s, index=%s)' % (self.label, str(self.index))
 
     def add(self, node, strict=True):
         """Shortcut to append a node to the list of children.
@@ -121,8 +123,16 @@ class InternalNode(Node):
         # label.
         if strict:
             for child in self.children:
-                if child.label == node.label and child.index == node.index:
-                    raise ValueError('duplicate index for \'' + str(node) + '\'')
+                if child.label == node.label:
+                    if child.index is None and node.index is None:
+                        raise ValueError('duplicate child nodes with \'None\' index')
+                    elif not child.index is None and node.index is None:
+                        raise ValueError('cannot have children with index and \'None\'')
+                    elif child.index is None and not node.index is None:
+                        raise ValueError('cannot have children with index and \'None\'')
+                    elif child.index == node.index:
+                        raise ValueError('duplicate index for \'' + str(node) + '\'')
+
         self.children.append(node)
         return node
 
@@ -238,4 +248,16 @@ class LeafNode(Node):
         -------
         string
         """
-        return 'LeafNode(%s, %s, index=%i)' % (self.label, str(self.value), self.index)
+        return 'LeafNode(%s, %s, index=%s)' % (self.label, str(self.value), str(self.index))
+
+
+# ------------------------------------------------------------------------------
+# Helper Methods
+# ------------------------------------------------------------------------------
+
+def print_node(node, indent='\t', depth=0):
+    """Print document node recursively. Primarily intended for debugging."""
+    print (indent * depth) + str(node)
+    if not node.is_leaf():
+        for child in node.children:
+            print_node(child, indent=indent, depth=depth+1)

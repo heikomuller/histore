@@ -80,7 +80,7 @@ class TestDocument(unittest.TestCase):
         self.assertFalse(element.is_leaf())
         self.assertEquals(element.label, 'my_label')
         self.assertEquals(len(element.children), 0)
-        self.assertEquals(element.index, 0)
+        self.assertEquals(element.index, None)
         element = InternalNode('my_label', children=[1, 2, 3], index=2)
         self.assertFalse(element.is_leaf())
         self.assertEquals(element.label, 'my_label')
@@ -95,6 +95,19 @@ class TestDocument(unittest.TestCase):
             a.add(LeafNode('B'))
         a.add(LeafNode('B'), strict=False)
 
+    def test_leaf_node(self):
+        """Ensure that leaf nodes are initialized properly."""
+        value = LeafNode('A', 1)
+        self.assertTrue(value.is_leaf())
+        self.assertEquals(value.label, 'A')
+        self.assertEquals(value.value, 1)
+        self.assertEquals(value.index, None)
+        value = LeafNode('A', 1, index=2)
+        self.assertTrue(value.is_leaf())
+        self.assertEquals(value.label, 'A')
+        self.assertEquals(value.value, 1)
+        self.assertEquals(value.index, 2)
+
     def test_node(self):
         """Ensure that an exception is raised when initializing a Node with
         an invalid node type.
@@ -102,18 +115,30 @@ class TestDocument(unittest.TestCase):
         with self.assertRaises(ValueError):
             Node('A', 100)
 
-    def test_leaf_node(self):
-        """Ensure that leaf nodes are initialized properly."""
-        value = LeafNode('A', 1)
-        self.assertTrue(value.is_leaf())
-        self.assertEquals(value.label, 'A')
-        self.assertEquals(value.value, 1)
-        self.assertEquals(value.index, 0)
-        value = LeafNode('A', 1, index=2)
-        self.assertTrue(value.is_leaf())
-        self.assertEquals(value.label, 'A')
-        self.assertEquals(value.value, 1)
-        self.assertEquals(value.index, 2)
+    def test_node_index(self):
+        """Test that only those nodes in the document have an index that are
+        elements of a list.
+        """
+        tree = {
+            'A': 1,
+            'B': 2,
+            'C': [
+                1,
+                {'E': 1, 'F': 2},
+                3,
+                {'E': 3, 'F': 4}
+            ],
+            'D': {'G': 3, 'H': 4},
+            'I': [{'J': 1}]
+        }
+        doc = Document(doc=tree)
+        self.assertEquals(len(doc.nodes), 8)
+        for node in doc.nodes:
+            if node.label in ['C', 'I']:
+                self.assertIsNotNone(node.index)
+            else:
+                self.assertIsNone(node.index)
+
 
 if __name__ == '__main__':
     unittest.main()

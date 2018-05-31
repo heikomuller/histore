@@ -33,6 +33,32 @@ class Snapshot(object):
         self.name = name if not name is None else self.created_at.isoformat()
         self.archive = archive
 
+    @staticmethod
+    def from_dict(doc, archive=None):
+        """Create snapshot from dictionary serialization as returned by
+        the .to_dict() method.
+
+        Parameters
+        ----------
+        doc: dict
+            Dictionary representation of snapshot.
+        archive: histore.archive.base.Archive, optional
+            Archive object containing the snapshot
+
+        Returns
+        -------
+        histore.archive.snapshot.Snapshot
+        """
+        return Snapshot(
+            version=doc['version'],
+            created_at=datetime.datetime.strptime(
+                doc['createdAt'],
+                '%Y-%m-%dT%H:%M:%S.%f'
+            ),
+            name=doc['name'],
+            archive=archive
+        )
+
     def get(self):
         """Get the snapshot document from the archive.
 
@@ -45,3 +71,16 @@ class Snapshot(object):
         if self.archive is None:
             raise ValueError('snapshot archive not set')
         return self.archive.get(self.version)
+
+    def to_dict(self):
+        """Get dictionary serialization for snapshot.
+
+        Returns
+        -------
+        dict
+        """
+        return {
+            'version': self.version,
+            'createdAt': self.created_at.isoformat(),
+            'name': self.name
+        }

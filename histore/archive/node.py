@@ -6,6 +6,10 @@
 values. Element nodes contain a label and children. Value nodes contain only a
 value. Every node in the archive has a timestamp that represents the snapshots
 (versions) in which the node was present.
+
+Element nodes are annotated with key values based on a document schema. The key
+values uniquely identify entities within archives and documents. They are
+essential when merging document snapshots and archives.
 """
 
 from abc import abstractmethod
@@ -13,9 +17,9 @@ import json
 import StringIO
 import yaml
 
+from histore.archive.serialize import CompactArchiveSerializer, DefaultArchiveSerializer
 from histore.path import Path
 from histore.timestamp import Timestamp, TimeInterval
-from histore.archive.serialize import CompactArchiveSerializer, DefaultArchiveSerializer
 
 
 class ArchiveNode(object):
@@ -41,6 +45,77 @@ class ArchiveNode(object):
         if timestamp is None or timestamp.is_empty():
             raise ValueError('invalid timestamp')
         self.timestamp = timestamp
+
+    @staticmethod
+    def compare(node1, node2):
+        """Compare two element nodes. Returns -1 if this first node is
+        considered lower than the second node, 0 if both nodes are considered
+        equal, and 1 if the first is considered greater than the second node.
+
+        Element nodes are in general considered lower than value nodes. For
+        a pair of value nodes the order is defined by the order of their
+        respective values. For element nodes the order is defined first by their
+        label and second by their respective keys.
+
+        Parameters
+        ----------
+        node1: histore.archive.node.ArchiveNode
+        node2: histore.archive.node.ArchiveNode
+
+        Returns
+        -------
+        int
+        """
+        # If nodes are not of the same type an element node is considered the
+        # lower ordered one.
+        if node1.is_element() and node2.is_value():
+            return -1
+        elif node1.is_value() and node2.is_element():
+            return 1
+        elif node1.is_value() and node2.is_value():
+            # If both nodes are values their order is determined by the order of
+            # their values.
+            if node1.value < node2.value:
+                return -1
+            elif node1.value > node2.value:
+                return 1
+            else:
+                return 0
+        else:
+            # if both nodes are elements thier order is defined by (1) the
+            # order of their labels and (2) the order of their respective key
+            # values.
+            if node1.label < node2.label:
+                return -1
+            elif node1.label > node2.label:
+                return 1
+            else:
+                # If none of the nodes has a key return 0. Else compare the key
+                # values. The keys are expected to be of same length.
+                if not node1.key is None and node2.key is None:
+                    return -1
+                elif node1.key is None and not node2.key is None:
+                    return 1
+                elif node1.key is None and node2.key is None:
+                    return 0
+                else:
+                    for i in range(len(node1.key)):
+                        kv1 = node1.key[i]
+                        kv2 = node2.key[i]
+                        if kv1 < kv2:
+                            return -1
+                        elif kv1 > kv2:
+                            return 1
+                    return 0
+
+    def is_element(self):
+        """Returns True id the node is an archive element node.
+
+        Returns
+        -------
+        bool
+        """
+        return not self.is_value()
 
     @abstractmethod
     def is_value(self):
@@ -106,104 +181,22 @@ class ArchiveElement(ArchiveNode):
         return 'ArchiveElement(%s, key=%s, t=%s)' % (self.label, str(self.key), str(self.timestamp))
 
     def add(self, node):
-        """Add a child node to this element.
-
-        Raises ValueError if the node is an element node and the label is not
-        unique among the siblings and the node does not have a key value.
+        """Shortcut to add a child node to this element.
 
         Parameters
         ----------
         node: histore.archive.node.ArchiveNode
         """
-        if not node.is_value() and node.key is None:
-            for child in self.children:
-                if not child.is_value() and child.label == node.label:
-                    raise ValueError('duplicate elements \'' + node.label + '\' keyed by existence')
         self.children.append(node)
 
-    def add_nodes(self, doc_nodes, schema, path):
-        """Add all nodes in the document node list as children of the this
-        element.
-
-        Ensures that children are sorted based on their key values.
-
-        Parameters
-        ----------
-        archive_node: histore.archive.node.ArchiveElement
-        doc_nodes: list(histore.document.node.Node)
-        schema: histore.schema.DocumentSchema
-        path: histore.path.Path
-
-        Returns
-        -------
-        histore.archive.node.ArchiveElement
-        """
-        for node in doc_nodes:
-            child = ArchiveElement(label=node.label, timestamp=self.timestamp)
-            target_path = path.extend(node.label)
-            key = schema.get(target_path)
-            if not key is None:
-                child.key = key.annotate(node)
-                child.positions.append(
-                    ArchiveValue(
-                        timestamp=self.timestamp,
-                        value=node.index
-                    )
-                )
-            self.add(child)
-            if node.is_leaf():
-                child.add(
-                    ArchiveValue(
-                        timestamp=self.timestamp,
-                        value=node.value
-                    )
-                )
-            else:
-                child.add_nodes(node.children, schema, target_path)
-        # Make sure to sort the children of the node.
-        self.sort()
-        return self
-
-    def compare_to(self, node):
-        """Compare two element nodes. Returns -1 if this node is considered
-        lower than the given node, 0 if both nodes are considered equal, and 1
-        if this node is considered greater than the given node.
-
-        Parameters
-        ----------
-        node: histore.archive.node.ArchiveElement
-
-        Returns
-        -------
-        int
-        """
-        if self.label < node.label:
-            return -1
-        elif self.label > node.label:
-            return 1
-        else:
-            # If none of the nodes has a key return 0. Else compare the key
-            # values. The keys are expected to be of same length
-            if not self.key is None and node.key is None:
-                return -1
-            elif self.key is None and not node.key is None:
-                return 1
-            elif self.key is None and node.key is None:
-                return 0
-            else:
-                for i in range(len(self.key)):
-                    kv1 = self.key[i]
-                    kv2 = node.key[i]
-                    if kv1 < kv2:
-                        return -1
-                    elif kv1 > kv2:
-                        return 1
-                return 0
-
     @staticmethod
-    def from_document(doc, schema, label='root', version=0):
+    def from_document(doc, schema, label='root', version=0, strict=False):
         """Create an archive element node from a given document with the given
         schema.
+
+        Strict mode ensures that all nodes in the annotated document have a
+        unique key (i.e., there are no child nodes of any parent in the document
+        with identical labels and key values).
 
         Parameters
         ----------
@@ -211,15 +204,21 @@ class ArchiveElement(ArchiveNode):
         schema: histore.schema.DocumentSchema
         label: string
         version: int
+        strict: bool, optional
 
         Returns
         -------
         histore.archive.node.ArchiveElement
         """
-        return ArchiveElement(
+        return NodeAnnotator(schema).annotate(
+            archive_node=ArchiveElement(
                 label=label,
                 timestamp= Timestamp([TimeInterval(version)])
-            ).add_nodes(doc_nodes=doc.nodes, schema=schema, path=Path(''))
+            ),
+            doc_nodes=doc.nodes,
+            path=Path(''),
+            strict=strict
+        )
 
     def is_value(self):
         """Overrides abstract method. Returns False because the node is not an
@@ -231,9 +230,17 @@ class ArchiveElement(ArchiveNode):
         """
         return False
 
-    def sort(self):
+    def sort(self, strict=False):
         """Sort element child nodes. Implemented as insertion sort. Sorts the
-        list if children in-place
+        list if children in-place.
+
+        The strict flag is used to raise ValueErrors for duplicate nodes when
+        annotating a document in strict mode. If set to True this ensures that
+        the list of children of an element does not contain identical nodes.
+
+        Parameters
+        ----------
+        strict: bool, optiona;
         """
         nodes = self.children
         for i in range(1, len(nodes)):
@@ -241,7 +248,12 @@ class ArchiveElement(ArchiveNode):
             # Move elements of nodes[0..i-1], that are greater than the node one
             # position ahead of their current position
             j = i - 1
-            while j >= 0 and node.compare_to(nodes[j]) < 0:
+            while j >= 0:
+                comp =  ArchiveNode.compare(node, nodes[j])
+                if strict and comp == 0:
+                    raise ValueError('duplicate nodes \'' + str(node) + '\'')
+                elif comp >= 0:
+                    break
                 nodes[j + 1] = nodes[j]
                 j -= 1
             nodes[j + 1] = node
@@ -312,6 +324,66 @@ class ArchiveValue(ArchiveNode):
         bool
         """
         return True
+
+
+class NodeAnnotator(object):
+    """Annotate nodes in a document snapshot with key values based on a given
+    schema.
+    """
+    def __init__(self, schema):
+        """Initialize the schema that is used for node annotation.
+
+        Parameters
+        ----------
+        schema: histore.schema.document.DocumentSchema
+        """
+        self.schema = schema
+
+    def annotate(self, archive_node, doc_nodes, path, strict=False):
+        """Annotate the given list of document nodes recursively and add the
+        result as children of the given archive node. Returns the given
+        archive_node.
+
+        When strict mode is enabled the method reaises a ValueError if it
+        encounters duplicate nodes as children of the same parent node.
+
+        Paremeters
+        ----------
+        archive_node: histore.archive.node.ArchiveElement
+            Archive element to which the annotated document nodes are added
+            as children
+        doc_nodes: list(histore.document.node.Node)
+            List of document nodes that are annotated`
+        path: histore.path.Path
+            Target path under which the document nodes appear in the document.
+            The path determines the key specification that is used to annotate
+            the document nodes.
+        strict: bool, optional
+            Flag indicating whether checking for duplicates is enabled or not.
+
+        Returns
+        -------
+        histore.archive.node.ArchiveElement
+        """
+        t = archive_node.timestamp
+        for node in doc_nodes:
+            child = ArchiveElement(label=node.label, timestamp=t)
+            target_path = path.extend(node.label)
+            key = self.schema.get(target_path)
+            if not key is None:
+                child.key = key.annotate(node)
+                child.positions.append(
+                    ArchiveValue(timestamp=t, value=node.index)
+                )
+            archive_node.add(child)
+            if node.is_leaf():
+                child.add(
+                    ArchiveValue(timestamp=t, value=node.value))
+            else:
+                self.annotate(child, node.children, target_path, strict=strict)
+        # Make sure to sort the children of the node.
+        archive_node.sort(strict=strict)
+        return archive_node
 
 
 # ------------------------------------------------------------------------------
