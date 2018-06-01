@@ -10,6 +10,65 @@ from histore.timestamp import TimeInterval, Timestamp
 
 class TestMerge(unittest.TestCase):
 
+    def test_list_behavior(self):
+        """Test merging documents where the same element is a list ine one
+        version and a single element in the other.
+        """
+        doc1 = {
+            'modules': {
+                'id': 1,
+                'name': 'A'
+            }
+        }
+        doc2 = {
+            'modules': [{
+                'id': 1,
+                'name': 'B'
+            }]
+        }
+        doc3 = {
+            'modules': [{
+                'id': 2,
+                'name': 'A'
+            }]
+        }
+        schema=DocumentSchema(keys=[
+            PathValuesKey(target_path=Path('modules'), value_paths=[Path('id')])
+        ])
+        archive = Archive(schema=schema)
+        archive.insert(doc=doc1)
+        archive.insert(doc=doc2)
+        archive.insert(doc=doc3)
+        archive.insert(doc=doc1)
+        archive.insert(doc=doc2)
+        archive.insert(doc=doc3)
+        self.validate_archive(archive, [doc1, doc2, doc3])
+        doc1 = {
+            'name': 'MY NAME'
+        }
+        doc2 = {
+            'name': ['MY NAME']
+        }
+        doc3 = {
+            'name': 'A NAME'
+        }
+        doc4 = {
+            'name': ['A NAME']
+        }
+        schema=DocumentSchema(keys=[
+            NodeValueKey(target_path=Path('name'))
+        ])
+        archive = Archive(schema=schema)
+        archive.insert(doc=doc1)
+        archive.insert(doc=doc2)
+        archive.insert(doc=doc3)
+        archive.insert(doc=doc4)
+        archive.insert(doc=doc1)
+        archive.insert(doc=doc2)
+        archive.insert(doc=doc3)
+        archive.insert(doc=doc4)
+        self.validate_archive(archive, [doc1, doc2, doc3, doc4])
+
     def test_repeated_merge(self):
         """Test repeatedly merging the same documents."""
         doc1 = {

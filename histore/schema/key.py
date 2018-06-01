@@ -135,6 +135,8 @@ class NodeIndexKey(KeySpec):
         """Annotate a given node with a key value that contains the value of
         the index position of the node among its siblings.
 
+        Raises ValueError if the index of the given node is None.
+
         Parameters
         ----------
         node: histore.document.node.InternalNode
@@ -143,6 +145,8 @@ class NodeIndexKey(KeySpec):
         -------
         list
         """
+        if node.index is None:
+            raise ValueError('missing index value for \'' + str(node) + '\'')
         return [node.index]
 
     @staticmethod
