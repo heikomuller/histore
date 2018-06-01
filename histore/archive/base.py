@@ -8,6 +8,7 @@ from histore.archive.query.snapshot import SnapshotQuery
 from histore.archive.snapshot import Snapshot
 from histore.archive.store.mem import InMemoryArchiveStore
 from histore.document.base import Document
+from histore.document.serialize import DefaultDocumentSerializer
 from histore.path import Path
 from histore.schema.document import DocumentSchema
 
@@ -51,9 +52,11 @@ class Archive(object):
                 self.snapshots.append(s)
         self.store = store if not store is None else InMemoryArchiveStore()
 
-    def get(self, version):
-        """Retrieve document snapshot from the archive. The version identifies
-        the snapshot that is being retireved.
+    def get(self, version, serializer=None):
+        """Retrieve a document snapshot from the archive. The version identifies
+        the snapshot that is being retireved. Use the provided document
+        serializer to convert the internal document representation into the
+        format that is used by the application/user.
 
         Raises ValueError if the provided version number does not identify a
         valid snapshot.
@@ -61,16 +64,24 @@ class Archive(object):
         Parameters
         ----------
         version: int
+        serializer: histore.document.serializer.DocumentSerializer
 
         Returns
         -------
-        dict
+        any
         """
         # Raise exception if version number is unknown
         if version < 0 or version >= len(self.snapshots):
             raise ValueError('unknown version number \'' + str(version) + '\'')
         # Evaluate snapshot query for requested document snapshot
-        return SnapshotQuery(self).get(self.snapshot(version))
+        doc_root = SnapshotQuery(self).get(self.snapshot(version))
+        doc = Document(nodes=doc_root.children)
+        # Use the default serializer if the application did not provide a
+        # serializer
+        if serializer is None:
+            return DefaultDocumentSerializer().serialize(doc)
+        else:
+            return serializer.serialize(doc)
 
     def insert(self, doc, name=None, strict=False):
         """Insert a new document version as snapshot into this archive.

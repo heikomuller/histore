@@ -74,18 +74,20 @@ class TestQuery(unittest.TestCase):
         }
         archive = Archive()
         archive.insert(doc=doc)
-        query = PathQuery().add('modules').add('command').add('args')
-        nodes = query.find_all(archive.root())
-        self.assertEquals(len(nodes), 3)
-        for node in nodes:
+        for i in range(3):
+            query = PathQuery().add('modules', key=[i]).add('command').add('args')
+            nodes = query.find_all(archive.root())
+            self.assertEquals(len(nodes), 1)
+            node = nodes[0]
             self.assertEquals(len(node.children), 2)
             self.assertEquals(node.children[0].label, 'A')
             self.assertEquals(node.children[1].label, 'B')
-        query = PathQuery().add('tasks').add('complete')
-        nodes = query.find_all(archive.root())
-        self.assertEquals(len(nodes), 3)
         values = set()
-        for node in nodes:
+        for i in range(3):
+            query = PathQuery().add('tasks').add('complete', key=[i])
+            nodes = query.find_all(archive.root())
+            self.assertEquals(len(nodes), 1)
+            node = nodes[0]
             self.assertEquals(len(node.children), 1)
             values.add(node.children[0].value)
         self.assertEquals(values, set(['B', 'A', 'C']))
@@ -94,6 +96,49 @@ class TestQuery(unittest.TestCase):
         query.find_one(archive.root())
         with self.assertRaises(ValueError):
             query.find_one(archive.root(), strict=True)
+
+    def test_query_with_missing_schema(self):
+        """Test queries of archive generated without schema."""
+        doc1 = {
+            'name': 'MY NAME',
+            'modules': [
+                {'id': 0, 'commands': [
+                    {'type': 'LOAD', 'args' : [{'key': 'A', 'value': 2}, {'key': 'B', 'value': 1}]},
+                    {'type': 'RUN', 'args' :  [{'key': 'C', 'value': 2}]}
+                ]},
+                {'id': 1, 'commands': [
+                    {'type': 'LOAD', 'args' : [{'key': 'A', 'value': 2}, {'key': 'B', 'value': 1}]}
+                ]}
+            ],
+            'tasks' : {
+                'complete': ['B', 'A', 'C']
+            }
+        }
+        doc2 = {
+            'name': 'MY NAME',
+            'modules': [
+                {'id': 0, 'commands': [
+                    {'type': 'LOAD', 'args' :[{'key': 'C', 'value': 1}, {'key': 'A', 'value': 3}]},
+                    {'type': 'RUN', 'args' : [{'key': 'C', 'value': 2}]}
+                ]},
+                {'id': 1, 'commands': [
+                    {'type': 'LOAD', 'args' :  [{'key': 'C', 'value': 2}, {'key': 'B', 'value': 2}]},
+                    {'type': 'RUN'}
+                ]}
+            ],
+            'tasks' : {
+                'complete': ['A', 'B', 'C']
+            }
+        }
+        archive = Archive()
+        archive.insert(doc=doc1)
+        archive.insert(doc=doc2)
+        archive.insert(doc=doc1)
+        archive.insert(doc=doc2)
+        archive.insert(doc=doc1)
+        archive.insert(doc=doc2)
+        nodes = PathQuery().add('tasks').add('complete').find_all(archive.root())
+        self.assertEquals(len(nodes), 0)
 
     def test_query_with_index_expressions(self):
         """Test queries of archive nodes on a document containing duplicate
@@ -144,7 +189,8 @@ class TestQuery(unittest.TestCase):
         """Test queries of archive nodes on a document where all nodes have
         unique identifier.
         """
-        doc1 = {
+        documents = list()
+        documents.append({
             'name': 'A',
             'modules': [
                 {'id': 200, 'command': {'args' : {'A': 1, 'B': 2}}},
@@ -154,8 +200,8 @@ class TestQuery(unittest.TestCase):
             'tasks' : {
                 'complete': ['B', 'A', 'C']
             }
-        }
-        doc2 = {
+        })
+        documents.append({
             'name': 'A',
             'modules': [
                 {'id': 200, 'command': {'args' : {'A': 1, 'B': 3}}},
@@ -165,8 +211,8 @@ class TestQuery(unittest.TestCase):
             'tasks' : {
                 'complete': ['A', 'B', 'C']
             }
-        }
-        doc3 = {
+        })
+        documents.append({
             'name': 'A',
             'modules': [
                 {'id': 200, 'command': {'args' : {'A': 1, 'B': 2}}},
@@ -176,26 +222,17 @@ class TestQuery(unittest.TestCase):
             'tasks' : {
                 'complete': ['B', 'C', 'A']
             }
-        }
+        })
         archive = Archive(schema=DocumentSchema(keys=[
             PathValuesKey(target_path=Path('modules'), value_paths=[Path('id'), Path('command/args/A')]),
             NodeValueKey(target_path=Path('tasks/complete'))
         ]))
-        archive.insert(doc=doc1)
-        archive.insert(doc=doc2)
-        archive.insert(doc=doc3)
-        node = archive.get(1)
-        for task in node.get('tasks').children:
-            if task.value == 'A':
-                self.assertEquals(task.index, 0)
-            elif task.value == 'B':
-                self.assertEquals(task.index, 1)
-            elif task.value == 'C':
-                self.assertEquals(task.index, 2)
-            else:
-                raise ValueError('unexpected task node \'' + str(task) + '\'')
-        #from histore.document.node import print_node
-        #print_node(node, indent='    ')
+        snapshots = list()
+        for i in range(len(documents)):
+            snapshots.append(archive.insert(doc=documents[i]))
+        for i in range(len(snapshots)):
+            self.assertEquals(archive.get(snapshots[i].version), documents[i])
+
 
 if __name__ == '__main__':
     unittest.main()

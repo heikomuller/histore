@@ -87,6 +87,8 @@ class TestMerge(unittest.TestCase):
                 self.assertTrue(pos.timestamp.is_equal(Timestamp.from_string('0,2,4')))
             else:
                 self.assertTrue(pos.timestamp.is_equal(Timestamp.from_string('1,3,5')))
+        # Validate all snapshots in the archive
+        self.validate_archive(archive, [doc1, doc2])
         #print archive.root().to_json_string(compact=True, schema=schema)
 
     def test_unkeyed_merge(self):
@@ -129,11 +131,12 @@ class TestMerge(unittest.TestCase):
         archive.insert(doc=doc2)
         archive.insert(doc=doc1)
         archive.insert(doc=doc2)
-        nodes = PathQuery().add('tasks').add('complete').find_all(archive.root())
-        self.assertEquals(len(nodes), 3)
         changed_tasks = list()
         unchanged_tasks = list()
-        for node in nodes:
+        for i in range(3):
+            nodes = PathQuery().add('tasks').add('complete', key=[i]).find_all(archive.root())
+            self.assertEquals(len(nodes), 1)
+            node = nodes[0]
             if len(node.children) == 1:
                 unchanged_tasks.append(node)
             elif len(node.children) == 2:
@@ -146,6 +149,8 @@ class TestMerge(unittest.TestCase):
             for child in node.children:
                 labels.add(child.value)
             self.assertEquals(labels, set(['A', 'B']))
+        # Validate all snapshots in the archive
+        self.validate_archive(archive, [doc1, doc2])
         #print archive.root().to_json_string(compact=True)
 
     def test_value_and_element_children(self):
@@ -188,7 +193,26 @@ class TestMerge(unittest.TestCase):
         self.assertEquals(el_node.children[0].value, 'B')
         self.assertTrue(val_node.timestamp.is_equal(Timestamp.from_string('0,2,4')))
         self.assertEquals(val_node.value, 'A')
+        # Validate all snapshots in the archive
+        self.validate_archive(archive, [doc1, doc2])
         #print archive.root().to_json_string(compact=True)
+
+    def validate_archive(self, archive, documents):
+        """Validate the snapshots in the archive. It is assumes that the
+        documents in the given list were alternating merged into the
+        archive.
+
+        Parameters
+        ----------
+        archive: histore.archive.base.archive
+        documents: list(dict)
+        """
+        index = 0
+        for i in range(archive.length()):
+            snapshot = archive.snapshot(i)
+            doc = archive.get(snapshot.version)
+            self.assertEquals(doc, documents[index])
+            index = (index + 1) % len(documents)
 
 
 if __name__ == '__main__':

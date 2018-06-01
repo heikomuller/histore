@@ -375,6 +375,16 @@ class NodeAnnotator(object):
                 child.positions.append(
                     ArchiveValue(timestamp=t, value=node.index)
                 )
+            elif not node.index is None:
+                # Raise an exception if strict mode is on
+                if strict:
+                    raise ValueError('duplicate nodes \'' + str(node) + '\'')
+                # Annotate nodes with an index (but no key specification) as if
+                # they were keyed by index.
+                child.key = [node.index]
+                child.positions.append(
+                    ArchiveValue(timestamp=t, value=node.index)
+                )
             archive_node.add(child)
             if node.is_leaf():
                 child.add(
