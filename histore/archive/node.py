@@ -13,11 +13,7 @@ essential when merging document snapshots and archives.
 """
 
 from abc import abstractmethod
-import json
-import StringIO
-import yaml
 
-from histore.archive.serialize import CompactArchiveSerializer, DefaultArchiveSerializer
 from histore.path import Path
 from histore.timestamp import Timestamp, TimeInterval
 
@@ -258,36 +254,6 @@ class ArchiveElement(ArchiveNode):
                 j -= 1
             nodes[j + 1] = node
 
-    def to_json_string(self, compact=False, schema=None):
-        """ Get" nested node structure as formated Json string. Intended
-        primarily for debugging.
-
-        Returns
-        -------
-        string
-        """
-        if compact:
-            serializer = CompactArchiveSerializer(schema=schema)
-        else:
-            serializer = DefaultArchiveSerializer()
-        return json.dumps(serializer.element_to_dict(self), indent=4, sort_keys=True)
-
-    def to_yaml_string(self, compact=False, schema=None):
-        """ Get" nested node structure as formated Yaml string. Intended
-        primarily for debugging.
-
-        Returns
-        -------
-        string
-        """
-        if compact:
-            serializer = CompactArchiveSerializer(schema=schema)
-        else:
-            serializer = DefaultArchiveSerializer()
-        stream = StringIO.StringIO()
-        yaml.dump(serializer.element_to_dict(self), stream, default_flow_style=False)
-        return stream.getvalue()
-
 
 class ArchiveValue(ArchiveNode):
     """A value node in an archive represents a timestamped value. These nodes
@@ -394,21 +360,3 @@ class NodeAnnotator(object):
         # Make sure to sort the children of the node.
         archive_node.sort(strict=strict)
         return archive_node
-
-
-# ------------------------------------------------------------------------------
-# Helper Methods
-# ------------------------------------------------------------------------------
-
-def print_node(node, indent='\t', depth=0):
-    """Print an archive node. Primarily for debugging purposes.
-
-    Parameters
-    ----------
-    node: histore.archive.node.ArchiveNode
-    indent: string
-    """
-    print (indent * depth) + str(node)
-    if not node.is_value():
-        for child in node.children:
-            print_node(child, indent=indent, depth=depth+1)

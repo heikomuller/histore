@@ -2,7 +2,7 @@
 # This file is part of OpenClean which is released under the Revised BSD License
 # See file LICENSE for full license details.
 
-from histore.archive.node import ArchiveElement, print_node
+from histore.archive.node import ArchiveElement
 from histore.archive.merge import NestedMerger
 from histore.archive.query.snapshot import SnapshotQuery
 from histore.archive.snapshot import Snapshot
@@ -156,20 +156,3 @@ class Archive(object):
         histore.archive.snapshot.Snapshot
         """
         return self.snapshots[version]
-
-
-# ------------------------------------------------------------------------------
-# Helper Methods
-# ------------------------------------------------------------------------------
-
-def print_archive(archive, indent='\t'):
-    """Print nested archive node tree. Primarily for debugging purposes.
-
-    Parameters
-    ----------
-    archive: histore.archive.base.Archive
-    indent: string
-    """
-    print str(archive.root())
-    for node in archive.root().children:
-        print_node(node, indent=indent, depth=1)

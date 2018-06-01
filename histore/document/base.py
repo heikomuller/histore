@@ -7,7 +7,7 @@ nodes that have a label and a list of children and leaf nodes that a
 label and contain a scalar value.
 """
 
-from histore.document.node import InternalNode, print_node
+from histore.document.node import InternalNode
 
 
 class Document(object):
@@ -40,16 +40,3 @@ class Document(object):
             self.nodes = list()
         else:
             raise ValueError('invalid arguments for doc and nodes')
-
-
-# ------------------------------------------------------------------------------
-# Helper Methods
-# ------------------------------------------------------------------------------
-
-def print_document(document, indent='\t'):
-    """Print the nested structure of the document. Primarily intended for
-    debugging.
-    """
-    print 'Document'
-    for node in document.nodes:
-        print_node(node, indent=indent)

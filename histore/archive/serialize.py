@@ -93,88 +93,6 @@ class ArchiveSerializer(object):
 
 
 class DefaultArchiveSerializer(ArchiveSerializer):
-    def __init__(self, mapping=None):
-        """Initialize the list of reserved keyword in the super class.
-
-        Parameters
-        ----------
-        mapping: dict(string:string)
-            Expects a mapping from keywords defined in KEYWORDS to user-defined
-            values.
-        """
-        super(DefaultArchiveSerializer, self).__init__(mapping=mapping)
-
-    def to_dict(self, archive):
-        """Get dictionary serialization for the given archive.
-
-        Parameters
-        ----------
-        archive: histore.archive.base.Archive
-
-        Returns
-        -------
-        dict
-        """
-        if not archive.root() is None:
-            return self.element_to_dict(archive.root())
-        else:
-            return dict()
-
-    def element_to_dict(self, node, timestamp=None):
-        """Get dictionary serialization for an archive element node.
-
-        Parameters
-        ----------
-        node: histore.archive.node.ArchiveElement
-        timestamp: histore.timestamp.Timestamp, optional
-
-        Returns
-        -------
-        dict
-        """
-        obj = {
-            LABEL_LABEL: node.label
-        }
-        # Add timestamp only if the element has a local timestamp
-        if timestamp is None or not node.timestamp.is_equal(timestamp):
-            obj[LABEL_TIMESTAMP] = str(node.timestamp)
-        # Add key and positions if the element is keyed by values
-        if not node.key is None:
-            obj[LABEL_KEY] = node.key
-            obj[LABEL_POSITIONS] = [
-                self.value_to_dict(pos, timestamp=node.timestamp) for pos in node.positions
-            ]
-        # Add children
-        children = list()
-        for child in node.children:
-            if child.is_value():
-                children.append(self.value_to_dict(child, timestamp=node.timestamp))
-            else:
-                children.append(self.element_to_dict(child, timestamp=node.timestamp))
-        obj[LABEL_NODES] = children
-        return obj
-
-    def value_to_dict(self, node, timestamp=None):
-        """Get dictionary representation for a value node.
-
-        Parameters
-        ----------
-        node: histore.archive.node.ArchiveValue
-        timestamp: histore.timestamp.Timestamp, optional
-
-        Returns
-        -------
-        dict
-        """
-        obj = {self.mapping[LABEL_VALUE]: node.value}
-        # Add timestamp only if the element has a local timestamp
-        if timestamp is None or not node.timestamp.is_equal(timestamp):
-            obj[LABEL_TIMESTAMP] = str(node.timestamp)
-        return obj
-
-
-
-class CompactArchiveSerializer(ArchiveSerializer):
     """Compact serializaion of archives. Raises ValueError's if reserved
     keywords are used as node labels.
     """
@@ -189,7 +107,7 @@ class CompactArchiveSerializer(ArchiveSerializer):
             Expects a mapping from keywords defined in KEYWORDS to user-defined
             values.
         """
-        super(CompactArchiveSerializer, self).__init__(mapping=mapping)
+        super(DefaultArchiveSerializer, self).__init__(mapping=mapping)
         self.key_paths = list()
         if not schema is None:
             for key in schema.keys():

@@ -249,15 +249,3 @@ class LeafNode(Node):
         string
         """
         return 'LeafNode(%s, %s, index=%s)' % (self.label, str(self.value), str(self.index))
-
-
-# ------------------------------------------------------------------------------
-# Helper Methods
-# ------------------------------------------------------------------------------
-
-def print_node(node, indent='\t', depth=0):
-    """Print document node recursively. Primarily intended for debugging."""
-    print (indent * depth) + str(node)
-    if not node.is_leaf():
-        for child in node.children:
-            print_node(child, indent=indent, depth=depth+1)

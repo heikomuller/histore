@@ -89,7 +89,6 @@ class TestMerge(unittest.TestCase):
                 self.assertTrue(pos.timestamp.is_equal(Timestamp.from_string('1,3,5')))
         # Validate all snapshots in the archive
         self.validate_archive(archive, [doc1, doc2])
-        #print archive.root().to_json_string(compact=True, schema=schema)
 
     def test_unkeyed_merge(self):
         """Test repeatedly merging the same documents."""
@@ -151,7 +150,6 @@ class TestMerge(unittest.TestCase):
             self.assertEquals(labels, set(['A', 'B']))
         # Validate all snapshots in the archive
         self.validate_archive(archive, [doc1, doc2])
-        #print archive.root().to_json_string(compact=True)
 
     def test_value_and_element_children(self):
         """Test repeatedly merging the same documents."""
@@ -195,7 +193,6 @@ class TestMerge(unittest.TestCase):
         self.assertEquals(val_node.value, 'A')
         # Validate all snapshots in the archive
         self.validate_archive(archive, [doc1, doc2])
-        #print archive.root().to_json_string(compact=True)
 
     def validate_archive(self, archive, documents):
         """Validate the snapshots in the archive. It is assumes that the
