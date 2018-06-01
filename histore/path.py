@@ -109,6 +109,15 @@ class Path(object):
         """
         return len(self.elements) == 0
 
+    def last_element(self):
+        """Get the last element in the path.
+
+        Returns
+        -------
+        string
+        """
+        return self.elements[-1]
+
     def length(self):
         """Shortcut for length of path.
 
@@ -135,6 +144,15 @@ class Path(object):
                     return False
             return True
         return False
+
+    def prefix(self):
+        """Get the prefix path until the next to last element.
+
+        Returns
+        -------
+        histore.document.path.Path
+        """
+        return Path(self.elements[:-1])
 
     def subpath(self):
         """Get the subpath starting at the second position.

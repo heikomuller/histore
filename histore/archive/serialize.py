@@ -4,7 +4,14 @@
 
 from abc import abstractmethod
 
+from histore.archive.base import Archive
+from histore.archive.node import ArchiveElement, ArchiveValue
+from histore.archive.snapshot import Snapshot
+from histore.archive.store.mem import InMemoryArchiveStore
 from histore.path import Path
+from histore.schema.document import DocumentSchema
+from histore.timestamp import Timestamp
+
 
 """Serializer are used to (1) convert archives into dictionaries, and (2) to
 do the reverse and convert dictionaries into archives.
@@ -26,7 +33,7 @@ KEYWORDS = [
 
 
 class ArchiveSerializer(object):
-    """Base class that defines the serializer interface methods for convering
+    """Base class that defines the serializer interface methods for converting
     archives and form/to dictionaries.
 
     Maintains a list of reserved keywords that cannot be used as node labels.
@@ -36,7 +43,7 @@ class ArchiveSerializer(object):
         mapping that overrides the default keyword (i.e., map default keywords
         to user-defined keywords).
 
-        Raises ValueError if the given mapping dose not resutl in a 1:1 mapping
+        Raises ValueError if the given mapping dose not result in a 1:1 mapping
         of keywords.
 
         Parameters
@@ -45,7 +52,7 @@ class ArchiveSerializer(object):
             Expects a mapping from keywords defined in KEYWORDS to user-defined
             values.
         """
-        # Initializa and complete the keyword list and mapping
+        # Initialize and complete the keyword list and mapping
         if not mapping is None:
             self.mapping = dict(mapping)
             for key in KEYWORDS:
@@ -55,7 +62,7 @@ class ArchiveSerializer(object):
             self.mapping = dict()
             for key in KEYWORDS:
                 self.mapping[key] = key
-        # Ensure that keywwords in KEYWORDS are mapped to different elements
+        # Ensure that keywords in KEYWORDS are mapped to different elements
         targets = set()
         for key in KEYWORDS:
             target = self.mapping[key]
@@ -66,7 +73,7 @@ class ArchiveSerializer(object):
 
     @abstractmethod
     def from_dict(self, doc):
-        """Create an archive instance from a disctionary serialization.
+        """Create an archive instance from a dictionary serialization.
 
         Parameters
         ----------
@@ -93,13 +100,14 @@ class ArchiveSerializer(object):
 
 
 class DefaultArchiveSerializer(ArchiveSerializer):
-    """Compact serializaion of archives. Raises ValueError's if reserved
-    keywords are used as node labels.
+    """Compact serialization of archives. All key path values will be omitted in
+    the serialized object. These values are maintained as part of the element
+    keys and can therefore be reconstructed from them.
     """
-    def __init__(self, mapping=None, schema=None):
-        """Initialize the list of reserved keyword in the super class. If the
-        optinal schema is provided all key path values will be omitted in the
-        serialized object.
+    def __init__(self, mapping=None):
+        """Initialize the list of reserved keyword in the super class.
+
+        Raises ValueError's if reserved keywords are used as node labels.
 
         Parameters
         ----------
@@ -108,13 +116,30 @@ class DefaultArchiveSerializer(ArchiveSerializer):
             values.
         """
         super(DefaultArchiveSerializer, self).__init__(mapping=mapping)
-        self.key_paths = list()
-        if not schema is None:
-            for key in schema.keys():
-                if hasattr(key, 'value_paths'):
-                    for value_path in key.value_paths:
-                        path = key.target_path.concat(value_path)
-                        self.key_paths.append(path.to_key())
+
+    def from_dict(self, doc):
+        """Create an archive instance from a dictionary serialization.
+
+        Parameters
+        ----------
+        doc: dict
+
+        Returns
+        -------
+        histore.archive.base.Archive
+        """
+        schema = DocumentSchema.from_dict(doc['schema'])
+        data = doc['data']
+        if len(data) == 1:
+            key = data.keys()[0]
+            root = self.element_from_dict(data[key], label=key, schema=schema)
+        else:
+            raise ValueError('invalid serialization for archive root \'' + str(data) + '\'')
+        return Archive(
+            schema=schema,
+            snapshots=[Snapshot.from_dict(s) for s in doc['snapshots']],
+            store=InMemoryArchiveStore(root=root)
+        )
 
     def to_dict(self, archive):
         """Get dictionary serialization for the given archive.
@@ -128,11 +153,98 @@ class DefaultArchiveSerializer(ArchiveSerializer):
         dict
         """
         if not archive.root() is None:
-            return {archive.root().label : self.element_to_dict(archive.root())}
+            key_paths = list()
+            for key in archive.schema.keys():
+                if key.is_keyed_by_path_values():
+                    for value_path in key.value_paths:
+                        path = key.target_path.concat(value_path)
+                        key_paths.append(path.to_key())
+            return {
+                'schema': archive.schema.to_dict(),
+                'snapshots': [s.to_dict() for s in archive.snapshots],
+                'data': {
+                    archive.root().label : self.element_to_dict(
+                        node=archive.root(),
+                        key_paths=key_paths
+                    )
+                }
+            }
         else:
             return dict()
 
-    def element_to_dict(self, node, timestamp=None, path=Path('')):
+    def element_from_dict(self, doc, label, schema, path=Path(''), timestamp=None):
+        """
+        Returns
+        -------
+        histore.archive.node.ArchiveElement
+        """
+        # Start by re-creating the node metadata (i.e., timestamp, key, index
+        # positions) from the @meta dictionary (if present)
+        t = timestamp
+        key = None
+        positions = None
+        l_meta = self.mapping[LABEL_META]
+        if l_meta in doc:
+            meta = doc[l_meta]
+            # Timestamp
+            if LABEL_TIMESTAMP in meta:
+                t = Timestamp.from_string(meta[LABEL_TIMESTAMP])
+            # Key
+            if LABEL_KEY in meta:
+                key = meta[LABEL_KEY]
+            # Positions
+            if LABEL_POSITIONS in meta:
+                positions = list()
+                for el in meta[LABEL_POSITIONS]:
+                    positions.append(self.value_from_dict(el, timestamp=t))
+        # Create list of node children. Value nodes are identified by the @val
+        # key. All other key values in the dictionary represent element nodes
+        children = list()
+        l_value = self.mapping[LABEL_VALUE]
+        for l_child in doc:
+            if l_child == l_meta:
+                # Skip the meta data
+                continue
+            elif l_child == l_value:
+                for el in doc[l_value]:
+                    children.append(self.value_from_dict(el, timestamp=t))
+            else:
+                for el in doc[l_child]:
+                    children.append(
+                        self.element_from_dict(
+                            el,
+                            label=l_child,
+                            schema=schema,
+                            path=path.extend(l_child),
+                            timestamp=t
+                        )
+                    )
+        # Create the new archive node
+        arch_node = ArchiveElement(
+            label=label,
+            timestamp=t,
+            key=key,
+            positions=positions,
+            children=children,
+            sort=True
+        )
+        # Add key path value nodes if this node is keyed by path values
+        key_spec = schema.get(path)
+        if not key_spec is None and key_spec.is_keyed_by_path_values():
+            # Create an element node with single child value for each
+            # key path value. The node inherits the timestamp from this
+            # node.
+            for i in range(len(key_spec.value_paths)):
+                val_path = key_spec.value_paths[i]
+                key_node = ArchiveElement(
+                    label=val_path.last_element(),
+                    timestamp=t,
+                    children=[ArchiveValue(value=key[i], timestamp=t)]
+                )
+                add_child_node(arch_node, val_path.prefix(), key_node)
+        return arch_node
+
+    def element_to_dict(self, node, timestamp=None, path=Path(''), key_paths=list()):
         """Get dictionary serialization for an archive element node.
 
         Parameters
@@ -167,11 +279,58 @@ class DefaultArchiveSerializer(ArchiveSerializer):
                 obj[self.mapping[LABEL_VALUE]].append(self.value_to_dict(child, timestamp=node.timestamp))
             else:
                 target_path = path.extend(child.label)
-                if not target_path.to_key() in self.key_paths:
+                if not target_path.to_key() in key_paths:
                     if not child.label in obj:
                         obj[child.label] = list()
-                    obj[child.label].append(self.element_to_dict(child, timestamp=node.timestamp, path=target_path))
+                    obj[child.label].append(
+                        self.element_to_dict(
+                            node=child,
+                            timestamp=node.timestamp,
+                            path=target_path,
+                            key_paths=key_paths
+                        )
+                    )
         return obj
+
+    def value_from_dict(self, doc, timestamp=None):
+        """Create an instance of an archive value node from a dictionary
+        representation as returned by .value_to_dict(). The provided doc
+        parameter is either a dictionary or a scalar value (depending on
+        whether the value node has its own timestamp or inherits the timestamp
+        of the parent node).
+
+        Raises ValueError if the given doc argument does not represent a valid
+        serialization of an archive value node.
+
+        Parameters
+        ----------
+        doc: dict or scalar
+        timestamp: histore.timestamp.Timestamp, optional
+
+        Returns
+        -------
+        dict or string
+        """
+        # If the document is a dictionary we expect two elements, the value @val
+        # and the timestamp @t. Otherwise we assume that the document is a
+        # scalar value
+        if isinstance(doc, dict):
+            if len(doc) == 2:
+                # Get mapping for @val
+                l_value = self.mapping[LABEL_VALUE]
+                if l_value in doc and LABEL_TIMESTAMP in doc:
+                    # The value node has a timestamp that is different from the
+                    # parent node.
+                    return ArchiveValue(
+                        value=doc[l_value],
+                        timestamp=Timestamp.from_string(doc[LABEL_TIMESTAMP])
+                    )
+        else:
+            # Assume that doc is a scalar value. The timestamp of the value node
+            # is the timestamp of the parent node.
+            return ArchiveValue(value=doc, timestamp=timestamp)
+        # If this part is reached the dictionary does not
+        raise ValueError('invalid serialization for value node \'' + str(doc) + '\'')
 
     def value_to_dict(self, node, timestamp=None):
         """Get dictionary representation for a value node.
@@ -194,3 +353,34 @@ class DefaultArchiveSerializer(ArchiveSerializer):
             }
         else:
             return node.value
+
+
+# ------------------------------------------------------------------------------
+# Helper Methods
+# ------------------------------------------------------------------------------
+
+def add_child_node(parent, path, node):
+    """Add the given node as a child of the node from the list nodes that is at
+    the given path. Note that the parent node has to exist as we are only
+    omitting the node that contains the key path value.
+
+    Parameters
+    ----------
+    parent: histore.archive.node.ArchiveElement
+    path: histore.path.Path
+    node: histore.archive.node.ArchiveElement
+
+    Returns
+    -------
+    bool
+    """
+    # If the path is empty we already found the parent and nodes is the list
+    # of child nodes for that parent. Make sure to keep the nodes sorted.
+    if path.is_empty():
+        parent.add(node)
+        parent.sort()
+    else:
+        for child in parent.children:
+            if child.is_element() and child.label == path.first_element():
+                # Add node recirsively and return
+                return add_child_node(child, path.subpath(), node)

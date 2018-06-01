@@ -89,6 +89,16 @@ class KeySpec(object):
         else:
             raise ValueError('unknown key specification type \'' + str(doc['type']) + '\'')
 
+    @abstractmethod
+    def is_keyed_by_path_values(self):
+        """Return True if the key specification is a PATH VALUE specification.
+
+        Returns
+        -------
+        bool
+        """
+        raise NotImplementedError
+
     def matches(self, path):
         """Shortcut to test whether the key's target path matches the given
         path.
@@ -166,6 +176,16 @@ class NodeIndexKey(KeySpec):
         """
         return NodeIndexKey(Path(path=doc['path']))
 
+    def is_keyed_by_path_values(self):
+        """Return False because the key specification is not a PATH VALUE
+        specification.
+
+        Returns
+        -------
+        bool
+        """
+        return False
+
     def to_dict(self):
         """Get dictionary serialization of the key specification.
 
@@ -226,6 +246,16 @@ class NodeValueKey(KeySpec):
         histore.schema.key.NodeValueKey
         """
         return NodeValueKey(Path(path=doc['path']))
+
+    def is_keyed_by_path_values(self):
+        """Return False because the key specification is not a PATH VALUE
+        specification.
+
+        Returns
+        -------
+        bool
+        """
+        return False
 
     def to_dict(self):
         """Get dictionary serialization of the key specification.
@@ -301,6 +331,16 @@ class PathValuesKey(KeySpec):
         """
         value_paths = [Path(path=p) for p in doc['values']]
         return PathValuesKey(Path(path=doc['path']), value_paths=value_paths)
+
+    def is_keyed_by_path_values(self):
+        """Return True because the key specification is the PATH VALUE
+        specification.
+
+        Returns
+        -------
+        bool
+        """
+        return True
 
     def to_dict(self):
         """Get dictionary serialization of the key specification.

@@ -11,37 +11,35 @@ import yaml
 from histore.archive.serialize import DefaultArchiveSerializer
 
 
-def archive_node_to_json_string(node, schema=None):
-    """Get nested structure of an archive node formated as a Json string.
+def archive_root_to_json_string(archive):
+    """Get nested structure of the archive root node formated as a Json string.
 
     Parameters
     -------
-    node: histore.archive.node.ArchiveNode
-    schema: histore.schema.document.DocumentSchema
+    archive: histore.archive.base.Archive
 
     Returns
     -------
     string
     """
-    serializer = DefaultArchiveSerializer(schema=schema)
-    return json.dumps(serializer.element_to_dict(node), indent=4, sort_keys=True)
+    doc = DefaultArchiveSerializer().to_dict(archive)
+    return json.dumps(doc['data'], indent=4, sort_keys=True)
 
 
-def archive_node_to_yaml_string(node, schema=None):
-    """Get nested structure of an archive node formated as a Yaml string.
+def archive_root_to_yaml_string(archive):
+    """Get nested structure of the archive root node formated as a Yaml string.
 
     Parameters
     -------
-    node: histore.archive.node.ArchiveNode
-    schema: histore.schema.document.DocumentSchema
+    archive: histore.archive.base.Archive
 
     Returns
     -------
     string
     """
-    serializer = DefaultArchiveSerializer(schema=schema)
+    doc = DefaultArchiveSerializer().to_dict(archive)
     stream = StringIO.StringIO()
-    yaml.dump(serializer.element_to_dict(node), stream, default_flow_style=False)
+    yaml.dump(doc['data'], stream, default_flow_style=False)
     return stream.getvalue()
 
 

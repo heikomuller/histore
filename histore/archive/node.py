@@ -132,7 +132,7 @@ class ArchiveElement(ArchiveNode):
     the node among its siblings with the same label in the different document
     versions. All element nodes have a (potentially empty) list of children.
     """
-    def __init__(self, label, timestamp, key=None, positions=None, children=None):
+    def __init__(self, label, timestamp, key=None, positions=None, children=None, sort=False):
         """Initialize the element node.
 
         Raises ValueError if the node label is None. The values of arguments
@@ -152,6 +152,8 @@ class ArchiveElement(ArchiveNode):
             same label (for keyed nodes only)
         children: list(histore.archive.node.ArchiveNode)
             Children of this node in the archive tree
+        sort: bool, optional
+            Optional flag the request to sort the node's children
         """
         super(ArchiveElement, self).__init__(timestamp=timestamp)
         # Set the node label. Ensure that the given label is not None.
@@ -160,12 +162,15 @@ class ArchiveElement(ArchiveNode):
         self.label = label
         # Set element key. If key is None the element is keyed by existence.
         if key is None and not positions is None:
-            raise ValueError('invalid arguments for key and positions')
+            raise ValueError('invalid arguments for key and positions for \'' + str(label) + '\'')
         elif not key is None and positions is None:
-            raise ValueError('invalid arguments for key and positions')
+            raise ValueError('invalid arguments for key and positions for \'' + str(label) + '\'')
         self.key = key
         self.positions = positions if not positions is None else list()
         self.children = children if not children is None else list()
+        # Sort the node's children if the sort flag is true
+        if sort:
+            self.sort()
 
     def __repr__(self):
         """Unambiguous string representation of this archive element node.

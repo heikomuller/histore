@@ -122,16 +122,17 @@ class InternalNode(Node):
         # Ensure that the node index is unique among siblings with the same
         # label.
         if strict:
+            template = 'invalid children \'%s\' and \'%s\' for \'%s\''
             for child in self.children:
                 if child.label == node.label:
                     if child.index is None and node.index is None:
-                        raise ValueError('duplicate child nodes with \'None\' index')
+                        raise ValueError(template % (str(child), str(node), str(self)))
                     elif not child.index is None and node.index is None:
-                        raise ValueError('cannot have children with index and \'None\'')
+                        raise ValueError(template % (str(child), str(node), str(self)))
                     elif child.index is None and not node.index is None:
-                        raise ValueError('cannot have children with index and \'None\'')
+                        raise ValueError(template % (str(child), str(node), str(self)))
                     elif child.index == node.index:
-                        raise ValueError('duplicate index for \'' + str(node) + '\'')
+                        raise ValueError(template % (str(child), str(node), str(self)))
 
         self.children.append(node)
         return node
@@ -159,14 +160,21 @@ class InternalNode(Node):
         for key in doc:
             val = doc[key]
             if isinstance(val, list):
-                for i in range(len(val)):
-                    el = val[i]
-                    if isinstance(el, list):
-                        raise ValueError('nested lists are not supported yet')
-                    elif isinstance(el, dict):
-                        children.append(InternalNode.from_dict(key, el, index=i))
-                    else:
-                        children.append(LeafNode(key, value=el, index=i))
+                # Check if the list is empty. In that case we need to add an
+                # element node with index 0 but no children.
+                if len(val) == 0:
+                    children.append(InternalNode(label=key, index=0))
+                else:
+                    for i in range(len(val)):
+                        el = val[i]
+                        if isinstance(el, list):
+                            raise ValueError('nested lists are not supported yet')
+                        elif isinstance(el, dict):
+                            children.append(
+                                InternalNode.from_dict(key, el, index=i)
+                            )
+                        else:
+                            children.append(LeafNode(key, value=el, index=i))
             elif isinstance(val, dict):
                 children.append(InternalNode.from_dict(key, val))
             else:

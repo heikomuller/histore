@@ -68,7 +68,9 @@ class DefaultDocumentSerializer(DocumentSerializer):
             for node in el_list:
                 if node.is_leaf():
                     result[key].append(node.value)
-                else:
+                elif len(node.children) > 0:
+                    # Only create elements for nodes that have children. Otherwise,
+                    # we would add an empty dictionary.
                     result[key].append(self.convert(node.children))
         return result
 
