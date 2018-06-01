@@ -10,7 +10,6 @@ from histore.archive.store.mem import InMemoryArchiveStore
 from histore.document.base import Document
 from histore.document.serialize import DefaultDocumentSerializer
 from histore.path import Path
-from histore.schema.document import DocumentSchema
 
 
 """Archives are collections of snapshots of an evolving dataset."""
@@ -25,32 +24,27 @@ class Archive(object):
     archive object does not have to deal with the different ways in which
     archives are managed by different systems.
     """
-    def __init__(self, schema=None, snapshots=None, store=None):
-        """Initialize the document schema and the optional list of dataset
-        snapshots. If no schema is provided an empty document schema is used.
+    def __init__(self, schema=None, store=None):
+        """Initialize the archive. Every archive has to have an associated
+        archive store. If the archive store paratemter is given the schema
+        has to be None. Providing only a schema (or none of the two arguments)
+        will create an archive with a in-memory store. If no schema is provided
+        an empty document schema is used.
 
-        Raises ValueError if the version numbers of snapshots are not ordered
-        consecutively starting at 0.
+        Raises ValueError if both arguments (schema and store) are not None.
 
         Parameters
         ----------
         schema: histore.schema.DocumentSchema, optional
-        snapshots: list(histore.archive.snapshot.Snapshot), optional
         store: histore.archive.store.base.ArchiveStore
         """
-        self.schema = schema if not schema is None else DocumentSchema()
-        # Maintain list of snapshots. Expects that snapshot handles are ordered
-        # by the unique version number. Snapshots are numbered consecutively
-        # starting at 0.
-        self.snapshots = list()
-        # If snapshot list is given ensure that the version numbers of all
-        # snapshots are unique
-        if not snapshots is None:
-            for s in snapshots:
-                if s.version != len(self.snapshots):
-                    raise ValueError('invalid snapshot version \'' + str(s.version) + '\'')
-                self.snapshots.append(s)
-        self.store = store if not store is None else InMemoryArchiveStore()
+        if not schema is None and not store is None:
+            raise ValueError('invalid combination of arguments')
+        # If the store is not given create an archive with an in-memory store
+        if store is None:
+            self.store = InMemoryArchiveStore(schema=schema)
+        else:
+            self.store = store
 
     def get(self, version, serializer=None):
         """Retrieve a document snapshot from the archive. The version identifies
@@ -122,7 +116,6 @@ class Archive(object):
                 timestamp=root.timestamp.append(snapshot.version)
             )
             self.store.write(root, snapshot)
-        self.snapshots.append(snapshot)
         return snapshot
 
     def length(self):
@@ -143,6 +136,17 @@ class Archive(object):
         """
         return self.store.read()
 
+    @property
+    def schema(self):
+        """Shortcut to access the archive schema maintained by the archive
+        store.
+
+        Returns
+        -------
+        histore.schema.document.DocumentSchema
+        """
+        return self.store.schema
+
     def snapshot(self, version):
         """Get handle for snapshot with given version number.
 
@@ -156,3 +160,14 @@ class Archive(object):
         histore.archive.snapshot.Snapshot
         """
         return self.snapshots[version]
+
+    @property
+    def snapshots(self):
+        """Shortcut to access the list of document snapshot handles maintained
+        by the archive store.
+
+        Returns
+        -------
+        list(histore.archive.snapshot.Snapshot)
+        """
+        return self.store.snapshots

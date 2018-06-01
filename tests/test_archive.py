@@ -2,6 +2,7 @@ import unittest
 
 from histore.archive.base import Archive
 from histore.archive.snapshot import Snapshot
+from histore.archive.store.mem import InMemoryArchiveStore
 from histore.schema.document import SimpleDocumentSchema
 
 
@@ -29,16 +30,32 @@ class TestArchive(unittest.TestCase):
         self.assertEquals(len(archive.schema.keys()), 2)
         self.assertEquals(archive.length(), 0)
         archive = Archive(
-            schema=SimpleDocumentSchema(doc),
-            snapshots=[Snapshot(0), Snapshot(1)]
+            store=InMemoryArchiveStore(
+                schema=SimpleDocumentSchema(doc),
+                snapshots=[Snapshot(0), Snapshot(1)]
+            )
         )
         self.assertIsNotNone(archive.schema)
         self.assertEquals(len(archive.schema.keys()), 2)
         self.assertEquals(archive.length(), 2)
         with self.assertRaises(ValueError):
             archive = Archive(
+                store=InMemoryArchiveStore(
+                    schema=SimpleDocumentSchema(doc),
+                    snapshots=[Snapshot(0), Snapshot(1), Snapshot(8)]
+                )
+            )
+        with self.assertRaises(ValueError):
+            archive = Archive(
+                store=InMemoryArchiveStore(
+                    schema=SimpleDocumentSchema(doc),
+                    snapshots=[Snapshot(0), Snapshot(1), Snapshot(1)]
+                )
+            )
+        with self.assertRaises(ValueError):
+            archive = Archive(
                 schema=SimpleDocumentSchema(doc),
-                snapshots=[Snapshot(0), Snapshot(1), Snapshot(0)]
+                store=InMemoryArchiveStore()
             )
 
     def test_snapshot_serializatin(self):

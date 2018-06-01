@@ -117,8 +117,13 @@ class DefaultArchiveSerializer(ArchiveSerializer):
         """
         super(DefaultArchiveSerializer, self).__init__(mapping=mapping)
 
-    def from_dict(self, doc):
-        """Create an archive instance from a dictionary serialization.
+    def from_dict(self, doc, store_factory=None):
+        """Create an archive instance from a dictionary serialization. The
+        optional archive store factory is used to create the store instance
+        for the returned archive from the generates schema, snapshots, and root
+        objects. The factory is expected to implement the method .create()
+        that takes the three arguments. If no factory is provided an archive
+        with an in-memory store is returned.
 
         Parameters
         ----------
@@ -129,17 +134,29 @@ class DefaultArchiveSerializer(ArchiveSerializer):
         histore.archive.base.Archive
         """
         schema = DocumentSchema.from_dict(doc['schema'])
+        snapshots = [Snapshot.from_dict(s) for s in doc['snapshots']]
         data = doc['data']
-        if len(data) == 1:
+        if len(data) == 0:
+            root = None
+        elif len(data) == 1:
             key = data.keys()[0]
             root = self.element_from_dict(data[key], label=key, schema=schema)
         else:
             raise ValueError('invalid serialization for archive root \'' + str(data) + '\'')
-        return Archive(
-            schema=schema,
-            snapshots=[Snapshot.from_dict(s) for s in doc['snapshots']],
-            store=InMemoryArchiveStore(root=root)
-        )
+        # Create the store for the returned archive.
+        if not store_factory is None:
+            store = store_factory.create(
+                root=root,
+                schema=schema,
+                snapshots=snapshots
+            )
+        else:
+            store = InMemoryArchiveStore(
+                root=root,
+                schema=schema,
+                snapshots=snapshots
+            )
+        return Archive(store=store)
 
     def to_dict(self, archive):
         """Get dictionary serialization for the given archive.
@@ -256,6 +273,7 @@ class DefaultArchiveSerializer(ArchiveSerializer):
         -------
         dict
         """
+        # Make sure that the archive does not contain nodes with invalid labels
         if node.label in self.keywords:
             raise ValueError('node label \'' + node.label + '\' is a reserved keyword')
         meta = dict()

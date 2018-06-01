@@ -10,13 +10,20 @@ from histore.archive.store.base import ArchiveStore
 class InMemoryArchiveStore(ArchiveStore):
     """Implements an archive store that keept the archive root node in memory
     """
-    def __init__(self, root=None):
-        """Initialize the archive root node. By default the root is None.
+    def __init__(self, root=None, schema=None, snapshots=None):
+        """Initialize the archive root node, document schema and list of
+        document snapshot handles. By default the root is None.
 
         Parameters
         ----------
         root: histore.archive.node.ArchiveElement, optional
+        schema: histore.schema.document.DocumentSchema
+        snapshots: list(histore.archive.snapshot.Snapshot)
         """
+        super(InMemoryArchiveStore, self).__init__(
+            schema=schema,
+            snapshots=snapshots
+        )
         self.root = root
 
     def read(self):
@@ -37,4 +44,5 @@ class InMemoryArchiveStore(ArchiveStore):
         node: histore.archive.node.ArchiveElement
         snapshot: histore.archive.snapshot.Snapshot
         """
+        self.add_snapshot(snapshot)
         self.root = node
