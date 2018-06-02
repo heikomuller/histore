@@ -47,7 +47,8 @@ class DefaultDocumentSerializer(DocumentSerializer):
         dict
         """
         result = dict()
-        # Keep lists of nodes that are indexed (i.e., become part of a list).
+        # Keep dictionary of lists of nodes that are indexed (i.e., are part of
+        # a list element).
         el_lists = dict()
         for node in nodes:
             if node.list_index is None:
@@ -68,9 +69,9 @@ class DefaultDocumentSerializer(DocumentSerializer):
             for node in el_list:
                 if node.is_leaf():
                     result[key].append(node.value)
-                elif len(node.children) > 0:
-                    # Only create elements for nodes that have children. Otherwise,
-                    # we would add an empty dictionary.
+                elif node.list_index != -1:
+                    # Check for nodes with index -1 that were added to represent
+                    # empty lists. We don't want to add them to the result list.
                     result[key].append(self.convert(node.children))
         return result
 

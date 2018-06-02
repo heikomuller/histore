@@ -160,10 +160,10 @@ class InternalNode(Node):
         for key in doc:
             val = doc[key]
             if isinstance(val, list):
-                # Check if the list is empty. In that case we need to add an
-                # element node with index 0 but no children.
+                # Check if the list is empty. In that case we add an internal
+                # node with index -1 and no children.
                 if len(val) == 0:
-                    children.append(InternalNode(label=key, list_index=0))
+                    children.append(InternalNode(label=key, list_index=-1))
                 else:
                     for i in range(len(val)):
                         el = val[i]

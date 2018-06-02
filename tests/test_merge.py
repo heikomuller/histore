@@ -10,6 +10,33 @@ from histore.timestamp import TimeInterval, Timestamp
 
 class TestMerge(unittest.TestCase):
 
+    def test_empty_list_behavior(self):
+        """Test merging documents with empty lists and empty elements.
+        """
+        doc1 = {
+            'modules': [{
+                'id': 1,
+                'name': 'A'
+            }]
+        }
+        doc2 = {
+            'modules': []
+        }
+        doc3 = {
+            'modules': [{}]
+        }
+        schema=DocumentSchema(keys=[
+            ListIndexKey(target_path=Path('modules'))
+        ])
+        archive = Archive(schema=schema)
+        archive.insert(doc=doc1)
+        archive.insert(doc=doc2)
+        archive.insert(doc=doc3)
+        archive.insert(doc=doc1)
+        archive.insert(doc=doc2)
+        archive.insert(doc=doc3)
+        self.validate_archive(archive, [doc1, doc2, doc3])
+
     def test_list_behavior(self):
         """Test merging documents where the same element is a list ine one
         version and a single element in the other.
