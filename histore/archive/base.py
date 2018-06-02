@@ -4,6 +4,7 @@
 
 from histore.archive.node import ArchiveElement
 from histore.archive.merge import NestedMerger
+from histore.archive.query.engine import PathQueryEngine
 from histore.archive.query.snapshot import SnapshotQuery
 from histore.archive.snapshot import Snapshot
 from histore.archive.store.mem import InMemoryArchiveStore
@@ -45,6 +46,37 @@ class Archive(object):
             self.store = InMemoryArchiveStore(schema=schema)
         else:
             self.store = store
+
+    def find_all(self, query):
+        """Find all nodes in the archivethat match the given path query. Returns
+        an empty list if no matching node is found.
+
+        Parameters
+        ----------
+        query: histore.archive.query.path.PathQuery
+
+        Returns
+        -------
+        node: list(histore.archive.node.ArchiveElement)
+        """
+        return PathQueryEngine(query).find_all(self.root())
+
+    def find_one(self, query, strict=False):
+        """Evaluate a given path query on this archive. Return one matching node
+        or None if no node matches the path query.
+
+        In strict mode, a ValueError() is raised if more that one node matches
+        the query.
+
+        Parameters
+        ----------
+        query: histore.archive.query.path.PathQuery
+
+        Returns
+        -------
+        node: histore.archive.node.ArchiveElement
+        """
+        return PathQueryEngine(query).find_one(self.root(), strict=strict)
 
     def get(self, version, serializer=None):
         """Retrieve a document snapshot from the archive. The version identifies

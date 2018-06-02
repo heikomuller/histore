@@ -1,7 +1,7 @@
 import unittest
 
 from histore.archive.base import Archive
-from histore.archive.query.path import PathQuery
+from histore.archive.query.path import PathQuery, KeyConstraint
 from histore.path import Path
 from histore.schema.document import DocumentSchema
 from histore.schema.key import PathValuesKey, ListIndexKey, NodeValueKey
@@ -143,8 +143,11 @@ class TestMerge(unittest.TestCase):
         archive.insert(doc=doc1)
         archive.insert(doc=doc2)
         # modules(0)/commands(LOAD)/args(A)
-        q = PathQuery().add('modules', key=[0]).add('commands', key=['LOAD']).add('args', key=['A'])
-        node = q.find_one(archive.root())
+        q = PathQuery() \
+            .add(KeyConstraint('modules', key=[0])) \
+            .add(KeyConstraint('commands', key=['LOAD'])) \
+            .add(KeyConstraint('args', key=['A']))
+        node = archive.find_one(q)
         self.assertIsNotNone(node)
         self.assertTrue(node.timestamp.is_equal(Timestamp([TimeInterval(0,5)])))
         self.assertEquals(len(node.list_index), 2)
@@ -155,16 +158,22 @@ class TestMerge(unittest.TestCase):
             else:
                 self.assertTrue(pos.timestamp.is_equal(Timestamp.from_string('1,3,5')))
         # modules(1)/commands(LOAD)/args(B)
-        q = PathQuery().add('modules', key=[1]).add('commands', key=['LOAD']).add('args', key=['B']).add('value')
-        node = q.find_one(archive.root())
+        q = PathQuery() \
+            .add(KeyConstraint('modules', key=[1])) \
+            .add(KeyConstraint('commands', key=['LOAD'])) \
+            .add(KeyConstraint('args', key=['B'])) \
+            .add(KeyConstraint('value'))
+        node = archive.find_one(q)
         self.assertEquals(len(node.children), 2)
         values = set()
         for child in node.children:
             values.add(child.value)
         self.assertEquals(values, set([1, None]))
         # tasks/complete(A)
-        q = PathQuery().add('tasks').add('complete', key=['A'])
-        node = q.find_one(archive.root())
+        q = PathQuery() \
+            .add(KeyConstraint('tasks')) \
+            .add(KeyConstraint('complete', key=['A']))
+        node = archive.find_one(q)
         self.assertIsNotNone(node)
         self.assertEquals(len(node.list_index), 2)
         for pos in node.list_index:
@@ -219,7 +228,7 @@ class TestMerge(unittest.TestCase):
         changed_tasks = list()
         unchanged_tasks = list()
         for i in range(3):
-            nodes = PathQuery().add('tasks').add('complete', key=[i]).find_all(archive.root())
+            nodes = archive.find_all(PathQuery().add(KeyConstraint('tasks')).add(KeyConstraint('complete', key=[i])))
             self.assertEquals(len(nodes), 1)
             node = nodes[0]
             if len(node.children) == 1:
@@ -261,7 +270,7 @@ class TestMerge(unittest.TestCase):
         archive.insert(doc=doc2)
         archive.insert(doc=doc1)
         archive.insert(doc=doc2)
-        node = PathQuery().add('tasks').add('complete', key=[1]).find_one(archive.root())
+        node = archive.find_one(PathQuery().add(KeyConstraint('tasks')).add(KeyConstraint('complete', key=[1])))
         self.assertIsNotNone(node)
         self.assertEquals(len(node.children), 2)
         val_node = None

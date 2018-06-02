@@ -83,7 +83,7 @@ class ArchiveSerializer(object):
         -------
         histore.archive.base.Archive
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def to_dict(self, archive):
         """Get dictionary serialization for for given archive.
@@ -96,7 +96,7 @@ class ArchiveSerializer(object):
         -------
         dict
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
 
 class DefaultArchiveSerializer(ArchiveSerializer):

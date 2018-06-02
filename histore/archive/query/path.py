@@ -4,6 +4,8 @@
 
 """Path expressions to query nodes in an archive."""
 
+from abc import abstractmethod
+
 
 class PathQuery(object):
     """A query path is a list of node expressions."""
@@ -16,87 +18,25 @@ class PathQuery(object):
         """
         self.elements = elements if not elements is None else list()
 
-    def add(self, label, key=None):
+    def add(self, expression=None):
         """Append an node expression to this query path. Returns the query path.
+        If no node expression is given a MatchAny expression is added to the
+        query path.
 
         Parameters
         ----------
-        label: string
+        expression: histore.archive.query.NodeExpression, optional
         key: list(), optional
 
         Returns
         -------
         histore.archive.query.path.QueryPath
         """
-        self.elements.append(NodeExpression(label=label, key=key))
+        if expression is None:
+            self.elements.append(MatchAny())
+        else:
+            self.elements.append(expression)
         return self
-
-    def eval(self, node, index, result):
-        """Recursively evaluate the path query on an archive element node and
-        add all matching nodes to the given result set. Returns the result set.
-        The index position identifies the expression in the query against which
-        the node is evaluated.
-
-        Parameters
-        ----------
-        node: histore.archive.node.ArchiveElement
-        index: int
-        result: list(histore.archive.node.ArchiveElement)
-
-        Returns
-        -------
-        list(histore.archive.node.ArchiveElement)
-        """
-        # Get the node expression. If the index is out of range return
-        # immediately.
-        if index >= self.length():
-            return result
-        expr = self.elements[index]
-        # Find all children of node that match the expression. If end ot path is
-        # not reached yet match recursively.
-        for child in node.children:
-            if child.is_element():
-                if expr.matches(child):
-                    if index == self.length() - 1:
-                        result.append(child)
-                    else:
-                        self.eval(node=child, index=index+1, result=result)
-        return result
-
-    def find_all(self, node):
-        """Find all nodes in the tree rooted at the given node that match the
-        path query. Returns an empty list if no matching node is found.
-
-        Parameters
-        ----------
-        node: histore.archive.node.ArchiveElement
-
-        Returns
-        -------
-        node: list(histore.archive.node.ArchiveElement)
-        """
-        return self.eval(node=node, index=0, result=list())
-
-    def find_one(self, node, strict=False):
-        """Evaluate the query on the given archive element node. Return one
-        matching node or None if no node matches the path query.
-
-        In strict mode, a ValueError() is raised if more that one node matches
-        the query.
-
-        Parameters
-        ----------
-        node: histore.archive.node.ArchiveElement
-
-        Returns
-        -------
-        node: histore.archive.node.ArchiveElement
-        """
-        nodes = self.find_all(node)
-        if len(nodes) >= 1:
-            if strict:
-                raise ValueError('multiple matching nodes')
-            return nodes[0]
 
     def get(self, index):
         """Get the node expression at the given index position of the
@@ -123,8 +63,29 @@ class PathQuery(object):
 
 
 class NodeExpression(object):
-    """A node expression is a (label, key)-pair. Key values are lists of values
-    similar to key values for archive elements. The key value is optional.
+    """Abstract class for expressions that are evaluated on element nodes as
+    part of a path query.
+    """
+    @abstractmethod
+    def matches(self, node):
+        """Returns True if a given archive element node matches the node
+        expression.
+
+        Parameters
+        ----------
+        node: histore.archive.node.ArchiveElement
+
+        Returns
+        -------
+        bool
+        """
+        raise NotImplementedError()
+
+
+class KeyConstraint(NodeExpression):
+    """Node expression that matches a node label and node key against given
+    values. Only nodes that have an exact match with the given values are valid
+    matches.
     """
     def __init__(self, label, key=None):
         """Initialize label and key value of the node expression.
@@ -165,3 +126,46 @@ class NodeExpression(object):
                             return False
                     return True
         return False
+
+
+class LabelConstraint(NodeExpression):
+    """Node expression that matches a node label against given value."""
+    def __init__(self, label):
+        """Initialize the node label.
+
+        Parameters
+        ----------
+        label: string
+        """
+        self.label = label
+
+    def matches(self, node):
+        """Returns True if a given archive element node matches the node
+        label.
+
+        Parameters
+        ----------
+        node: histore.archive.node.ArchiveElement
+
+        Returns
+        -------
+        bool
+        """
+        return self.label == node.label
+
+
+class MatchAny(NodeExpression):
+    """Node expression that matches any node.
+    """
+    def matches(self, node):
+        """Returns True for any given node.
+
+        Parameters
+        ----------
+        node: histore.archive.node.ArchiveElement
+
+        Returns
+        -------
+        bool
+        """
+        return True

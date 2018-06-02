@@ -52,7 +52,7 @@ class ArchiveStore(object):
         if snapshot.version != len(self.snapshots):
             raise ValueError('invalid snapshot version \'' + str(snapshot.version) + '\'')
         self.snapshots.append(snapshot)
-        
+
     @abstractmethod
     def read(self):
         """Get the root node for the archive that is maintained by this store.
@@ -61,7 +61,7 @@ class ArchiveStore(object):
         -------
         histore.archive.node.ArchiveElement
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     @abstractmethod
     def write(self, node, snapshot):
@@ -74,4 +74,4 @@ class ArchiveStore(object):
         node: histore.archive.node.ArchiveElement
         snapshot: histore.archive.snapshot.Snapshot
         """
-        raise NotImplementedError
+        raise NotImplementedError()

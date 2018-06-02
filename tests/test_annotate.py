@@ -1,7 +1,7 @@
 import unittest
 
 from histore.archive.base import Archive
-from histore.archive.query.path import PathQuery
+from histore.archive.query.path import PathQuery, KeyConstraint
 from histore.debug import print_archive
 from histore.path import Path
 from histore.schema.document import DocumentSchema
@@ -42,7 +42,7 @@ class TestAnnotate(unittest.TestCase):
         self.assertIsNotNone(archive.root())
         # Ensure that all complete nodes have keys
         incomplete = None
-        for task in PathQuery().add('tasks').find_one(archive.root()).children:
+        for task in archive.find_one(PathQuery().add(KeyConstraint('tasks'))).children:
             if task.label == 'complete':
                 self.assertIsNotNone(task.key)
             elif task.label == 'incomplete':

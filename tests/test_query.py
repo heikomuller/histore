@@ -1,7 +1,7 @@
 import unittest
 
 from histore.archive.base import Archive
-from histore.archive.query.path import PathQuery
+from histore.archive.query.path import PathQuery, KeyConstraint, LabelConstraint
 from histore.path import Path
 from histore.schema.document import DocumentSchema, SimpleDocumentSchema
 from histore.schema.key import PathValuesKey, ListIndexKey, NodeValueKey
@@ -29,33 +29,62 @@ class TestQuery(unittest.TestCase):
         archive = Archive(schema=DocumentSchema(keys=[key1, key2]))
         archive.insert(doc=doc)
         # Query arguments of individual modules
-        query = PathQuery().add('modules', key=[200, 1]).add('command').add('args')
-        node = query.find_one(archive.root())
+        query = PathQuery() \
+            .add(KeyConstraint('modules', key=[200, 1])) \
+            .add(KeyConstraint('command')) \
+            .add(KeyConstraint('args'))
+        node = archive.find_one(query)
         self.assertEquals(len(node.children), 2)
         self.assertEquals(node.children[0].children[0].value, 1)
         self.assertEquals(node.children[1].children[0].value, 2)
         # There should only be one matching node
-        self.assertEquals(len(query.find_all(archive.root())), 1)
-        query = PathQuery().add('modules', key=[101, 5]).add('command').add('args')
-        node = query.find_one(archive.root())
+        self.assertEquals(len(archive.find_all(query)), 1)
+        query = PathQuery() \
+            .add(KeyConstraint('modules', key=[101, 5])) \
+            .add(KeyConstraint('command')) \
+            .add(KeyConstraint('args'))
+        node = archive.find_one(query)
         self.assertEquals(len(node.children), 2)
         self.assertEquals(node.children[0].children[0].value, 5)
         self.assertEquals(node.children[1].children[0].value, 6)
         # Non-matches
-        query = PathQuery().add('modules', key=[101, 2]).add('command').add('args')
-        self.assertIsNone(query.find_one(archive.root()))
-        query = PathQuery().add('modules', key=[101, 5]).add('commando').add('args')
-        self.assertIsNone(query.find_one(archive.root()))
-        query = PathQuery().add('modules', key=[101, 5]).add('command').add('arg')
-        self.assertIsNone(query.find_one(archive.root()))
+        query = PathQuery() \
+            .add(KeyConstraint('modules', key=[101, 2])) \
+            .add(KeyConstraint('command')) \
+            .add(KeyConstraint('args'))
+        self.assertIsNone(archive.find_one(query))
+        query = PathQuery() \
+            .add(KeyConstraint('modules', key=[101, 5])) \
+            .add(KeyConstraint('commando')) \
+            .add(KeyConstraint('args'))
+        self.assertIsNone(archive.find_one(query))
+        query = PathQuery() \
+            .add(KeyConstraint('modules', key=[101, 5])) \
+            .add(KeyConstraint('command')) \
+            .add(KeyConstraint('arg'))
+        self.assertIsNone(archive.find_one(query))
         # Query tasks
         for key in ['B', 'A', 'C']:
-            query = PathQuery().add('tasks').add('complete', key=[key])
-            node = query.find_one(archive.root())
+            query = PathQuery() \
+                .add(KeyConstraint('tasks')) \
+                .add(KeyConstraint('complete', key=[key]))
+            node = archive.find_one(query)
             self.assertEquals(node.children[0].value, key)
-            self.assertEquals(len(query.find_all(archive.root())), 1)
-        node = PathQuery().add('tasks').add('complete', key=['D']).find_one(archive.root())
+            self.assertEquals(len(archive.find_all(query)), 1)
+        node = archive.find_one(
+            PathQuery() \
+                .add(KeyConstraint('tasks')) \
+                .add(KeyConstraint('complete', key=['D']))
+            )
         self.assertIsNone(node)
+        # Label Constraint
+        nodes = archive.find_all(PathQuery().add(LabelConstraint('modules')))
+        self.assertEquals(len(nodes), 3)
+        # Any constraint
+        nodes = archive.find_all(PathQuery().add())
+        self.assertEquals(len(nodes), 5)
+        nodes = archive.find_all(PathQuery().add(LabelConstraint('tasks')).add())
+        self.assertEquals(len(nodes), 3)
 
     def test_query_tree_with_duplicates(self):
         """Test queries of archive nodes on a document containing duplicate
@@ -75,8 +104,11 @@ class TestQuery(unittest.TestCase):
         archive = Archive()
         archive.insert(doc=doc)
         for i in range(3):
-            query = PathQuery().add('modules', key=[i]).add('command').add('args')
-            nodes = query.find_all(archive.root())
+            query = PathQuery() \
+                .add(KeyConstraint('modules', key=[i])) \
+                .add(KeyConstraint('command')) \
+                .add(KeyConstraint('args'))
+            nodes = archive.find_all(query)
             self.assertEquals(len(nodes), 1)
             node = nodes[0]
             self.assertEquals(len(node.children), 2)
@@ -84,8 +116,10 @@ class TestQuery(unittest.TestCase):
             self.assertEquals(node.children[1].label, 'B')
         values = set()
         for i in range(3):
-            query = PathQuery().add('tasks').add('complete', key=[i])
-            nodes = query.find_all(archive.root())
+            query = PathQuery() \
+                .add(KeyConstraint('tasks')) \
+                .add(KeyConstraint('complete', key=[i]))
+            nodes = archive.find_all(query)
             self.assertEquals(len(nodes), 1)
             node = nodes[0]
             self.assertEquals(len(node.children), 1)
@@ -93,9 +127,9 @@ class TestQuery(unittest.TestCase):
         self.assertEquals(values, set(['B', 'A', 'C']))
         # Check that exception is raised if find_one has more than one matches
         # and strict is True.
-        query.find_one(archive.root())
+        archive.find_one(query)
         with self.assertRaises(ValueError):
-            query.find_one(archive.root(), strict=True)
+            archive.find_one(query, strict=True)
 
     def test_query_with_missing_schema(self):
         """Test queries of archive generated without schema."""
@@ -137,7 +171,11 @@ class TestQuery(unittest.TestCase):
         archive.insert(doc=doc2)
         archive.insert(doc=doc1)
         archive.insert(doc=doc2)
-        nodes = PathQuery().add('tasks').add('complete').find_all(archive.root())
+        nodes = archive.find_all(
+            PathQuery() \
+                .add(KeyConstraint('tasks')) \
+                .add(KeyConstraint('complete'))
+            )
         self.assertEquals(len(nodes), 0)
 
     def test_query_with_index_expressions(self):
@@ -158,31 +196,46 @@ class TestQuery(unittest.TestCase):
         archive = Archive(schema=SimpleDocumentSchema(doc))
         archive.insert(doc=doc)
         # Query arguments of individual modules
-        query = PathQuery().add('modules', key=[0]).add('command').add('args')
-        node = query.find_one(archive.root())
+        query = PathQuery() \
+            .add(KeyConstraint('modules', key=[0])) \
+            .add(KeyConstraint('command')) \
+            .add(KeyConstraint('args'))
+        node = archive.find_one(query)
         self.assertEquals(len(node.children), 2)
         self.assertEquals(node.children[0].children[0].value, 1)
         self.assertEquals(node.children[1].children[0].value, 2)
         # There should only be one matching node
-        self.assertEquals(len(query.find_all(archive.root())), 1)
-        query = PathQuery().add('modules', key=[2]).add('command').add('args')
-        node = query.find_one(archive.root())
+        self.assertEquals(len(archive.find_all(query)), 1)
+        query = PathQuery() \
+            .add(KeyConstraint('modules', key=[2])) \
+            .add(KeyConstraint('command')) \
+            .add(KeyConstraint('args'))
+        node = archive.find_one(query)
         self.assertEquals(len(node.children), 2)
         self.assertEquals(node.children[0].children[0].value, 5)
         self.assertEquals(node.children[1].children[0].value, 6)
         # Non-matches
-        query = PathQuery().add('modules', key=[10])
-        self.assertIsNone(query.find_one(archive.root()))
-        query = PathQuery().add('modules', key=[101, 5])
-        self.assertIsNone(query.find_one(archive.root()))
-        query = PathQuery().add('modules', key=[1]).add('command').add('arg')
-        self.assertIsNone(query.find_one(archive.root()))
+        query = PathQuery().add(KeyConstraint('modules', key=[10]))
+        self.assertIsNone(archive.find_one(query))
+        query = PathQuery().add(KeyConstraint('modules', key=[101, 5]))
+        self.assertIsNone(archive.find_one(query))
+        query = PathQuery() \
+            .add(KeyConstraint('modules', key=[1])) \
+            .add(KeyConstraint('command')) \
+            .add(KeyConstraint('arg'))
+        self.assertIsNone(archive.find_one(query))
         # Query tasks
         for key in range(2):
-            query = PathQuery().add('tasks').add('complete', key=[key])
-            node = query.find_one(archive.root())
-            self.assertEquals(len(query.find_all(archive.root())), 1)
-        node = PathQuery().add('tasks').add('complete', key=['D']).find_one(archive.root())
+            query = PathQuery() \
+                .add(KeyConstraint('tasks')) \
+                .add(KeyConstraint('complete', key=[key]))
+            node = archive.find_one(query)
+            self.assertEquals(len(archive.find_all(query)), 1)
+        node = archive.find_one(
+            PathQuery() \
+                .add(KeyConstraint('tasks')) \
+                .add(KeyConstraint('complete', key=['D']))
+            )
         self.assertIsNone(node)
 
     def test_snapshot_query(self):

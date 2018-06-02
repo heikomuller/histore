@@ -27,7 +27,7 @@ class DocumentSerializer(object):
         -------
         any
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
 
 class DefaultDocumentSerializer(DocumentSerializer):

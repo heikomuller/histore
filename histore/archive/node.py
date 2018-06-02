@@ -121,7 +121,7 @@ class ArchiveNode(object):
         -------
         bool
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
 
 class ArchiveElement(ArchiveNode):
