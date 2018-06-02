@@ -58,7 +58,7 @@ class KeySpec(object):
         -------
         list
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     @staticmethod
     def from_dict(doc):
@@ -97,7 +97,7 @@ class KeySpec(object):
         -------
         bool
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def matches(self, path):
         """Shortcut to test whether the key's target path matches the given
@@ -125,7 +125,7 @@ class KeySpec(object):
         -------
         dict
         """
-        raise NotImplementedError
+        raise NotImplementedError()
 
 
 class ListIndexKey(KeySpec):

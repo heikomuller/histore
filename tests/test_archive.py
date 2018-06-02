@@ -1,18 +1,19 @@
 import unittest
 
 from histore.archive.base import Archive
+from histore.archive.node import ArchiveElement
 from histore.archive.snapshot import Snapshot
 from histore.archive.store.mem import InMemoryArchiveStore
 from histore.schema.document import SimpleDocumentSchema
-
+from histore.timestamp import Timestamp
 
 class TestArchive(unittest.TestCase):
 
     def test_initialize(self):
         """Test initializing a new archive."""
         archive = Archive()
-        self.assertIsNotNone(archive.schema)
-        self.assertEquals(len(archive.schema.keys()), 0)
+        self.assertIsNotNone(archive.schema())
+        self.assertEquals(len(archive.schema().keys()), 0)
         self.assertEquals(archive.length(), 0)
         doc = {
             'name': 'A',
@@ -26,21 +27,30 @@ class TestArchive(unittest.TestCase):
             }
         }
         archive = Archive(schema=SimpleDocumentSchema(doc))
-        self.assertIsNotNone(archive.schema)
-        self.assertEquals(len(archive.schema.keys()), 2)
+        self.assertIsNotNone(archive.schema())
+        self.assertEquals(len(archive.schema().keys()), 2)
         self.assertEquals(archive.length(), 0)
         archive = Archive(
             store=InMemoryArchiveStore(
+                root=ArchiveElement(label='root', timestamp=Timestamp.from_string('0-1')),
                 schema=SimpleDocumentSchema(doc),
                 snapshots=[Snapshot(0), Snapshot(1)]
             )
         )
-        self.assertIsNotNone(archive.schema)
-        self.assertEquals(len(archive.schema.keys()), 2)
+        self.assertIsNotNone(archive.schema())
+        self.assertEquals(len(archive.schema().keys()), 2)
         self.assertEquals(archive.length(), 2)
         with self.assertRaises(ValueError):
             archive = Archive(
                 store=InMemoryArchiveStore(
+                    schema=SimpleDocumentSchema(doc),
+                    snapshots=[Snapshot(0), Snapshot(1)]
+                )
+            )
+        with self.assertRaises(ValueError):
+            archive = Archive(
+                store=InMemoryArchiveStore(
+                    root=ArchiveElement(label='root', timestamp=Timestamp.from_string('0-8')),
                     schema=SimpleDocumentSchema(doc),
                     snapshots=[Snapshot(0), Snapshot(1), Snapshot(8)]
                 )
@@ -48,6 +58,7 @@ class TestArchive(unittest.TestCase):
         with self.assertRaises(ValueError):
             archive = Archive(
                 store=InMemoryArchiveStore(
+                    root=ArchiveElement(label='root', timestamp=Timestamp.from_string('0-1')),
                     schema=SimpleDocumentSchema(doc),
                     snapshots=[Snapshot(0), Snapshot(1), Snapshot(1)]
                 )

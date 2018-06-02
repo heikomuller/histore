@@ -171,14 +171,14 @@ class DefaultArchiveSerializer(ArchiveSerializer):
         """
         if not archive.root() is None:
             key_paths = list()
-            for key in archive.schema.keys():
+            for key in archive.schema().keys():
                 if key.is_keyed_by_path_values():
                     for value_path in key.value_paths:
                         path = key.target_path.concat(value_path)
                         key_paths.append(path.to_key())
             return {
-                'schema': archive.schema.to_dict(),
-                'snapshots': [s.to_dict() for s in archive.snapshots],
+                'schema': archive.schema().to_dict(),
+                'snapshots': [s.to_dict() for s in archive.snapshots()],
                 'data': {
                     archive.root().label : self.element_to_dict(
                         node=archive.root(),

@@ -96,7 +96,7 @@ class Archive(object):
         any
         """
         # Raise exception if version number is unknown
-        if version < 0 or version >= len(self.snapshots):
+        if version < 0 or version >= len(self.snapshots()):
             raise ValueError('unknown version number \'' + str(version) + '\'')
         # Evaluate snapshot query for requested document snapshot
         doc_root = SnapshotQueryEngine(self.snapshot(version)).get(self)
@@ -125,20 +125,23 @@ class Archive(object):
         histore.archive.snapshot.Snapshot
         """
         # Create a handle for the new snapshot
-        snapshot = Snapshot(len(self.snapshots), name=name)
+        snapshot = Snapshot(len(self.snapshots()), name=name)
         # Create an archive from the given document with a single root node
         doc_root = ArchiveElement.from_document(
             doc=Document(doc=doc),
-            schema=self.schema,
+            schema=self.schema(),
             version=snapshot.version,
             strict=strict
         )
         # Get the current root node
-        root = self.store.read()
+        root = self.store.get_root()
         if root is None:
             # This is the first snapshot in the archive. We do not need to
             # merge anything.
-            self.store.write(doc_root, snapshot)
+            self.store.write(
+                root=doc_root,
+                snapshots=self.snapshots() + [snapshot]
+            )
         else:
             root = NestedMerger().merge(
                 archive_node=root,
@@ -146,7 +149,7 @@ class Archive(object):
                 version=snapshot.version,
                 timestamp=root.timestamp.append(snapshot.version)
             )
-            self.store.write(root, snapshot)
+            self.store.write(root=root, snapshots=self.snapshots() + [snapshot])
         return snapshot
 
     def length(self):
@@ -156,7 +159,7 @@ class Archive(object):
         -------
         int
         """
-        return len(self.snapshots)
+        return len(self.snapshots())
 
     def root(self):
         """Get the root of the archive from the associated store.
@@ -165,9 +168,8 @@ class Archive(object):
         -------
         histore.archive.node.ArchiveElement
         """
-        return self.store.read()
+        return self.store.get_root()
 
-    @property
     def schema(self):
         """Shortcut to access the archive schema maintained by the archive
         store.
@@ -176,7 +178,7 @@ class Archive(object):
         -------
         histore.schema.document.DocumentSchema
         """
-        return self.store.schema
+        return self.store.get_schema()
 
     def snapshot(self, version):
         """Get handle for snapshot with given version number.
@@ -190,9 +192,8 @@ class Archive(object):
         -------
         histore.archive.snapshot.Snapshot
         """
-        return self.snapshots[version]
+        return self.store.get_snapshots()[version]
 
-    @property
     def snapshots(self):
         """Shortcut to access the list of document snapshot handles maintained
         by the archive store.
@@ -201,4 +202,4 @@ class Archive(object):
         -------
         list(histore.archive.snapshot.Snapshot)
         """
-        return self.store.snapshots
+        return self.store.get_snapshots()

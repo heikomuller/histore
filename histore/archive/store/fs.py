@@ -59,12 +59,38 @@ class PersistentArchiveStore(ArchiveStore):
             doc = yaml.load(f.read())
         f.close()
 
-    @staticmethod
-    def create(archive=None, filename, format=None, overwrite=False):
-        """Create a new persistent archive on disk.
+    def get_root(self):
+        """Get the root node for the archive that is maintained by this store.
 
         Returns
         -------
-        histore.archive
+        histore.archive.node.ArchiveElement
         """
-        pass
+        return self.root
+
+    def read(self):
+        """Read the complete archive information. Returns a triple containing
+        the archive root, the list of snapshots, and the archive schema.
+
+        Returns
+        -------
+        histore.archive.node.ArchiveElement
+        list(histore.archive.snapshot.Snapshot)
+        histore.schema.document.DocumentSchema
+        """
+        return (self.root, self.snapshots, self.schema)
+
+    def write(self, root, snapshots, schema=None):
+        """Relace the current archive information with an updated version
+        (e.g., after adding a new snapshot to the archive). At this point the
+        schema is not expected to be changed after the archive is created.
+        However, the system is capable to manage changes to the schema if they
+        only afect elements that have not been present in any of the previous
+        document snapshots.
+
+        Parameters
+        ----------
+        root: histore.archive.node.ArchiveElement
+        snapshots: list(histore.archive.snapshot.Snapshot)
+        schema: histore.schema.document.DocumentSchema
+        """
