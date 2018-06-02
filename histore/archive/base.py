@@ -4,8 +4,7 @@
 
 from histore.archive.node import ArchiveElement
 from histore.archive.merge import NestedMerger
-from histore.archive.query.engine import PathQueryEngine
-from histore.archive.query.snapshot import SnapshotQuery
+from histore.archive.query.engine import PathQueryEngine, SnapshotQueryEngine
 from histore.archive.snapshot import Snapshot
 from histore.archive.store.mem import InMemoryArchiveStore
 from histore.document.base import Document
@@ -100,7 +99,7 @@ class Archive(object):
         if version < 0 or version >= len(self.snapshots):
             raise ValueError('unknown version number \'' + str(version) + '\'')
         # Evaluate snapshot query for requested document snapshot
-        doc_root = SnapshotQuery(self).get(self.snapshot(version))
+        doc_root = SnapshotQueryEngine(self.snapshot(version)).get(self)
         doc = Document(nodes=doc_root.children)
         # Use the default serializer if the application did not provide a
         # serializer

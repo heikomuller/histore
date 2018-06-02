@@ -7,6 +7,9 @@ of an archive may evaluate queries differently. This module contains
 implementations of default querie engines.
 """
 
+from histore.document.node import InternalNode, LeafNode
+
+
 class PathQueryEngine(object):
     """Evaluate a path query on a given archive."""
     def __init__(self, query):
@@ -84,3 +87,89 @@ class PathQueryEngine(object):
             if strict:
                 raise ValueError('multiple matching nodes')
             return nodes[0]
+
+
+class SnapshotQueryEngine(object):
+    """Implements logic to retrieve a particular snapshot from an archive. The
+    snapshot query maintains a reference to the handle for the snapshot that is
+    being retrieved.
+    """
+    def __init__(self, snapshot):
+        """Initialize the snapshot handle.
+
+        Parameters
+        ----------
+        snapshot: histore.archive.snapshot.Snapshot
+        """
+        self.snapshot = snapshot
+
+    def eval(self, archive_node, document_node, version):
+        """Evaluate a snapshot query. Recursively adds all archive node children
+        that contain the given version in their timestamp to the document node.
+        Returns the document node.
+
+        Parameters
+        ----------
+        archive_node: histore.archive.node.ArchiveElement
+        document_node: histore.document.node.InternalNode
+        version: int
+
+        Returns
+        -------
+        histore.document.node.InternalNode
+        """
+        for arch_child in archive_node.children:
+            if arch_child.timestamp.contains(version):
+                list_index = None
+                for pos in arch_child.list_index:
+                    if pos.timestamp.contains(version):
+                        list_index = pos.value
+                # Test if this is an internal node or a leaf node by looking
+                # at the arch_node children. If there is a ValueNode that
+                # contains the version we have reached a leaf. Otherwise,
+                # continue recursively.
+                leaf_value = None
+                for cand in arch_child.children:
+                    if cand.timestamp.contains(version):
+                        if cand.is_value():
+                            leaf_value = cand
+                        # We can break once we found one matching child. Even if
+                        # it is a value, because a document node cannot have
+                        # values and elements as children.
+                        break
+                if not leaf_value is None:
+                    node = LeafNode(
+                        label=arch_child.label,
+                        value=leaf_value.value,
+                        list_index=list_index
+                    )
+                else:
+                    node = InternalNode(
+                        label=arch_child.label,
+                        list_index=list_index
+                    )
+                    self.eval(
+                        archive_node=arch_child,
+                        document_node=node,
+                        version=version
+                    )
+                document_node.add(node)
+        return document_node
+
+    def get(self, archive):
+        """Retrieve the document snapshot from the given archive.
+
+        Parameters
+        ----------
+        archive: histore.archive.base.Archive
+
+        Returns
+        -------
+        histore.document.node.InternalNode
+        """
+        doc_root = InternalNode(label='root')
+        return self.eval(
+            archive_node=archive.root(),
+            document_node=doc_root,
+            version=self.snapshot.version
+        )
