@@ -5,7 +5,7 @@ from histore.archive.query.path import PathQuery
 from histore.debug import print_archive
 from histore.path import Path
 from histore.schema.document import DocumentSchema
-from histore.schema.key import PathValuesKey, NodeIndexKey, NodeValueKey
+from histore.schema.key import PathValuesKey, ListIndexKey, NodeValueKey
 
 
 DOC = {
@@ -35,7 +35,7 @@ class TestAnnotate(unittest.TestCase):
             PathValuesKey(target_path=Path('modules/commands'), value_paths=[Path('type')]),
             PathValuesKey(target_path=Path('modules/commands/args'), value_paths=[Path('key')]),
             NodeValueKey(target_path=Path('tasks/complete')),
-            NodeIndexKey(target_path=Path('tasks/incomplete/error'))
+            ListIndexKey(target_path=Path('tasks/incomplete/error'))
         ])
         archive = Archive(schema=schema)
         archive.insert(doc=DOC)
@@ -62,8 +62,8 @@ class TestAnnotate(unittest.TestCase):
             PathValuesKey(target_path=Path('modules/commands'), value_paths=[Path('type')]),
             PathValuesKey(target_path=Path('modules/commands/args'), value_paths=[Path('key')]),
             NodeValueKey(target_path=Path('tasks/complete')),
-            NodeIndexKey(target_path=Path('tasks/incomplete')),
-            NodeIndexKey(target_path=Path('tasks/incomplete/error'))
+            ListIndexKey(target_path=Path('tasks/incomplete')),
+            ListIndexKey(target_path=Path('tasks/incomplete/error'))
         ])
         archive = Archive(schema=schema)
         with self.assertRaises(ValueError):

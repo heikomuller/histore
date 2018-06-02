@@ -127,17 +127,17 @@ class ArchiveNode(object):
 class ArchiveElement(ArchiveNode):
     """Element node in an archive. Element nodes have an optional key for nodes
     that are keyed by value. If the key is None the node is assumed to be keyed
-    by existence. Nodes that are keyed by value also maintain a list of node
-    positions (i.e., timestamped value nodes) that represent the position of
-    the node among its siblings with the same label in the different document
+    by existence. Nodes that are keyed by value also maintain a list of list
+    index positions (i.e., timestamped value nodes) that represent the position
+    of the node among its siblings with the same label in the different document
     versions. All element nodes have a (potentially empty) list of children.
     """
-    def __init__(self, label, timestamp, key=None, positions=None, children=None, sort=False):
+    def __init__(self, label, timestamp, key=None, list_index=None, children=None, sort=False):
         """Initialize the element node.
 
         Raises ValueError if the node label is None. The values of arguments
-        key and positions are expected to either both be None or both not be
-        None.
+        key and list index positions are expected to either both be None or both
+        not be None.
 
         Parameters
         ----------
@@ -147,9 +147,9 @@ class ArchiveElement(ArchiveNode):
             Timestamp of node
         key: list(), optional
             List of key values if the node is not keyed by existence
-        positions: list(histore.archive.node.ValueNode)
-            History of index positions for this node among its siblings with the
-            same label (for keyed nodes only)
+        list_index: list(histore.archive.node.ValueNode)
+            History of list index positions for this node among its siblings
+            with the same label (for keyed nodes only)
         children: list(histore.archive.node.ArchiveNode)
             Children of this node in the archive tree
         sort: bool, optional
@@ -161,12 +161,12 @@ class ArchiveElement(ArchiveNode):
             raise ValueError('invalid element label')
         self.label = label
         # Set element key. If key is None the element is keyed by existence.
-        if key is None and not positions is None:
-            raise ValueError('invalid arguments for key and positions for \'' + str(label) + '\'')
-        elif not key is None and positions is None:
-            raise ValueError('invalid arguments for key and positions for \'' + str(label) + '\'')
+        if key is None and not list_index is None:
+            raise ValueError('invalid arguments for key and list index positions for \'' + str(label) + '\'')
+        elif not key is None and list_index is None:
+            raise ValueError('invalid arguments for key and list index positions for \'' + str(label) + '\'')
         self.key = key
-        self.positions = positions if not positions is None else list()
+        self.list_index = list_index if not list_index is None else list()
         self.children = children if not children is None else list()
         # Sort the node's children if the sort flag is true
         if sort:
@@ -343,18 +343,18 @@ class NodeAnnotator(object):
             key = self.schema.get(target_path)
             if not key is None:
                 child.key = key.annotate(node)
-                child.positions.append(
-                    ArchiveValue(timestamp=t, value=node.index)
+                child.list_index.append(
+                    ArchiveValue(timestamp=t, value=node.list_index)
                 )
-            elif not node.index is None:
+            elif not node.list_index is None:
                 # Raise an exception if strict mode is on
                 if strict:
                     raise ValueError('duplicate nodes \'' + str(node) + '\'')
                 # Annotate nodes with an index (but no key specification) as if
                 # they were keyed by index.
-                child.key = [node.index]
-                child.positions.append(
-                    ArchiveValue(timestamp=t, value=node.index)
+                child.key = [node.list_index]
+                child.list_index.append(
+                    ArchiveValue(timestamp=t, value=node.list_index)
                 )
             archive_node.add(child)
             if node.is_leaf():

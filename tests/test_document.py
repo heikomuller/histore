@@ -37,7 +37,7 @@ class TestDocument(unittest.TestCase):
             if node.is_leaf():
                 leaf_nodes += 1
             if node.label == 'C':
-                c_nodes[node.index] = node
+                c_nodes[node.list_index] = node
         self.assertEquals(counts['A'], 1)
         self.assertEquals(counts['B'], 1)
         self.assertEquals(counts['C'], 4)
@@ -55,12 +55,12 @@ class TestDocument(unittest.TestCase):
     def test_get_path(self):
         """ Test .get(path) method."""
         a = InternalNode('A')
-        a.add(LeafNode('B', index=0))
-        a.add(LeafNode('B', index=1))
+        a.add(LeafNode('B', list_index=0))
+        a.add(LeafNode('B', list_index=1))
         c = a.add(InternalNode('C'))
         a.add(LeafNode('E'))
-        c.add(LeafNode('D', index=0))
-        c.add(LeafNode('D', index=1))
+        c.add(LeafNode('D', list_index=0))
+        c.add(LeafNode('D', list_index=1))
         e = c.add(InternalNode('E'))
         e.add(LeafNode('F'))
         self.assertTrue(a.get(Path('E')).label, 'E')
@@ -80,17 +80,17 @@ class TestDocument(unittest.TestCase):
         self.assertFalse(element.is_leaf())
         self.assertEquals(element.label, 'my_label')
         self.assertEquals(len(element.children), 0)
-        self.assertEquals(element.index, None)
-        element = InternalNode('my_label', children=[1, 2, 3], index=2)
+        self.assertEquals(element.list_index, None)
+        element = InternalNode('my_label', children=[1, 2, 3], list_index=2)
         self.assertFalse(element.is_leaf())
         self.assertEquals(element.label, 'my_label')
         self.assertEquals(len(element.children), 3)
-        self.assertEquals(element.index, 2)
+        self.assertEquals(element.list_index, 2)
         with self.assertRaises(ValueError):
             InternalNode(None)
         a = InternalNode('A')
-        a.add(LeafNode('B', index=0))
-        a.add(LeafNode('B', index=1))
+        a.add(LeafNode('B', list_index=0))
+        a.add(LeafNode('B', list_index=1))
         with self.assertRaises(ValueError):
             a.add(LeafNode('B'))
         a.add(LeafNode('B'), strict=False)
@@ -101,12 +101,12 @@ class TestDocument(unittest.TestCase):
         self.assertTrue(value.is_leaf())
         self.assertEquals(value.label, 'A')
         self.assertEquals(value.value, 1)
-        self.assertEquals(value.index, None)
-        value = LeafNode('A', 1, index=2)
+        self.assertEquals(value.list_index, None)
+        value = LeafNode('A', 1, list_index=2)
         self.assertTrue(value.is_leaf())
         self.assertEquals(value.label, 'A')
         self.assertEquals(value.value, 1)
-        self.assertEquals(value.index, 2)
+        self.assertEquals(value.list_index, 2)
 
     def test_node(self):
         """Ensure that an exception is raised when initializing a Node with
@@ -135,9 +135,9 @@ class TestDocument(unittest.TestCase):
         self.assertEquals(len(doc.nodes), 8)
         for node in doc.nodes:
             if node.label in ['C', 'I']:
-                self.assertIsNotNone(node.index)
+                self.assertIsNotNone(node.list_index)
             else:
-                self.assertIsNone(node.index)
+                self.assertIsNone(node.list_index)
 
 
 if __name__ == '__main__':

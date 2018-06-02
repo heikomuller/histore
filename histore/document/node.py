@@ -26,9 +26,9 @@ class Node(object):
     a list of nodes (e.g., when converting a dictionary into a document) should
     have an index that is not None.
     """
-    def __init__(self, label, node_type, index=None):
+    def __init__(self, label, node_type, list_index=None):
         """Set the node label, the type flag that is used to distinguish between
-        the two node types, and the optional node index.
+        the two node types, and the optional node list index.
 
         Raises ValueError if an invalid node type identifier is given.
 
@@ -38,8 +38,8 @@ class Node(object):
             Element node label
         node_type: int
             One of the two node type identifier values.
-        index: int, optional
-            Index position for node among siblings with same element
+        list_index: int, optional
+            Index position for nodes among siblings within a list element
         """
         # Set the node type. Ensure that a valid type is given
         if not node_type in [INTERNAL_NODE, LEAF_NODE]:
@@ -49,8 +49,8 @@ class Node(object):
         if label is None:
             raise ValueError('invalid element label')
         self.label = label
-        # Set index position.
-        self.index = index
+        # Set list index position.
+        self.list_index = list_index
 
     def __repr__(self):
         """Unambiguous string representation of this path object.
@@ -59,7 +59,7 @@ class Node(object):
         -------
         string
         """
-        return 'Node(%s, %i)' % (self.label, self.index)
+        return 'Node(%s, %i)' % (self.label, self.list_index)
 
     def is_leaf(self):
         """Flag indicating if this is a leaf node.
@@ -75,7 +75,7 @@ class InternalNode(Node):
     """Internal nodes nodes are element nodes that have a (potentially empty)
     list of children. Children are either internal or leaf nodes.
     """
-    def __init__(self, label, children=None, index=None):
+    def __init__(self, label, children=None, list_index=None):
         """Initialize the element label, index, and children.
 
         Parameters
@@ -84,14 +84,14 @@ class InternalNode(Node):
             Element node label
         children: list, optional
             List of children for this node
-        index: int, optional
-            Index position for node among siblings with same element
+        list_index: int, optional
+            Index position for nodes among siblings within a list element
         """
-        # Set lebel, node type, and index in the super class
+        # Set lebel, node type, and list index in the super class
         super(InternalNode, self).__init__(
             label=label,
             node_type=INTERNAL_NODE,
-            index=index
+            list_index=list_index
         )
         self.children = children if not children is None else list()
 
@@ -102,13 +102,13 @@ class InternalNode(Node):
         -------
         string
         """
-        return 'InternalNode(%s, index=%s)' % (self.label, str(self.index))
+        return 'InternalNode(%s, index=%s)' % (self.label, str(self.list_index))
 
     def add(self, node, strict=True):
         """Shortcut to append a node to the list of children.
 
         Raises ValueError if strict is True and children with the same label as
-        node exists and the node index is not unique.
+        node exists and the node list index is not unique.
 
         Parameters
         ----------
@@ -119,26 +119,26 @@ class InternalNode(Node):
         -------
         histore.document.node.Node
         """
-        # Ensure that the node index is unique among siblings with the same
+        # Ensure that the node list index is unique among siblings with the same
         # label.
         if strict:
             template = 'invalid children \'%s\' and \'%s\' for \'%s\''
             for child in self.children:
                 if child.label == node.label:
-                    if child.index is None and node.index is None:
+                    if child.list_index is None and node.list_index is None:
                         raise ValueError(template % (str(child), str(node), str(self)))
-                    elif not child.index is None and node.index is None:
+                    elif not child.list_index is None and node.list_index is None:
                         raise ValueError(template % (str(child), str(node), str(self)))
-                    elif child.index is None and not node.index is None:
+                    elif child.list_index is None and not node.list_index is None:
                         raise ValueError(template % (str(child), str(node), str(self)))
-                    elif child.index == node.index:
+                    elif child.list_index == node.list_index:
                         raise ValueError(template % (str(child), str(node), str(self)))
 
         self.children.append(node)
         return node
 
     @staticmethod
-    def from_dict(label, doc, index=None):
+    def from_dict(label, doc, list_index=None):
         """Create an instance of an internal node from a dictionary.
 
         Raises ValueError if the document contains nested lists (currently not
@@ -163,7 +163,7 @@ class InternalNode(Node):
                 # Check if the list is empty. In that case we need to add an
                 # element node with index 0 but no children.
                 if len(val) == 0:
-                    children.append(InternalNode(label=key, index=0))
+                    children.append(InternalNode(label=key, list_index=0))
                 else:
                     for i in range(len(val)):
                         el = val[i]
@@ -171,15 +171,15 @@ class InternalNode(Node):
                             raise ValueError('nested lists are not supported yet')
                         elif isinstance(el, dict):
                             children.append(
-                                InternalNode.from_dict(key, el, index=i)
+                                InternalNode.from_dict(key, el, list_index=i)
                             )
                         else:
-                            children.append(LeafNode(key, value=el, index=i))
+                            children.append(LeafNode(key, value=el, list_index=i))
             elif isinstance(val, dict):
                 children.append(InternalNode.from_dict(key, val))
             else:
                 children.append(LeafNode(key, value=val))
-        return InternalNode(label, children=children, index=index)
+        return InternalNode(label, children=children, list_index=list_index)
 
     def get(self, path):
         """Get the child element at the given relative path. Accepts a single
@@ -229,7 +229,7 @@ class InternalNode(Node):
 
 class LeafNode(Node):
     """Leaf nodes in the document tree contain a node value."""
-    def __init__(self, label, value=None, index=None):
+    def __init__(self, label, value=None, list_index=None):
         """Initialize the node value.
 
         Parameters
@@ -238,14 +238,14 @@ class LeafNode(Node):
             Element node label
         value: string, int, or float, optional
             Optional node value
-        index: int, optional
-            Index position for node among siblings with same element
+        list_index: int, optional
+            Index position for nodes among siblings within a list element
         """
         # Set lebel, node type, and index in the super class
         super(LeafNode, self).__init__(
             label=label,
             node_type=LEAF_NODE,
-            index=index
+            list_index=list_index
         )
         self.value = value
 
@@ -256,4 +256,4 @@ class LeafNode(Node):
         -------
         string
         """
-        return 'LeafNode(%s, %s, index=%s)' % (self.label, str(self.value), str(self.index))
+        return 'LeafNode(%s, %s, index=%s)' % (self.label, str(self.value), str(self.list_index))

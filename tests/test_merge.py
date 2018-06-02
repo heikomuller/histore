@@ -4,7 +4,7 @@ from histore.archive.base import Archive
 from histore.archive.query.path import PathQuery
 from histore.path import Path
 from histore.schema.document import DocumentSchema
-from histore.schema.key import PathValuesKey, NodeIndexKey, NodeValueKey
+from histore.schema.key import PathValuesKey, ListIndexKey, NodeValueKey
 from histore.timestamp import TimeInterval, Timestamp
 
 
@@ -120,8 +120,8 @@ class TestMerge(unittest.TestCase):
         node = q.find_one(archive.root())
         self.assertIsNotNone(node)
         self.assertTrue(node.timestamp.is_equal(Timestamp([TimeInterval(0,5)])))
-        self.assertEquals(len(node.positions), 2)
-        for pos in node.positions:
+        self.assertEquals(len(node.list_index), 2)
+        for pos in node.list_index:
             self.assertTrue(pos.value in [0, 1])
             if pos.value == 0:
                 self.assertTrue(pos.timestamp.is_equal(Timestamp.from_string('0,2,4')))
@@ -139,8 +139,8 @@ class TestMerge(unittest.TestCase):
         q = PathQuery().add('tasks').add('complete', key=['A'])
         node = q.find_one(archive.root())
         self.assertIsNotNone(node)
-        self.assertEquals(len(node.positions), 2)
-        for pos in node.positions:
+        self.assertEquals(len(node.list_index), 2)
+        for pos in node.list_index:
             self.assertTrue(pos.value in [0, 1])
             if pos.value == 1:
                 self.assertTrue(pos.timestamp.is_equal(Timestamp.from_string('0,2,4')))
@@ -225,7 +225,7 @@ class TestMerge(unittest.TestCase):
             }
         }
         schema=DocumentSchema(keys=[
-            NodeIndexKey(target_path=Path('tasks/complete'))
+            ListIndexKey(target_path=Path('tasks/complete'))
         ])
         archive = Archive(schema=schema)
         archive.insert(doc=doc1)

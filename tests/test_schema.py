@@ -3,7 +3,7 @@ import unittest
 from histore.document.base import Document
 from histore.path import Path
 from histore.schema.document import DocumentSchema, SimpleDocumentSchema
-from histore.schema.key import KeySpec, PathValuesKey, NodeIndexKey, NodeValueKey
+from histore.schema.key import KeySpec, PathValuesKey, ListIndexKey, NodeValueKey
 
 class TestSchema(unittest.TestCase):
 
@@ -23,25 +23,25 @@ class TestSchema(unittest.TestCase):
         key = PathValuesKey(target_path=Path('modules'), value_paths=[Path('id'), Path('command/name')])
         for node in doc.nodes:
             if key.matches(Path(node.label)):
-                if node.index == 0:
+                if node.list_index == 0:
                     self.assertEquals(key.annotate(node), [100, 'A'])
-                elif node.index == 1:
+                elif node.list_index == 1:
                     self.assertEquals(key.annotate(node), [101, 'B'])
                 else:
                     try:
                         key.annotate(node)
                     except ValueError as ex:
                         msg = str(ex)
-                    if node.index == 2:
+                    if node.list_index == 2:
                         self.assertEquals(msg, "not a unique path 'id'")
-                    elif node.index == 3:
+                    elif node.list_index == 3:
                         self.assertEquals(msg, "missing key value for 'command/name'")
-                    elif node.index == 4:
+                    elif node.list_index == 4:
                         self.assertEquals(msg, "not a unique path 'command/name'")
-        key = NodeIndexKey(target_path=Path('modules'))
+        key = ListIndexKey(target_path=Path('modules'))
         for node in doc.nodes:
             if key.matches(Path(node.label)):
-                self.assertEquals(key.annotate(node), [node.index])
+                self.assertEquals(key.annotate(node), [node.list_index])
         key = NodeValueKey(target_path=Path('modules/value'))
         for node in doc.nodes:
             if node.label == 'modules':
@@ -59,7 +59,7 @@ class TestSchema(unittest.TestCase):
 
     def test_match(self):
         """Test path matching."""
-        key = NodeIndexKey(target_path=Path('A/B/C'))
+        key = ListIndexKey(target_path=Path('A/B/C'))
         self.assertTrue(key.matches(Path(['A', 'B', 'C'])))
         self.assertFalse(key.matches(Path(['A', 'B'])))
         self.assertFalse(key.matches(Path(['A', 'B', 'E'])))
@@ -67,27 +67,27 @@ class TestSchema(unittest.TestCase):
     def test_schema(self):
         """Test document schema functinality."""
         schema = DocumentSchema()
-        schema.add(NodeIndexKey(Path('A/B')))
-        schema.add(NodeIndexKey(Path('A/C')))
+        schema.add(ListIndexKey(Path('A/B')))
+        schema.add(ListIndexKey(Path('A/C')))
         self.validate_schema(schema)
         self.validate_schema(
-            DocumentSchema([NodeIndexKey(Path('A/B')), NodeIndexKey(Path('A/C'))])
+            DocumentSchema([ListIndexKey(Path('A/B')), ListIndexKey(Path('A/C'))])
         )
         with self.assertRaises(ValueError):
             DocumentSchema([
-                NodeIndexKey(Path('A/B')),
-                NodeIndexKey(Path('A/C')),
-                NodeIndexKey(Path('A/C'))
+                ListIndexKey(Path('A/B')),
+                ListIndexKey(Path('A/C')),
+                ListIndexKey(Path('A/C'))
             ])
 
     def test_serialization(self):
         """Test serializing keys using .to_dict() and .from_dict()."""
         # Node index key
-        key = NodeIndexKey(Path('A/B/C'))
+        key = ListIndexKey(Path('A/B/C'))
         self.assertEquals(key.target_path.length(), 3)
         self.assertEquals(key.target_path.to_key(), 'A/B/C')
         key = KeySpec.from_dict(key.to_dict())
-        self.assertTrue(isinstance(key, NodeIndexKey))
+        self.assertTrue(isinstance(key, ListIndexKey))
         self.assertEquals(key.target_path.length(), 3)
         self.assertEquals(key.target_path.to_key(), 'A/B/C')
         # Node value key
@@ -118,7 +118,7 @@ class TestSchema(unittest.TestCase):
         schema = DocumentSchema.from_dict(schema.to_dict())
         self.assertEquals(len(schema.keys()), 0)
         schema = DocumentSchema(keys=[
-            NodeIndexKey(Path('A/B/C')),
+            ListIndexKey(Path('A/B/C')),
             NodeValueKey(Path('A')),
             PathValuesKey(Path('A/B'), [Path('A'), Path('C/D')])
         ])
@@ -155,7 +155,7 @@ class TestSchema(unittest.TestCase):
         self.assertEquals(key.target_path.get(1), 'C')
         self.assertIsNone(schema.get(Path('A')))
         with self.assertRaises(ValueError):
-            schema.add(NodeIndexKey(Path('A/C')))
+            schema.add(ListIndexKey(Path('A/C')))
 
 
 if __name__ == '__main__':

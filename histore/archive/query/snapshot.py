@@ -37,10 +37,10 @@ class SnapshotQuery(object):
         """
         for arch_child in archive_node.children:
             if arch_child.timestamp.contains(version):
-                node_index = None
-                for pos in arch_child.positions:
+                list_index = None
+                for pos in arch_child.list_index:
                     if pos.timestamp.contains(version):
-                        node_index = pos.value
+                        list_index = pos.value
                 # Test if this is an internal node or a leaf node by looking
                 # at the arch_node children. If there is a ValueNode that
                 # contains the version we have reached a leaf. Otherwise,
@@ -58,12 +58,12 @@ class SnapshotQuery(object):
                     node = LeafNode(
                         label=arch_child.label,
                         value=leaf_value.value,
-                        index=node_index
+                        list_index=list_index
                     )
                 else:
                     node = InternalNode(
                         label=arch_child.label,
-                        index=node_index
+                        list_index=list_index
                     )
                     self.eval(
                         archive_node=arch_child,

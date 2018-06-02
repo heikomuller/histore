@@ -22,7 +22,7 @@ LABEL_KEY = '@key'
 LABEL_LABEL = '@label'
 LABEL_META = '@meta'
 LABEL_NODES = '@nodes'
-LABEL_POSITIONS = '@pos'
+LABEL_LISTINDEX = '@index'
 LABEL_TIMESTAMP = '@t'
 LABEL_VALUE = '@val'
 
@@ -199,7 +199,7 @@ class DefaultArchiveSerializer(ArchiveSerializer):
         # positions) from the @meta dictionary (if present)
         t = timestamp
         key = None
-        positions = None
+        list_index = None
         l_meta = self.mapping[LABEL_META]
         if l_meta in doc:
             meta = doc[l_meta]
@@ -210,10 +210,10 @@ class DefaultArchiveSerializer(ArchiveSerializer):
             if LABEL_KEY in meta:
                 key = meta[LABEL_KEY]
             # Positions
-            if LABEL_POSITIONS in meta:
-                positions = list()
-                for el in meta[LABEL_POSITIONS]:
-                    positions.append(self.value_from_dict(el, timestamp=t))
+            if LABEL_LISTINDEX in meta:
+                list_index = list()
+                for el in meta[LABEL_LISTINDEX]:
+                    list_index.append(self.value_from_dict(el, timestamp=t))
         # Create list of node children. Value nodes are identified by the @val
         # key. All other key values in the dictionary represent element nodes
         children = list()
@@ -241,7 +241,7 @@ class DefaultArchiveSerializer(ArchiveSerializer):
             label=label,
             timestamp=t,
             key=key,
-            positions=positions,
+            list_index=list_index,
             children=children,
             sort=True
         )
@@ -280,11 +280,11 @@ class DefaultArchiveSerializer(ArchiveSerializer):
         # Add timestamp only if the element has a local timestamp
         if timestamp is None or not node.timestamp.is_equal(timestamp):
             meta[LABEL_TIMESTAMP] = str(node.timestamp)
-        # Add key and positions if the element is keyed by values
+        # Add key and list index positions if the element is keyed by values
         if not node.key is None:
             meta[LABEL_KEY] = node.key
-            meta[LABEL_POSITIONS] = [
-                self.value_to_dict(pos, timestamp=node.timestamp) for pos in node.positions
+            meta[LABEL_LISTINDEX] = [
+                self.value_to_dict(pos, timestamp=node.timestamp) for pos in node.list_index
             ]
         obj = dict()
         if len(meta) > 0:

@@ -5,7 +5,7 @@
 """A document schema is a list of key specifications."""
 
 from histore.path import Path
-from histore.schema.key import NodeIndexKey, KeySpec
+from histore.schema.key import ListIndexKey, KeySpec
 
 class DocumentSchema(object):
     """A document schema is a collection of key specifications."""
@@ -124,7 +124,7 @@ def add_keyed_elements(schema, doc, path):
     for key in doc:
         if isinstance(doc[key], list):
             target_path = path.extend(key)
-            schema.add(NodeIndexKey(target_path=target_path), replace=True)
+            schema.add(ListIndexKey(target_path=target_path), replace=True)
             for el in doc[key]:
                 if isinstance(el, list):
                     raise ValueError('nested lists are not supported')

@@ -4,7 +4,7 @@ from histore.archive.base import Archive
 from histore.archive.query.path import PathQuery
 from histore.path import Path
 from histore.schema.document import DocumentSchema, SimpleDocumentSchema
-from histore.schema.key import PathValuesKey, NodeIndexKey, NodeValueKey
+from histore.schema.key import PathValuesKey, ListIndexKey, NodeValueKey
 
 
 class TestQuery(unittest.TestCase):

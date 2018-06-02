@@ -14,7 +14,7 @@ class NestedMerger(object):
     """The nested merger contains the logic to merge an archive tree and a new
     dataset snapshot.
     """
-    def merge(self, archive_node, doc_node, version, timestamp, positions=None):
+    def merge(self, archive_node, doc_node, version, timestamp, list_index=None):
         """Recirsively merges the children of a node in an archive and a node
         from a document snapshot. Both nodes are expected to be archive
         elements. Returns a modified copy of the archive node.
@@ -29,9 +29,9 @@ class NestedMerger(object):
             Version of the document snapshot
         timestamp: histore.timestamp.Timestamp
             Timestamp of the parent node in the new archive
-        positions: list(histore.archive.node.ValueNode)
-            History of index positions for this node among its siblings with the
-            same label (for keyed nodes only)
+        list_index: list(histore.archive.node.ValueNode)
+            History of list index positions for this node among its siblings
+            with the same label (for keyed nodes only)
 
         Returns
         -------
@@ -41,7 +41,7 @@ class NestedMerger(object):
         result_node = ArchiveElement(
             label=archive_node.label,
             key=archive_node.key,
-            positions=positions,
+            list_index=list_index,
             timestamp=timestamp
         )
         # Populate list of children in modified copy of the archive node by
@@ -80,13 +80,13 @@ class NestedMerger(object):
                     result_node.add(value_node)
                 elif arch_child.is_element() and doc_child.is_element():
                     # If the nodes have a key value add the position of the
-                    # document node to the list of positions for the archive
+                    # document node to the list of list_index for the archive
                     # element.
-                    merged_pos = None
+                    merged_index = None
                     if not arch_child.key is None:
-                        merged_pos = merge_positions(
-                            positions=arch_child.positions,
-                            pos=doc_child.positions[0],
+                        merged_index = merge_positions(
+                            list_index=arch_child.list_index,
+                            pos=doc_child.list_index[0],
                             version=version,
                             timestamp=timestamp
                         )
@@ -99,7 +99,7 @@ class NestedMerger(object):
                             arch_child.timestamp.append(version),
                             timestamp
                         ),
-                        positions=merged_pos
+                        list_index=merged_index
                     )
                     result_node.add(merged_node)
                 else:
@@ -123,15 +123,15 @@ class NestedMerger(object):
 # Helper Methods
 # ------------------------------------------------------------------------------
 
-def merge_positions(positions, pos, version, timestamp):
-    """Insert a given node position into a list of node positions. Node
-    positions are represented as archive values. Return a new list of node
-    positions. It is expected that the given list of positions and the result
-    are sorted by the position nodes values in ascending order.
+def merge_positions(list_index, pos, version, timestamp):
+    """Insert a given node list index into a list of node index positions. Node
+    list indexes are represented as archive values. Return a new list of node
+    index positions. It is expected that the given list of list index positions
+    and the result are sorted by the list indexes in ascending order.
 
     Parameters
     ----------
-    positions: list(histore.archive.node.ArchiveValue)
+    list_index: list(histore.archive.node.ArchiveValue)
     pos: histore.archive.node.ArchiveValue
     version: int
     timestamp: histore.timestamp.Timestamp
@@ -142,7 +142,7 @@ def merge_positions(positions, pos, version, timestamp):
     """
     result = list()
     was_added = False
-    for node in positions:
+    for node in list_index:
         if node.value < pos.value:
             result.append(node)
         elif node.value > pos.value:

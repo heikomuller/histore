@@ -81,7 +81,7 @@ class KeySpec(object):
         if not 'type' in doc:
             raise ValueError('missing type information for key specification')
         if doc['type'] == INDEX_KEY:
-            return NodeIndexKey.from_dict(doc)
+            return ListIndexKey.from_dict(doc)
         elif doc['type'] == PATHVALUES_KEY:
             return PathValuesKey.from_dict(doc)
         elif doc['type'] == VALUE_KEY:
@@ -128,7 +128,7 @@ class KeySpec(object):
         raise NotImplementedError
 
 
-class NodeIndexKey(KeySpec):
+class ListIndexKey(KeySpec):
     """Index keys uniquely identify siblings based on their index position (in
     document order) among the set of siblings with the same label.
     """
@@ -139,11 +139,11 @@ class NodeIndexKey(KeySpec):
         ----------
         target_path: histore.document.path.Path
         """
-        super(NodeIndexKey, self).__init__(target_path)
+        super(ListIndexKey, self).__init__(target_path)
 
     def annotate(self, node):
         """Annotate a given node with a key value that contains the value of
-        the index position of the node among its siblings.
+        the list index position of the node among its siblings.
 
         Raises ValueError if the index of the given node is None.
 
@@ -155,9 +155,9 @@ class NodeIndexKey(KeySpec):
         -------
         list
         """
-        if node.index is None:
+        if node.list_index is None:
             raise ValueError('missing index value for \'' + str(node) + '\'')
-        return [node.index]
+        return [node.list_index]
 
     @staticmethod
     def from_dict(doc):
@@ -172,9 +172,9 @@ class NodeIndexKey(KeySpec):
 
         Returns
         -------
-        histore.schema.key.NodeIndexKey
+        histore.schema.key.ListIndexKey
         """
-        return NodeIndexKey(Path(path=doc['path']))
+        return ListIndexKey(Path(path=doc['path']))
 
     def is_keyed_by_path_values(self):
         """Return False because the key specification is not a PATH VALUE

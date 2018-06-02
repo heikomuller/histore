@@ -6,7 +6,7 @@ from histore.archive.serialize import LABEL_META, LABEL_VALUE
 from histore.debug import archive_root_to_json_string, print_archive
 from histore.path import Path
 from histore.schema.document import DocumentSchema
-from histore.schema.key import PathValuesKey, NodeIndexKey, NodeValueKey
+from histore.schema.key import PathValuesKey, ListIndexKey, NodeValueKey
 
 
 class TestSerialize(unittest.TestCase):
@@ -59,8 +59,8 @@ class TestSerialize(unittest.TestCase):
             PathValuesKey(target_path=Path('modules/commands/args'), value_paths=[Path('key')]),
             PathValuesKey(target_path=Path('modules'), value_paths=[Path('id')]),
             NodeValueKey(target_path=Path('tasks/complete')),
-            NodeIndexKey(target_path=Path('outputs/stdout')),
-            NodeIndexKey(target_path=Path('outputs/stderr')),
+            ListIndexKey(target_path=Path('outputs/stdout')),
+            ListIndexKey(target_path=Path('outputs/stderr')),
         ])
         archive = Archive(schema=schema)
         archive.insert(doc=doc1)

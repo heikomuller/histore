@@ -3,7 +3,7 @@ import unittest
 from histore.archive.base import Archive
 from histore.path import Path
 from histore.schema.document import DocumentSchema, SimpleDocumentSchema
-from histore.schema.key import PathValuesKey, NodeIndexKey, NodeValueKey
+from histore.schema.key import PathValuesKey, ListIndexKey, NodeValueKey
 
 
 class TestSort(unittest.TestCase):
@@ -22,28 +22,28 @@ class TestSort(unittest.TestCase):
             }
         }
         key1 = PathValuesKey(target_path=Path('modules'), value_paths=[Path('id'), Path('command/args/A')])
-        key2 = NodeIndexKey(target_path=Path('tasks/complete'))
+        key2 = ListIndexKey(target_path=Path('tasks/complete'))
         schema = DocumentSchema(keys=[key1, key2])
         archive = Archive(schema=schema)
         archive.insert(doc=doc)
         anno_nodes = archive.root().children
-        self.assertEquals(anno_nodes[0].positions[0].value, 2)
+        self.assertEquals(anno_nodes[0].list_index[0].value, 2)
         self.assertEquals(anno_nodes[0].key, [101, 1])
-        self.assertEquals(anno_nodes[1].positions[0].value, 1)
+        self.assertEquals(anno_nodes[1].list_index[0].value, 1)
         self.assertEquals(anno_nodes[1].key, [101, 2])
-        self.assertEquals(anno_nodes[2].positions[0].value, 0)
+        self.assertEquals(anno_nodes[2].list_index[0].value, 0)
         self.assertEquals(anno_nodes[2].key, [200, 1])
         tasks = anno_nodes[-1]
         anno_nodes = tasks.children
-        self.assertEquals(anno_nodes[0].positions[0].value, 0)
-        self.assertEquals(anno_nodes[1].positions[0].value, 1)
-        self.assertEquals(anno_nodes[2].positions[0].value, 2)
+        self.assertEquals(anno_nodes[0].list_index[0].value, 0)
+        self.assertEquals(anno_nodes[1].list_index[0].value, 1)
+        self.assertEquals(anno_nodes[2].list_index[0].value, 2)
 
     def test_strict_sort(self):
         """Test adding a snapshot to an empty archive with duplicate keys."""
         # Duplicate path values
         key1 = PathValuesKey(target_path=Path('modules'), value_paths=[Path('id')])
-        key2 = NodeIndexKey(target_path=Path('tasks/complete'))
+        key2 = ListIndexKey(target_path=Path('tasks/complete'))
         schema = DocumentSchema(keys=[key1, key2])
         archive = Archive(schema=schema)
         doc = {

@@ -50,7 +50,7 @@ class DefaultDocumentSerializer(DocumentSerializer):
         # Keep lists of nodes that are indexed (i.e., become part of a list).
         el_lists = dict()
         for node in nodes:
-            if node.index is None:
+            if node.list_index is None:
                 if node.is_leaf():
                     result[node.label] = node.value
                 else:
@@ -63,7 +63,7 @@ class DefaultDocumentSerializer(DocumentSerializer):
         # convert all nodes into one list.
         for key in el_lists:
             el_list = el_lists[key]
-            el_list.sort(key=lambda node: node.index)
+            el_list.sort(key=lambda node: node.list_index)
             result[key] = list()
             for node in el_list:
                 if node.is_leaf():
