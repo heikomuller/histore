@@ -29,6 +29,7 @@ class InMemoryArchiveStore(ArchiveStore):
             raise ValueError('invalid list of snapshots for empty archive')
         elif not self.root is None:
             self.validate_snapshots(self.root, self.snapshots)
+
     def get_root(self):
         """Get the root node for the archive that is maintained by this store.
 
@@ -54,7 +55,7 @@ class InMemoryArchiveStore(ArchiveStore):
         -------
         list(histore.archive.snapshot.Snapshot)
         """
-        return self.snapshots
+        return list(self.snapshots)
 
     def read(self):
         """Read the complete archive information. Returns a triple containing

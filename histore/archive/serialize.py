@@ -4,12 +4,8 @@
 
 from abc import abstractmethod
 
-from histore.archive.base import Archive
 from histore.archive.node import ArchiveElement, ArchiveValue
-from histore.archive.snapshot import Snapshot
-from histore.archive.store.mem import InMemoryArchiveStore
 from histore.path import Path
-from histore.schema.document import DocumentSchema
 from histore.timestamp import Timestamp
 
 
@@ -104,26 +100,25 @@ class DefaultArchiveSerializer(ArchiveSerializer):
     the serialized object. These values are maintained as part of the element
     keys and can therefore be reconstructed from them.
     """
-    def __init__(self, mapping=None):
-        """Initialize the list of reserved keyword in the super class.
+    def __init__(self, schema, mapping=None):
+        """Initialize the list of reserved keyword in the super class.  The
+        document schema is used to omit key path value nodes in node
+        serializations.
 
-        Raises ValueError's if reserved keywords are used as node labels.
+        Raises ValueError if reserved keywords are used as node labels.
 
         Parameters
         ----------
+        schema: histore.schema.document.DocumentSchema
         mapping: dict(string:string)
             Expects a mapping from keywords defined in KEYWORDS to user-defined
             values.
         """
         super(DefaultArchiveSerializer, self).__init__(mapping=mapping)
+        self.schema = schema
 
-    def from_dict(self, doc, store_factory=None):
-        """Create an archive instance from a dictionary serialization. The
-        optional archive store factory is used to create the store instance
-        for the returned archive from the generates schema, snapshots, and root
-        objects. The factory is expected to implement the method .create()
-        that takes the three arguments. If no factory is provided an archive
-        with an in-memory store is returned.
+    def from_dict(self, doc):
+        """Create an element node instance from a dictionary serialization.
 
         Parameters
         ----------
@@ -133,63 +128,40 @@ class DefaultArchiveSerializer(ArchiveSerializer):
         -------
         histore.archive.base.Archive
         """
-        schema = DocumentSchema.from_dict(doc['schema'])
-        snapshots = [Snapshot.from_dict(s) for s in doc['snapshots']]
-        data = doc['data']
-        if len(data) == 0:
+        if len(doc) == 0:
             root = None
-        elif len(data) == 1:
-            key = data.keys()[0]
-            root = self.element_from_dict(data[key], label=key, schema=schema)
+        elif len(doc) == 1:
+            key = doc.keys()[0]
+            root = self.element_from_dict(doc[key], label=key)
         else:
-            raise ValueError('invalid serialization for archive root \'' + str(data) + '\'')
-        # Create the store for the returned archive.
-        if not store_factory is None:
-            store = store_factory.create(
-                root=root,
-                schema=schema,
-                snapshots=snapshots
-            )
-        else:
-            store = InMemoryArchiveStore(
-                root=root,
-                schema=schema,
-                snapshots=snapshots
-            )
-        return Archive(store=store)
+            raise ValueError('invalid serialization for archive root \'' + str(doc) + '\'')
+        return root
 
-    def to_dict(self, archive):
-        """Get dictionary serialization for the given archive.
+    def to_dict(self, node):
+        """Get dictionary serialization for the given archive element node.
 
         Parameters
         ----------
-        archive: histore.archive.base.Archive
+        node: histore.archive.node.ArchiveElement
 
         Returns
         -------
         dict
         """
-        if not archive.root() is None:
-            key_paths = list()
-            for key in archive.schema().keys():
-                if key.is_keyed_by_path_values():
-                    for value_path in key.value_paths:
-                        path = key.target_path.concat(value_path)
-                        key_paths.append(path.to_key())
-            return {
-                'schema': archive.schema().to_dict(),
-                'snapshots': [s.to_dict() for s in archive.snapshots()],
-                'data': {
-                    archive.root().label : self.element_to_dict(
-                        node=archive.root(),
-                        key_paths=key_paths
-                    )
-                }
-            }
-        else:
-            return dict()
+        key_paths = list()
+        for key in self.schema.keys():
+            if key.is_keyed_by_path_values():
+                for value_path in key.value_paths:
+                    path = key.target_path.concat(value_path)
+                    key_paths.append(path.to_key())
+        return {
+            node.label : self.element_to_dict(
+                node=node,
+                key_paths=key_paths
+            )
+        }
 
-    def element_from_dict(self, doc, label, schema, path=Path(''), timestamp=None):
+    def element_from_dict(self, doc, label, path=Path(''), timestamp=None):
         """
         Returns
         -------
@@ -231,7 +203,6 @@ class DefaultArchiveSerializer(ArchiveSerializer):
                         self.element_from_dict(
                             el,
                             label=l_child,
-                            schema=schema,
                             path=path.extend(l_child),
                             timestamp=t
                         )
@@ -246,7 +217,7 @@ class DefaultArchiveSerializer(ArchiveSerializer):
             sort=True
         )
         # Add key path value nodes if this node is keyed by path values
-        key_spec = schema.get(path)
+        key_spec = self.schema.get(path)
         if not key_spec is None and key_spec.is_keyed_by_path_values():
             # Create an element node with single child value for each
             # key path value. The node inherits the timestamp from this

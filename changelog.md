@@ -5,5 +5,6 @@
 * Maintain multiple snapshots of a document
 * Simple path query for archive elements
 * Retrieve document snapshots from archive
-* **TODO**: Maintain archives on disk as Json or Yaml files
+* Maintain archives on disk as Json or Yaml files
+* **TODO**: Documentation and examples
 * **TODO**: PyPI package

@@ -4,7 +4,7 @@
 
 from histore.archive.node import ArchiveElement
 from histore.archive.merge import NestedMerger
-from histore.archive.query.engine import PathQueryEngine, SnapshotQueryEngine
+from histore.archive.query.engine import SnapshotQueryEngine
 from histore.archive.snapshot import Snapshot
 from histore.archive.store.mem import InMemoryArchiveStore
 from histore.document.base import Document
@@ -47,8 +47,8 @@ class Archive(object):
             self.store = store
 
     def find_all(self, query):
-        """Find all nodes in the archivethat match the given path query. Returns
-        an empty list if no matching node is found.
+        """Find all nodes in the archive that match the given path query.
+        Returns an empty list if no matching node is found.
 
         Parameters
         ----------
@@ -58,7 +58,7 @@ class Archive(object):
         -------
         node: list(histore.archive.node.ArchiveElement)
         """
-        return PathQueryEngine(query).find_all(self.root())
+        return self.root().find_all(query)
 
     def find_one(self, query, strict=False):
         """Evaluate a given path query on this archive. Return one matching node
@@ -75,7 +75,7 @@ class Archive(object):
         -------
         node: histore.archive.node.ArchiveElement
         """
-        return PathQueryEngine(query).find_one(self.root(), strict=strict)
+        return self.root().find_one(query, strict=strict)
 
     def get(self, version, serializer=None):
         """Retrieve a document snapshot from the archive. The version identifies
@@ -124,12 +124,15 @@ class Archive(object):
         -------
         histore.archive.snapshot.Snapshot
         """
+        # Get the document schema
+        schema = self.schema()
         # Create a handle for the new snapshot
-        snapshot = Snapshot(len(self.snapshots()), name=name)
+        snapshots = self.snapshots()
+        snapshot = Snapshot(len(snapshots), name=name)
         # Create an archive from the given document with a single root node
         doc_root = ArchiveElement.from_document(
             doc=Document(doc=doc),
-            schema=self.schema(),
+            schema=schema,
             version=snapshot.version,
             strict=strict
         )
@@ -140,7 +143,8 @@ class Archive(object):
             # merge anything.
             self.store.write(
                 root=doc_root,
-                snapshots=self.snapshots() + [snapshot]
+                snapshots=snapshots + [snapshot],
+                schema=schema
             )
         else:
             root = NestedMerger().merge(
@@ -149,7 +153,11 @@ class Archive(object):
                 version=snapshot.version,
                 timestamp=root.timestamp.append(snapshot.version)
             )
-            self.store.write(root=root, snapshots=self.snapshots() + [snapshot])
+            self.store.write(
+                root=root,
+                snapshots=snapshots + [snapshot],
+                schema=schema
+            )
         return snapshot
 
     def length(self):

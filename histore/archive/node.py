@@ -14,6 +14,7 @@ essential when merging document snapshots and archives.
 
 from abc import abstractmethod
 
+from histore.archive.query.engine import PathQueryEngine
 from histore.path import Path
 from histore.timestamp import Timestamp, TimeInterval
 
@@ -189,6 +190,37 @@ class ArchiveElement(ArchiveNode):
         node: histore.archive.node.ArchiveNode
         """
         self.children.append(node)
+
+    def find_all(self, query):
+        """Find all child nodes that match the given path query. Returns
+        an empty list if no matching node is found.
+
+        Parameters
+        ----------
+        query: histore.archive.query.path.PathQuery
+
+        Returns
+        -------
+        node: list(histore.archive.node.ArchiveElement)
+        """
+        return PathQueryEngine(query).find_all(self)
+
+    def find_one(self, query, strict=False):
+        """Evaluate a given path query on this node. Return one matching node
+        or None if no node matches the path query.
+
+        In strict mode, a ValueError() is raised if more that one node matches
+        the query.
+
+        Parameters
+        ----------
+        query: histore.archive.query.path.PathQuery
+
+        Returns
+        -------
+        node: histore.archive.node.ArchiveElement
+        """
+        return PathQueryEngine(query).find_one(self, strict=strict)
 
     @staticmethod
     def from_document(doc, schema, label='root', version=0, strict=False):

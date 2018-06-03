@@ -3,6 +3,7 @@ import unittest
 from histore.archive.base import Archive
 from histore.archive.serialize import ArchiveSerializer, DefaultArchiveSerializer
 from histore.archive.serialize import LABEL_META, LABEL_VALUE
+from histore.archive.store.mem import InMemoryArchiveStore
 from histore.debug import archive_root_to_json_string, print_archive
 from histore.path import Path
 from histore.schema.document import DocumentSchema
@@ -17,6 +18,17 @@ class TestSerialize(unittest.TestCase):
         serializer = ArchiveSerializer(mapping={LABEL_META: '@info', LABEL_VALUE: '@text'})
         self.assertEquals(serializer.mapping[LABEL_META], '@info')
         self.assertEquals(serializer.mapping[LABEL_VALUE], '@text')
+        # Create simple serializarion to ensure that the mapping works
+        archive = Archive()
+        archive.insert(doc={'name':'MY NAME'})
+        serializer = DefaultArchiveSerializer(schema=DocumentSchema())
+        doc = serializer.to_dict(archive.root())
+        self.assertTrue(LABEL_META, doc['root'])
+        self.assertTrue(LABEL_VALUE, doc['root']['name'][0])
+        serializer = DefaultArchiveSerializer(schema=DocumentSchema(), mapping={LABEL_META: '@info', LABEL_VALUE: '@text'})
+        doc = serializer.to_dict(archive.root())
+        self.assertTrue('@info', doc['root'])
+        self.assertTrue('@text', doc['root']['name'][0])
         # Non-unique mapping should raise an exception
         with self.assertRaises(ValueError):
             ArchiveSerializer(mapping={LABEL_META: "@info", LABEL_VALUE: '@info'})
@@ -63,18 +75,34 @@ class TestSerialize(unittest.TestCase):
             ListIndexKey(target_path=Path('outputs/stderr')),
         ])
         archive = Archive(schema=schema)
+        serializer = DefaultArchiveSerializer(schema=archive.schema())
         archive.insert(doc=doc1)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        self.assertTrue('data' in a_doc)
-        self.assertTrue('schema' in a_doc)
-        self.assertTrue('snapshots' in a_doc)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc2)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc1)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc2)
         #print_archive(archive)
         self.validate_archive(archive, [doc1, doc2])
@@ -115,10 +143,18 @@ class TestSerialize(unittest.TestCase):
             }
         }
         archive = Archive()
+        serializer = DefaultArchiveSerializer(schema=archive.schema())
         archive.insert(doc=doc1)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc2)
-        #print archive_root_to_json_string(archive)
-
+        self.validate_archive(archive, [doc1, doc2])
     def test_serialize_with_changing_list_behavior(self):
         """Test merging documents where the same element is a list ine one
         version and a single element in the other.
@@ -145,24 +181,61 @@ class TestSerialize(unittest.TestCase):
             PathValuesKey(target_path=Path('modules'), value_paths=[Path('id')])
         ])
         archive = Archive(schema=schema)
+        serializer = DefaultArchiveSerializer(schema=archive.schema())
         archive.insert(doc=doc1)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc2)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc3)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc1)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc2)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc3)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         self.validate_archive(archive, [doc1, doc2, doc3])
         doc1 = {
             'name': 'MY NAME'
@@ -181,29 +254,77 @@ class TestSerialize(unittest.TestCase):
         ])
         archive = Archive(schema=schema)
         archive.insert(doc=doc1)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc2)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc3)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc4)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc1)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc2)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc3)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         archive.insert(doc=doc4)
-        a_doc = DefaultArchiveSerializer().to_dict(archive)
-        archive = DefaultArchiveSerializer().from_dict(a_doc)
+        a_doc = serializer.to_dict(archive.root())
+        archive = Archive(
+            store=InMemoryArchiveStore(
+                root=serializer.from_dict(a_doc),
+                snapshots=archive.snapshots(),
+                schema=archive.schema()
+            )
+        )
         self.validate_archive(archive, [doc1, doc2, doc3, doc4])
 
     def validate_archive(self, archive, documents):
