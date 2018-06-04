@@ -246,12 +246,30 @@ class TestPersistentArchive(unittest.TestCase):
             archive.snapshots()
         archive.root()
 
+    def test_create_archive(self):
+        """Test creating a persistent archive from an in-memory archive."""
+        archive = Archive(schema=SCHEMA)
+        archive.insert(doc=DOC1)
+        archive.insert(doc=DOC2)
+        archive.insert(doc=DOC3)
+        archive.insert(doc=DOC1)
+        archive.insert(doc=DOC2)
+        archive.insert(doc=DOC3)
+        archive.insert(doc=DOC1)
+        archive.insert(doc=DOC2)
+        archive.insert(doc=DOC3)
+        self.validate_archive(archive, [DOC1, DOC2, DOC3])
+        store = PersistentArchiveStore.create(filename=ARCHIVE_JSON, archive=archive, cache=CACHE_METADATA)
+        self.validate_archive(Archive(store=store), [DOC1, DOC2, DOC3])
+        archive = Archive(store=PersistentArchiveStore(filename=ARCHIVE_JSON, cache=None))
+        self.validate_archive(archive, [DOC1, DOC2, DOC3])
+
     def test_guess_format_and_compression(self):
         """Ensure that deriving format and compression from filename works
         as exprected."""
         # Create all files to prevent exception
         for filename in [ARCHIVE_JSON, ARCHIVE_JSON_GZ, ARCHIVE_YAML, ARCHIVE_YAML_GZ, ARCHIVE_YML, ARCHIVE_YML_GZ, ARCHIVE_TXT, ARCHIVE_TXT_GZ]:
-                open(filename, 'w').close()
+                PersistentArchiveStore.create(filename=filename)
         store = PersistentArchiveStore(filename=ARCHIVE_JSON, cache=None)
         self.validate_store(store, JSON, False)
         store = PersistentArchiveStore(filename=ARCHIVE_JSON_GZ, cache=None)
@@ -291,7 +309,7 @@ class TestPersistentArchive(unittest.TestCase):
         with self.assertRaises(ValueError):
             PersistentArchiveStore(filename=ARCHIVE_JSON, format='json')
         # Create the archive file to avoid exception
-        open(ARCHIVE_JSON, 'w').close()
+        PersistentArchiveStore.create(filename=ARCHIVE_JSON)
         PersistentArchiveStore(filename=ARCHIVE_JSON, format='json', cache=None)
         PersistentArchiveStore(filename=ARCHIVE_JSON, format='yaml', cache=None)
         with self.assertRaises(ValueError):

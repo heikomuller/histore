@@ -74,16 +74,20 @@ class PersistentArchiveStore(ArchiveStore):
             self.cache = None
 
     @staticmethod
-    def create(filename, schema, format=None, compressed=None, cache=CACHE_ALL, overwrite=False):
-        """Create an archive file for an empty archive with a given schema.
+    def create(filename, schema=None, archive=None, format=None, compressed=None, cache=CACHE_ALL, overwrite=False):
+        """Create a new archive file. There are two options here: (1) create an
+        empty archive with only a given schema, or (2) create a persistent
+        copy of a given archive. If both the schema and archive argument are
+        None an empty archive with an empty schema will be created.
 
-        Raises a ValueError if the given file exists and the overwrite flag is
-        False.
+        Raises a ValueError if (a) both schema and archive argument are not
+        None, or (2) the given file exists and the overwrite flag is False.
 
         Parameters
         ----------
         filename: string
-        schema: histore.schema.document.DocumentSchema
+        schema: histore.schema.document.DocumentSchema, optional
+        archive: histore.archive.base.Archive
         format: string, optional
         compressed: bool, optional
         cached: bool, optional
@@ -92,16 +96,32 @@ class PersistentArchiveStore(ArchiveStore):
         -------
         histore.archive.store.fs.PersistentArchiveStore
         """
+        if not schema is None and not archive is None:
+            raise ValueError('invalid arguments for schema and archive')
         # Raise exception if file exists and is not to be overwritten
         if os.path.isfile(filename) and overwrite is False:
             raise ValueError('file \'' + str(filename) + '\' exists')
+        # Create the new archive depending on whether schema or archive is
+        # given
+        if not schema is None and archive is None:
+            doc = {LABEL_SCHEMA: schema.to_dict()}
+        elif schema is None and not archive is None:
+            root = archive.root()
+            schema = archive.schema()
+            doc = {
+                LABEL_ROOT: DefaultArchiveSerializer(schema).to_dict(root),
+                LABEL_SCHEMA: schema.to_dict(),
+                LABEL_SNAPSHOTS: [s.to_dict() for s in archive.snapshots()],
+            }
+        elif schema is None and archive is None:
+            doc = {LABEL_SCHEMA: DocumentSchema().to_dict()}
         # Get file compression flag
         compressed = get_file_compression(filename, compressed=compressed)
         # Determine the file format
         format = get_file_format(filename, format=format)
         # Write archive with only schema information to file.
         f = open_file(filename, 'w', compressed)
-        write_document({LABEL_SCHEMA: schema.to_dict()}, f, format)
+        write_document(doc, f, format)
         f.close()
         # Return the persistent store object.
         return PersistentArchiveStore(
