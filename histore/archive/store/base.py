@@ -8,7 +8,7 @@ object and the way in which archives are managed and maintained.
 
 from abc import abstractmethod
 
-from histore.timestamp import TimeInterval, Timestamp
+from histore.archive.timestamp import TimeInterval, Timestamp
 
 
 class ArchiveStore(object):

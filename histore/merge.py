@@ -14,28 +14,19 @@ class NestedMerger(object):
     """The nested merger contains the logic to merge an archive tree and a new
     dataset snapshot.
     """
-    def merge(self, archive_node, doc_node, version, timestamp, list_index=None):
-        """Recirsively merges the children of a node in an archive and a node
-        from a document snapshot. Both nodes are expected to be archive
-        elements. Returns a modified copy of the archive node.
+    def merge(self, archive, snapshot, writer):
+        """Recursively merge rows in the given archive and database snapshot.
+        Outputs the merged rows in the resulting archive to the given archive
+        writer.
 
         Parameters
         ----------
-        archive_node: histore.archive.node.ArchiveElement
-            Archive element that mathces the parent of the given document nodes
-        doc_node: histore.archive.node.ArchiveElement
+        archive: Archive
+            Archive for previous database snapshots.
+        snapshot: hSnapshot
             Archive element generated from a document snapshot
-        version: int
+        writer: ArchiveWriter
             Version of the document snapshot
-        timestamp: histore.timestamp.Timestamp
-            Timestamp of the parent node in the new archive
-        list_index: list(histore.archive.node.ValueNode)
-            History of list index positions for this node among its siblings
-            with the same label (for keyed nodes only)
-
-        Returns
-        -------
-        histore.archive.node.ArchiveElement
         """
         # Create modified copy of the archive node
         result_node = ArchiveElement(
@@ -50,20 +41,18 @@ class NestedMerger(object):
         doc_idx = 0
         arch_children = archive_node.children
         doc_children = doc_node.children
-        while arch_idx < len(arch_children) and doc_idx < len(doc_children):
-            arch_child = arch_children[arch_idx]
-            doc_child = doc_children[doc_idx]
-            comp = ArchiveNode.compare(doc_child, arch_child)
+        while arch_node is not None and doc_node is not None:
+            comp = arch_node.identifier - doc_node.identifier
             if comp < 0:
-                # The node has never been in any previous snapshot.
+                # The archive node is not present in the snapshot. The archive
+                # node has not changed and is output to the new archive as is.
+                writer.add(arch_node)
+                arch_node = arch_reader.next()
+            elif comp > 0:
+                # The node has never been in any previous snapshot. Create a
+                # new
                 result_node.add(doc_child)
                 doc_idx += 1
-            elif comp > 0:
-                # The archive node is not present in this merged snapshot.
-                # Add it to the children of the new node. The timestamp should
-                # not change.
-                result_node.add(arch_child)
-                arch_idx += 1
             else:
                 # Merge the two nodes recursively if they are element nodes. For
                 # value nodes we add the merged node directly to the result
@@ -134,7 +123,7 @@ def merge_positions(list_index, pos, version, timestamp):
     list_index: list(histore.archive.node.ArchiveValue)
     pos: histore.archive.node.ArchiveValue
     version: int
-    timestamp: histore.timestamp.Timestamp
+    timestamp: histore.archive.timestamp.Timestamp
 
     Returns
     -------
@@ -173,12 +162,12 @@ def pick_node_timestamp(node_timestamp, parent_timestamp):
 
     Parameters
     ----------
-    node_timestamp: histore.timestamp.Timestamp
-    parent_timestamp: histore.timestamp.Timestamp
+    node_timestamp: histore.archive.timestamp.Timestamp
+    parent_timestamp: histore.archive.timestamp.Timestamp
 
     Returns
     -------
-    histore.timestamp.Timestamp
+    histore.archive.timestamp.Timestamp
     """
     if node_timestamp.is_equal(parent_timestamp):
         return parent_timestamp

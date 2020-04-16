@@ -16,7 +16,7 @@ from abc import abstractmethod
 
 from histore.archive.query.engine import PathQueryEngine
 from histore.path import Path
-from histore.timestamp import Timestamp, TimeInterval
+from histore.archive.timestamp import Timestamp, TimeInterval
 
 
 class ArchiveNode(object):
@@ -37,7 +37,7 @@ class ArchiveNode(object):
 
         Parameters
         ----------
-        timestamp: histore.timestamp.Timestamp
+        timestamp: histore.archive.timestamp.Timestamp
         """
         if timestamp is None or timestamp.is_empty():
             raise ValueError('invalid timestamp')
@@ -144,7 +144,7 @@ class ArchiveElement(ArchiveNode):
         ----------
         label: string
             Node label
-        timestamp: histore.timestamp.Timestamp
+        timestamp: histore.archive.timestamp.Timestamp
             Timestamp of node
         key: list(), optional
             List of key values if the node is not keyed by existence
@@ -303,7 +303,7 @@ class ArchiveValue(ArchiveNode):
         ----------
         value: any
             Node value
-        timestamp: histore.timestamp.Timestamp
+        timestamp: histore.archive.timestamp.Timestamp
             Timestamp of node
         """
         super(ArchiveValue, self).__init__(timestamp=timestamp)

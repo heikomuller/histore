@@ -6,7 +6,7 @@ from abc import abstractmethod
 
 from histore.archive.node import ArchiveElement, ArchiveValue
 from histore.path import Path
-from histore.timestamp import Timestamp
+from histore.archive.timestamp import Timestamp
 
 
 """Serializer are used to (1) convert archives into dictionaries, and (2) to
@@ -238,7 +238,7 @@ class DefaultArchiveSerializer(ArchiveSerializer):
         Parameters
         ----------
         node: histore.archive.node.ArchiveElement
-        timestamp: histore.timestamp.Timestamp, optional
+        timestamp: histore.archive.timestamp.Timestamp, optional
 
         Returns
         -------
@@ -294,7 +294,7 @@ class DefaultArchiveSerializer(ArchiveSerializer):
         Parameters
         ----------
         doc: dict or scalar
-        timestamp: histore.timestamp.Timestamp, optional
+        timestamp: histore.archive.timestamp.Timestamp, optional
 
         Returns
         -------
@@ -327,7 +327,7 @@ class DefaultArchiveSerializer(ArchiveSerializer):
         Parameters
         ----------
         node: histore.archive.node.ArchiveValue
-        timestamp: histore.timestamp.Timestamp, optional
+        timestamp: histore.archive.timestamp.Timestamp, optional
 
         Returns
         -------
