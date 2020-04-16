@@ -10,7 +10,7 @@ of the row in the history of the dataset, and the cell values in the row
 history.
 """
 
-from histore.archive.value import OmnipresentCell
+from histore.archive.value import SingleVersionValue
 from histore.archive.timestamp import Timestamp
 
 
@@ -25,7 +25,7 @@ class ArchiveRow(object):
 
         Parameters
         ----------
-        identifier: int
+        identifier: int, string, or tuple
             Unique row identifier
         index: histore.archive.value.ArchiveValue
             Index positions for the row in the history of the dataset.
@@ -41,7 +41,7 @@ class ArchiveRow(object):
         self.index = index
         self.timestamp = timestamp
 
-    def at_version(self, version, columns):
+    def at_version(self, version, columns, raise_error=True):
         """Get cell values and the index position for the row in the given
         version of the dataset. Returns the index position of the row and a
         list of cell values for all columns in the given list. The order of
@@ -53,6 +53,10 @@ class ArchiveRow(object):
             Unique version identifier.
         columns: list(int)
             List of columns for which values are returned at the given version.
+        raise_error: bool, default=True
+            Flag that determines the behavior for cases where there is no value
+            for the given version. If the flag is True an error is raised. If
+            the flag is False None is returned.
 
         Returns
         -------
@@ -60,8 +64,66 @@ class ArchiveRow(object):
         """
         values = list()
         for colid in columns:
-            values.append(self.cells[colid].at_version(version=version))
-        return self.index.at_version(version=version), values
+            # There may not be a value for the given column identifier. If the
+            # raise error flag is True we will raise an error. Otherwise, None
+            # is returned as the result.
+            value = self.cells.get(colid)
+            if value is None:
+                if raise_error:
+                    raise ValueError('unknown version %d' % version)
+            else:
+                value = value.at_version(version, raise_error=raise_error)
+            values.append(value)
+        return self.index.at_version(version, raise_error=raise_error), values
+
+    def comp(self, key):
+        """Compare the identifier of the archive row to the given row key. The
+        result is:
+
+        - -1 if the archive key is lower that the given key,
+        -  0 if both keys are equal, or
+        -  1 if the archive key is greater than the given key.
+
+        Parameters
+        ----------
+        key: int, string, or tuple
+            Key value of a document row.
+
+        Returns
+        -------
+        int
+        """
+        if self.identifier < key:
+            return -1
+        elif self.identifier > key:
+            return 1
+        else:
+            return 0
+
+    def extend(self, version, origin):
+        """Extend the timestamp of the row and all cell values and the index
+        position that were valid at the given version of origin.
+
+        Parameters
+        ----------
+        version: int
+            Unique identifier of the new version.
+        origin: int
+            Identifier of the version of origin.
+
+        Returns
+        -------
+        histore.archive.row.ArchiveRow
+        """
+        ext_cells = dict()
+        for colid, value in self.cells.items():
+            ext_cells[colid] = value.extend(version=version, origin=origin)
+        return ArchiveRow(
+            identifier=self.identifier,
+            index=self.index.extend(version=version, origin=origin),
+            cells=ext_cells,
+            timestamp=self.timestamp.append(version)
+        )
 
     def merge(self, values, pos, version, unchanged=None, origin=None):
         """Create a new version of the dataset row for a given set of cell
@@ -106,7 +168,7 @@ class ArchiveRow(object):
                 cell = self.cells[colid]
                 cell = cell.merge(value=value, version=version)
             else:
-                cell = OmnipresentCell(
+                cell = SingleVersionValue(
                     value=value,
                     timestamp=Timestamp(version=version)
                 )

@@ -5,10 +5,11 @@
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
 
-"""Values in a database archive. Represent cells in dataset rows. Values may
-either have multiple timestamped values (i.e., the different values in a
-row cell over the history of the data set) or there is only one (omnipresent)
-value for a cell, if the cell never changed over the history of the dataset.
+"""Values in a database archive. Represent cells in dataset rows as well as
+information about the dataset schema (i.e., column name and position). Archived
+values may either have multiple timestamped values, e.g., the different values
+in a row cell over the history of the data set, or there is only one single
+value, e.g., if the cell never changed over the history of the dataset.
 """
 
 from abc import ABCMeta, abstractmethod
@@ -20,14 +21,19 @@ class ArchiveValue(metaclass=ABCMeta):
     """The archive value represents the history of a cell in a tabular dataset.
     """
     @abstractmethod
-    def at_version(self, version):
+    def at_version(self, version, raise_error=True):
         """Get cell value for the given version. Raises ValueError if the cell
-        does not have a value for the given version.
+        does not have a value for the given version and the raise error flag is
+        set tot True. If the flag is false None is returned instead.
 
         Parameters
         ----------
         version: int
             Unique version identifier.
+        raise_error: bool, default=True
+            Flag that determines the behavior for cases where there is no value
+            for the given version. If the flag is True an error is raised. If
+            the flag is False None is returned.
 
         Returns
         -------
@@ -42,8 +48,8 @@ class ArchiveValue(metaclass=ABCMeta):
     @abstractmethod
     def extend(self, version, origin):
         """Extend the timestamp of the value that was valid at the given source
-        version with the new version identifier. Raises a ValueError if no
-        value was valid at the given source version.
+        version with the new version identifier. If no value was valid at the
+        given version of origin the value is returned unchanged.
 
         Parameters
         ----------
@@ -60,17 +66,6 @@ class ArchiveValue(metaclass=ABCMeta):
         Raises
         ------
         ValueError
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def is_timestamped(self):
-        """Returns true if the value has a timestamp that differs from the
-        parent.
-
-        Returns
-        -------
-        bool
         """
         raise NotImplementedError()
 
@@ -93,45 +88,48 @@ class ArchiveValue(metaclass=ABCMeta):
         raise NotImplementedError()
 
 
-class OmnipresentCell(ArchiveValue):
-    """A omnipresent cell value has never changed over to history of the
-    dataset row that contains the cell. The value therefore inherits the
-    timestamp from the row.
+class SingleVersionValue(ArchiveValue):
+    """Single archive value that has never changed over to history of the
+    dataset that contains it.
     """
     def __init__(self, value, timestamp):
-        """Initialize the cell value and the reference to the timestamp of the
-        containing row. the latter is required when adding new values to the
-        cell history.
+        """Initialize the archived value and the timestamp.
 
         Parameters
         ----------
         value: scalar
-            Scalar cell value.
+            Scalar value.
         timestamp: histore.archive.timestamp.Timestamp
-            Timestamp of the dataset row.
+            Timestamp of the archived value.
         """
         self.value = value
         self.timestamp = timestamp
 
     def __repr__(self):
-        """Unambiguous string representation of the omnipresent cell.
+        """Unambiguous string representation of the single version value.
 
         Returns
         -------
         string
         """
-        tsvalue = TimestampedValue(value=self.value, timestamp=self.timestamp)
-        return str(tsvalue)
+        return '<SingleVersionValue (value={}, timestamp={})'.format(
+            self.value,
+            str(self.timestamp)
+        )
 
-    def at_version(self, version):
-        """Get cell value for the given version. Assumes that inclusion of the
-        version in the timestamp of the value has been validated. Returns the
-        associated value for any given version.
+    def at_version(self, version, raise_error=True):
+        """Get value for the given version. If the given version is not
+        included in the timestamp of the value an error is raised (if the raise
+        error flag is True) or None is returned (otherwise).
 
         Parameters
         ----------
         version: int
             Unique version identifier.
+        raise_error: bool, default=True
+            Flag that determines the behavior for cases where there is no value
+            for the given version. If the flag is True an error is raised. If
+            the flag is False None is returned.
 
         Returns
         -------
@@ -141,13 +139,19 @@ class OmnipresentCell(ArchiveValue):
         ------
         ValueError
         """
-        return self.value
+        if self.timestamp.contains(version):
+            # Return value if it was present at the given version.
+            return self.value
+        elif raise_error:
+            # Value was not present at the given version. Raise error if the
+            # respective flag is True.
+            raise ValueError('unknown version %d' % version)
+        else:
+            # Return None as default value for the given version.
+            return None
 
     def extend(self, version, origin):
         """Extend the timestamp of the value with the given version identifier.
-        Assumes that inclusion of the source version in the timestamp of the
-        value has been validated. Raises a ValueError if the new version is
-        not one greater than the last version in the current timestamp.
 
         Parameters
         ----------
@@ -165,31 +169,22 @@ class OmnipresentCell(ArchiveValue):
         ------
         ValueError
         """
-        # Expects a new version that is one greater than the last value of the
-        # current timestamp.
-        if version != self.timestamp.last_version() + 1:
-            raise ValueError('cannot extend %s with %d' % (
-                str(self.timestamp),
-                version
-            ))
-        return OmnipresentCell(
+        # Return the object unchanged if the version of origin is not contained
+        # in the current timestamp.
+        if not self.timestamp.contains(origin):
+            return self
+        # Return a modified value that extends the validity of the timestamp
+        # for the given version.
+        return SingleVersionValue(
             value=self.value,
             timestamp=self.timestamp.append(version)
         )
 
-    def is_timestamped(self):
-        """the onipresent cell is not timestamped.
-
-        Returns
-        -------
-        bool
-        """
-        return False
-
     def merge(self, value, version):
         """Add value for the given version into the cell history. Depending on
-        whether the value is different from previous cell values either returns
-        the current object itself or a timestamped cell value.
+        whether the value is different from previous cell value this either
+        returns the current object itself with an extended timestamp or a new
+        multi-valued object.
 
         Parameters
         ----------
@@ -203,25 +198,24 @@ class OmnipresentCell(ArchiveValue):
         hisotre.archive.value.ArchiveValue
         """
         if self.value == value:
-            # No need to make any changes but for the timestamp.
-            return OmnipresentCell(
+            # Extend the timestamp of the value.
+            return SingleVersionValue(
                 value=self.value,
                 timestamp=self.timestamp.append(version)
             )
-        # Return a timestamped value
-        return TimestampedCell(values=[
+        # Return a multi-valued object.
+        return MultiVersionValue(values=[
             TimestampedValue(value=self.value, timestamp=self.timestamp),
             TimestampedValue(value=value, timestamp=Timestamp(version=version))
         ])
 
 
-class TimestampedCell(ArchiveValue):
-    """A timestamped cell value has multiple different values over the history
-    of the row that contains the cell. Each value is associated with its own
-    timestamp.
+class MultiVersionValue(ArchiveValue):
+    """A multi-versiond archive value has multiple different values over the
+    history of the dataset. Each value is associated with its own timestamp.
     """
     def __init__(self, values):
-        """Initialize the list of timestamped values in the cell history.
+        """Initialize the list of timestamped values in the value history.
 
         Parameters
         ----------
@@ -231,7 +225,7 @@ class TimestampedCell(ArchiveValue):
         self.values = values
 
     def __repr__(self):
-        """Unambiguous string representation of the timestamped cell.
+        """Unambiguous string representation of the multi-versioned value.
 
         Returns
         -------
@@ -239,14 +233,18 @@ class TimestampedCell(ArchiveValue):
         """
         return ','.join(str(v) for v in self.values)
 
-    def at_version(self, version):
-        """Get cell value for the given version. Raises ValueError if the cell
-        does not have a value for the given version.
+    def at_version(self, version, raise_error=True):
+        """Get value for the given version. Raises ValueError if the value does
+        not have an entry that was valid for the given version.
 
         Parameters
         ----------
         version: int
             Unique version identifier.
+        raise_error: bool, default=True
+            Flag that determines the behavior for cases where there is no value
+            for the given version. If the flag is True an error is raised. If
+            the flag is False None is returned.
 
         Returns
         -------
@@ -260,12 +258,14 @@ class TimestampedCell(ArchiveValue):
             if val.timestamp.contains(version):
                 return val.value
         # No value for the version.
-        raise ValueError('unknown version %d' % version)
+        if raise_error:
+            raise ValueError('unknown version %d' % version)
+        return None
 
     def extend(self, version, origin):
         """Extend the timestamp of the value that was valid at the given source
-        version with the new version identifier. Raises a ValueError if no
-        value was valid at the given source version.
+        version with the new version identifier. If no value was valid at the
+        given version of origin the value is returned unchanged.
 
         Parameters
         ----------
@@ -290,9 +290,9 @@ class TimestampedCell(ArchiveValue):
                 # Found the value that was valid at the source version. Modify
                 # the associated timestamp and return immediately.
                 modified_values[i] = val.append(version)
-                return TimestampedCell(values=modified_values)
-        # No value for the source version.
-        raise ValueError('unknown version %d' % version)
+                return MultiVersionValue(values=modified_values)
+        # No value for the source version. Return the value unchanged.
+        return self
 
     def is_timestamped(self):
         """Returns True for the timestamped cell value.
@@ -316,7 +316,7 @@ class TimestampedCell(ArchiveValue):
 
         Returns
         -------
-        hisotre.archive.value.TimestampedCell
+        hisotre.archive.value.MultiVersionValue
         """
         # Create modified list of values in the cell history.
         cell_history = list()
@@ -333,7 +333,7 @@ class TimestampedCell(ArchiveValue):
         if not existed:
             ts = Timestamp(version=version)
             cell_history.append(TimestampedValue(value=value, timestamp=ts))
-        return TimestampedCell(values=cell_history)
+        return MultiVersionValue(values=cell_history)
 
 
 class TimestampedValue:

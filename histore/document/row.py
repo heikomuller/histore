@@ -5,16 +5,19 @@
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
 
-"""Rows in a snapshot dataset. Each row has an identifier, the index position
-of the row in the dataset, and a list of cell values for all dataset columns.
+"""Rows in a dataset snapshot document. Each row has an identifier, the index
+position of the row in the dataset, and a list of cell values for all dataset
+columns.
 """
 
 
-class SnapshotRow(object):
-    """Each row in snapshot has a row identifier, an index position and the
-    set of cell values for columns in the dataset snapshot. Row identifier may
-    be negative (and not unique) indicating new rows for which unique
-    identifier need to be generated.
+class DocumentRow(object):
+    """Each row in snapshot document has a row identifier, an index position
+    and the set of cell values for columns in the dataset snapshot. Row
+    identifier may either be derived from a primary key column(s) or be an
+    integer from the data frame row index. Row identifier may be negative (and
+    not unique) indicating new rows for which unique identifier need to be
+    generated.
     """
     def __init__(self, identifier, pos, values):
         """Initialize the row identifier, the index positions, and the cell
@@ -23,7 +26,7 @@ class SnapshotRow(object):
 
         Parameters
         ----------
-        identifier: int
+        identifier: int, string, or tuple
             Row identifier (may be negative).
         pos: int
             Index position for the row in the dataset.
@@ -34,3 +37,16 @@ class SnapshotRow(object):
         self.identifier = identifier
         self.pos = pos
         self.values = values
+
+    def __repr__(self):
+        """Unambiguous string representation of the document row.
+
+        Returns
+        -------
+        string
+        """
+        return '<DocumentRow(id={}, pos={}, values={})'.format(
+            self.identifier,
+            self.pos,
+            self.values
+        )

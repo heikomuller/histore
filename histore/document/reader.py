@@ -9,14 +9,14 @@
 the rows in a data frame sorted by their row identifier.
 """
 
-from histore.snapshot.row import SnapshotRow
+from histore.document.row import DocumentRow
 
 
-class SnapshotReader(object):
+class DocumentReader(object):
     """Reader for rows in a data frame. Reads rows in order defined by the
     sorted row identifer.
     """
-    def __init__(self, df, columns, rows):
+    def __init__(self, df, schema, rows):
         """Initialize the wrapped data frame, the mapping of data frame columns
         to archive schema columns, and the information about row identifier and
         their position in the data frame.
@@ -25,15 +25,16 @@ class SnapshotReader(object):
         ----------
         df: pandas.DataFrame
             Pandas data frame representing the dataset snapshot.
-        columns: list
-            List of identifier from the archive schema. The position of values
-            in data frame rows corresponds to the identifier of their column in
-            the archive.
+        schema: list(histore.document.schema.Column)
+            List of columns in the document schema. Each column corresponds to
+            a column in the data frame (based on list position). The schema
+            columns provide the unique column identifier that are required to
+            generate document rows.
         rows: list
             List of (rowid, rowpos). The list is sorted by row identifier.
         """
         self.df = df
-        self.columns = columns
+        self.schema = schema
         self.rows = rows
         # Maintain the position of the current row for the reader
         self.read_index = 0
@@ -55,19 +56,19 @@ class SnapshotReader(object):
 
         Returns
         -------
-        histore.snapshot.row.SnapshotRow
+        histore.document.row.DocumentRow
         """
         # Return None if the reader has no more rows.
         if not self.has_next():
             return None
+        # Get identifier and position in the data frame for the next row that
+        # is being returned.
+        rowid, rowpos = self.rows[self.read_index]
+        self.read_index += 1
         # Create mapping for values in the data frame row to the columns in the
         # archive schema.
         values = dict()
-        row = self.df.iloc[self.read_index]
-        for i in range(len(self.columns)):
-            values[self.columns[i]] = row[i]
-        # Return a snapshot row for the data frame row. Ensure to advance the
-        # read index.
-        rowid, rowpos = self.rows[self.read_index]
-        self.read_index += 1
-        return SnapshotRow(identifier=rowid, pos=rowpos, values=values)
+        row = self.df.iloc[rowpos]
+        for i in range(len(self.schema)):
+            values[self.schema[i].colid] = row[i]
+        return DocumentRow(identifier=rowid, pos=rowpos, values=values)

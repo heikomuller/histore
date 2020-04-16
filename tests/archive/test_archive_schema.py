@@ -10,18 +10,55 @@
 import pytest
 
 from histore.archive.schema import ArchiveSchema, match_columns
-from histore.snapshot.schema import Column
+from histore.document.schema import Column
 
 
 def test_match_columns_by_name():
     """Test match columns by name function."""
-    matches = match_columns(columns=['A', 'B', 'C'], schema=['C', 'B'])
+    matches = match_columns(
+        columns=['A', 'B', 'C'],
+        schema=[Column(colid=0, name='C'), Column(colid=1, name='B')]
+    )
+    assert matches == [('A', None), ('B', 'B'), ('C', 'C')]
+    matches = match_columns(
+        columns=['A', 'B', 'C'],
+        schema=[
+            Column(colid=0, name='C'),
+            Column(colid=1, name='B'),
+            Column(colid=2, name='D')
+        ],
+        renamed={'D': 'A'}
+    )
+    assert matches == [('A', 'D'), ('B', 'B'), ('C', 'C')]
+    matches = match_columns(
+        columns=['A', 'B', 'C'],
+        schema=[
+            Column(colid=0, name='C'),
+            Column(colid=1, name='B'),
+            Column(colid=2, name='D')
+        ],
+        renamed={'D': 'A'},
+        renamed_to=False
+    )
     assert matches == [('A', None), ('B', 'B'), ('C', 'C')]
     # Error cases for lists with duplictes.
     with pytest.raises(ValueError):
-        match_columns(columns=['C', 'B', 'C'], schema=['C', 'B'])
+        match_columns(
+            columns=['C', 'B', 'C'],
+            schema=[Column(colid=0, name='C'), Column(colid=1, name='B')]
+        )
     with pytest.raises(ValueError):
         match_columns(columns=['A', 'B', 'C'], schema=['C', 'B', 'B'])
+    with pytest.raises(ValueError):
+        match_columns(
+            columns=['A', 'B', 'C'],
+            schema=[
+                Column(colid=0, name='C'),
+                Column(colid=1, name='B'),
+                Column(colid=2, name='D')
+            ],
+            renamed={'D': 'A', 'E': 'A'}
+        )
 
 
 def test_merging_incomplete_schemas():
@@ -68,6 +105,26 @@ def test_merging_snapshot_schema_by_name():
     assert schema.at_version(1) == ['Salary', 'Age', 'Name']
     assert schema.at_version(2) == ['Person', 'Salary', 'Age']
     assert len(schema.columns) == 4
+    # Test with column renaming
+    schema = ArchiveSchema()
+    schema, _, _ = schema.merge(columns=['Name', 'Age', 'Salary'], version=0)
+    schema, matched_schema, _ = schema.merge(
+        columns=['Salary', 'Age', 'Name'],
+        version=1,
+        match_by_name=True,
+        origin=0
+    )
+    schema, matched_schema, _ = schema.merge(
+        columns=['Person', 'Salary', 'Age'],
+        version=2,
+        match_by_name=True,
+        origin=1,
+        renamed={'Name': 'Person'}
+    )
+    assert schema.at_version(0) == ['Name', 'Age', 'Salary']
+    assert schema.at_version(1) == ['Salary', 'Age', 'Name']
+    assert schema.at_version(2) == ['Person', 'Salary', 'Age']
+    assert len(schema.columns) == 3
 
 
 def test_merging_snapshot_schemas():

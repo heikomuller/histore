@@ -5,13 +5,13 @@
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
 
-"""Unit tests for snapshot schemas."""
+"""Unit tests for document schemas."""
 
-from histore.snapshot.schema import Column
+from histore.document.schema import Column
 
 
-def test_snapshot_columns():
-    """Test creating instances of snapshot schema columns."""
+def test_document_columns():
+    """Test creating instances of document schema columns."""
     col = Column(colid=1, name='my_col')
     assert col == 'my_col'
     assert isinstance(col, str)

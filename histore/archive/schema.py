@@ -9,8 +9,8 @@
 timestamped names and positions.
 """
 
-from histore.archive.value import OmnipresentCell
-from histore.snapshot.schema import Column
+from histore.archive.value import SingleVersionValue
+from histore.document.schema import Column
 from histore.archive.timestamp import Timestamp
 
 
@@ -100,7 +100,7 @@ class ArchiveSchema(object):
 
         Parameters
         ----------
-        columns: dict or list
+        columns: dict or list, default=None
             Dictionary or list of archive columns. In a dictionary, columns are
             indexed by their unique identifier. If a list is given it will be
             converted to a dictionary.
@@ -140,7 +140,7 @@ class ArchiveSchema(object):
 
         Returns
         -------
-        list(histore.snapshot.schema.Column)
+        list(histore.document.schema.Column)
         """
         # Get a list of (identifier, name, pos) for all columns in the snapshot
         # schema at the given version.
@@ -155,7 +155,8 @@ class ArchiveSchema(object):
         return [Column(colid=id, name=name) for id, name, _ in cols]
 
     def merge(
-        self, columns, version, match_by_name=False, partial=False, origin=None
+        self, columns, version, match_by_name=False, renamed=None,
+        renamed_to=True, partial=False, origin=None
     ):
         """Add the given snapshot columns to the schema history for a dataset.
         Expects a list of strings or identifiable column objects. If column
@@ -188,20 +189,29 @@ class ArchiveSchema(object):
             either be strings of snapshot columns.
         version: int
             Identifier of the new version.
-        match_by_name: bool, optional
+        match_by_name: bool, default=False
             Match columns from the given list to columns in the origin schema
-            by name instaed of matching columns by identifier against the
+            by name instead of matching columns by identifier against the
             columns in the archive schema.
-        partial: bool, optional
+        renamed: dict, default=None
+            Optional mapping of columns that have been renamed. Maps the new
+            column name to the original name.
+        renamed_to: bool, default=True
+            Flag that determines the semantics of the mapping in the renamed
+            dictionary. By default a mapping from the original column name
+            (i.e., the dictionary key) to the new column name (the dictionary
+            value) is assumed. If the flag is False a mapping from the new
+            column name to the original column name is assumed.
+        partial: bool, default=False
             If True the list of columns is assumed partial. All columns from
             the snapshot schema that is specified by origin that are not
             matched by any column in the input list are added to the schema
             for the new snapshot before merging the snapshot schema into the
             archive.
-        origin: int, optional
+        origin: int, default=None
             Version identifier of the original column against which the given
             column list is matched.
-            
+
         Returns
         -------
         histore.archive.schema.ArchiveSchema, list, list
@@ -220,13 +230,24 @@ class ArchiveSchema(object):
                 # Find matches for columns by name in the snapshot schema. Then
                 # modify the columns list by replacing entries with their
                 # matched schema columns (if matched).
-                matches = match_columns(columns=columns, schema=orig_schema)
+                matches = match_columns(
+                    columns=columns,
+                    schema=orig_schema,
+                    renamed=renamed,
+                    renamed_to=renamed_to
+                )
                 columns = list()
-                for c, m in matches:
-                    if m is not None:
-                        columns.append(m)
-                    else:
+                for snapcol, origcol in matches:
+                    if origcol is not None:
+                        # The snapshot column was matched with an existing
+                        # column. The name of these columns, however, may be
+                        # different if the column was renamed. Create a new
+                        # column object with the name from the new snapshot and
+                        # the identifier from the original schema.
+                        c = Column(colid=origcol.colid, name=str(snapcol))
                         columns.append(c)
+                    else:
+                        columns.append(snapcol)
             if partial:
                 return self.merge_incomplete(
                     columns=columns,
@@ -281,8 +302,8 @@ class ArchiveSchema(object):
                 ts = Timestamp(version=version)
                 col = ArchiveColumn(
                     identifier=colids,
-                    name=OmnipresentCell(value=snapcol, timestamp=ts),
-                    pos=OmnipresentCell(value=pos, timestamp=ts),
+                    name=SingleVersionValue(value=snapcol, timestamp=ts),
+                    pos=SingleVersionValue(value=pos, timestamp=ts),
                     timestamp=ts
                 )
                 matched_columns.append(Column(colid=colids, name=snapcol))
@@ -300,16 +321,16 @@ class ArchiveSchema(object):
         return schema, matched_columns, list()
 
     def merge_incomplete(self, columns, schema, version):
-        """Merge a incomplete list of columns into the archive schema. Identify
-        columns in the given schema that are unmatched and return them as the
-        third value in the result.
+        """Merge an incomplete list of columns into the archive schema. This
+        method also Identifies those columns in the given schema that remain
+        unmatched and returns them as the third value in the result tuple.
 
         Parameters
         ----------
         columns: list
             List of column names in their original order. Column names can
             either be strings of snapshot columns.
-        schema: list(histore.snapshot.schema.Column)
+        schema: list(histore.document.schema.Column)
             List of columns in a snapshot schema.
         version: int
             Identifier of the new version.
@@ -371,8 +392,8 @@ class ArchiveSchema(object):
             ts = Timestamp(version=version)
             arch_col = ArchiveColumn(
                 identifier=colids,
-                name=OmnipresentCell(value=snapcol, timestamp=ts),
-                pos=OmnipresentCell(value=len(arch_columns), timestamp=ts),
+                name=SingleVersionValue(value=snapcol, timestamp=ts),
+                pos=SingleVersionValue(value=len(arch_columns), timestamp=ts),
                 timestamp=ts
             )
             matched_columns[c] = Column(colid=colids, name=snapcol)
@@ -388,7 +409,7 @@ class ArchiveSchema(object):
 
 # -- Helper Methods -----------------------------------------------------------
 
-def match_columns(columns, schema):
+def match_columns(columns, schema, renamed=None, renamed_to=True):
     """Compute matching of given list of column names to columns in the given
     schema. Columns are matched by name. If either list contains duplicate
     column names an error is raised.
@@ -402,17 +423,40 @@ def match_columns(columns, schema):
     ----------
     columns: list(string)
         List of column names.
-    schema: list(histore.snapshot.schema.Column)
+    schema: list(histore.document.schema.Column)
         List of columns in a snapshot schema.
+    renamed: dict, default=None
+        Optional mapping of columns that have been renamed. Maps the new column
+        name to the original name.
+    renamed_to: bool, default=True
+        Flag that determines the semantics of the mapping in the renamed
+        dictionary. By default a mapping from the original column name (i.e.,
+        the dictionary key) to the new column name (the dictionary value) is
+        assumed. If the flag is False a mapping from the new column name to the
+        original column name is assumed.
 
     Returns
     -------
-    list(string, histore.snapshot.schema.Column)
+    list(string, histore.document.schema.Column)
 
     Raises
     ------
     ValueError
     """
+    # Ensure that the semantics of the renamed mapping is from the new name to
+    # their original name. This makes it easier to lookup the column names in
+    # the new snapshot schema to find their original column name.
+    if renamed is None:
+        renamed_from = dict()
+    elif renamed_to:
+        # Flip mapping of renamed columns.
+        renamed_from = dict()
+        for key, val in renamed.items():
+            if val in renamed_from:
+                raise ValueError('multiple columns renamed to same name')
+            renamed_from[val] = key
+    else:
+        renamed_from = renamed
     # Create a dictionary of names for the snapshot schema.
     schema_index = dict()
     for col in schema:
@@ -420,12 +464,22 @@ def match_columns(columns, schema):
             raise ValueError('cannot match by name for schema with duplicates')
         schema_index[col] = col
     # Match column names against the schema index. Keep track if column names
-    # identifiy duplciates.
+    # identifiy duplciates. Ensure that the result is a valid mapping where no
+    # two names from the column list have been mapped to the same schema
+    # element.
     matches = list()
+    matched_schema_columns = set()
     names = set()
     for name in columns:
         if name in names:
             raise ValueError('duplicate column name %s' % (str(name)))
         names.add(name)
-        matches.append((name, schema_index.get(name)))
+        # Find matching name in the schema index. Consider the fact that the
+        # column may have been renamed from an original column.
+        match = schema_index.get(renamed_from.get(name, name))
+        if match is not None:
+            if match.colid in matched_schema_columns:
+                raise ValueError('multiple matches for %d' % match.colid)
+            matched_schema_columns.add(match.colid)
+        matches.append((name, match))
     return matches

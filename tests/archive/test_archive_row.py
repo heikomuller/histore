@@ -7,9 +7,54 @@
 
 """Unit tests for rows in an archived dataset."""
 
+import pytest
+
 from histore.archive.row import ArchiveRow
-from histore.archive.value import OmnipresentCell
+from histore.archive.value import SingleVersionValue
 from histore.archive.timestamp import Timestamp
+
+
+def test_compare_row_keys():
+    """test comparing row keys."""
+    ts = Timestamp(version=1)
+    pos = SingleVersionValue(value=0, timestamp=ts)
+    row = ArchiveRow(identifier=0, index=pos, cells=dict(), timestamp=ts)
+    assert row.comp(0) == 0
+    assert row.comp(2) == -1
+    assert row.comp(-2) == 1
+    row = ArchiveRow(identifier='B', index=pos, cells=dict(), timestamp=ts)
+    assert row.comp('B') == 0
+    assert row.comp('C') == -1
+    assert row.comp('A') == 1
+    row = ArchiveRow(identifier=(0, 1), index=pos, cells=dict(), timestamp=ts)
+    assert row.comp((0, 1)) == 0
+    assert row.comp((0, 2)) == -1
+    assert row.comp((-1, 10)) == 1
+
+
+def test_extend_archive_row():
+    """Test extending the timestampes for archive rows relative to a given
+    version of origin.
+    """
+    ts = Timestamp(version=1)
+    pos = SingleVersionValue(value=0, timestamp=ts)
+    row = ArchiveRow(identifier=0, index=pos, cells=dict(), timestamp=ts)
+    row = row.merge(pos=1, values={1: 'A', 2: 1, 3: 'a'}, version=2)
+    row = row.merge(pos=1, values={1: 'B', 2: 1, 3: 'b'}, version=3)
+    row = row.extend(version=4, origin=2)
+    pos, values = row.at_version(version=4, columns=[1, 2, 3])
+    assert pos == 1
+    assert values == ['A', 1, 'a']
+    row = row.extend(version=5, origin=1)
+    with pytest.raises(ValueError):
+        row.at_version(version=5, columns=[1, 2, 3])
+    pos, values = row.at_version(
+        version=5,
+        columns=[1, 2, 3],
+        raise_error=False
+    )
+    assert pos == 0
+    assert values == [None, None, None]
 
 
 def test_merge_archive_rows():
@@ -18,7 +63,7 @@ def test_merge_archive_rows():
     # First version []
     row = ArchiveRow(
         identifier=0,
-        index=OmnipresentCell(value=2, timestamp=ts),
+        index=SingleVersionValue(value=2, timestamp=ts),
         cells=dict(),
         timestamp=ts
     )
