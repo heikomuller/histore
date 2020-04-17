@@ -67,4 +67,4 @@ class RowIndexReader(object):
         while self.reader.has_next():
             row = self.reader.next()
             if row.timestamp.contains(self.version):
-                yield (row.identifier, row.index.at_version(self.version))
+                return (row.identifier, row.index.at_version(self.version))

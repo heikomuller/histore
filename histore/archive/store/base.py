@@ -35,6 +35,16 @@ class ArchiveStore(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
+    def is_empty(self):
+        """True if the archive does not contain any snapshots yet.
+
+        Returns
+        -------
+        bool
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     def get_reader(self):
         """Get the row reader for this archive.
 
@@ -71,5 +81,17 @@ class ArchiveStore(metaclass=ABCMeta):
         Returns
         -------
         histore.archive.writer.ArchiveWriter
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def max_rowid(self):
+        """Get the maximum value for row identifiers in the current archive.
+        This method is primarily intended for archives where row identifiers
+        are generated from the data frame index and not using primary keys.
+
+        Returns
+        -------
+        scalar or tuple
         """
         raise NotImplementedError()

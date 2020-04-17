@@ -45,6 +45,15 @@ class VolatileArchiveStore(ArchiveStore):
         self.schema = schema
         self.snapshots = snapshots
 
+    def is_empty(self):
+        """True if the archive does not contain any snapshots yet.
+
+        Returns
+        -------
+        bool
+        """
+        return self.snapshots.is_empty()
+
     def get_reader(self):
         """Get the row reader for this archive.
 
@@ -81,6 +90,21 @@ class VolatileArchiveStore(ArchiveStore):
         histore.archive.store.mem.ArchiveBuffer
         """
         return ArchiveBuffer()
+
+    def max_rowid(self):
+        """Get the maximum value for row identifiers in the current archive.
+
+        Returns
+        -------
+        scalar or tuple
+        """
+        # Rows are sorted in ascending order of their identifier. Thus, the
+        # last row has the maximum identifier. Make sure that the list of
+        # rows is not empty.
+        maxid = 0
+        if self.rows:
+            maxid = self.rows[-1].identifier
+        return maxid
 
 
 # -- In-memory archive reader and writer --------------------------------------

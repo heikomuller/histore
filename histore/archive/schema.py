@@ -215,17 +215,14 @@ class ArchiveSchema(object):
         Returns
         -------
         histore.archive.schema.ArchiveSchema, list, list
-
-        Raises
-        ------
-        ValueError
         """
         if match_by_name or partial:
             # Ensure that a schema origin is given. Load the schema for the
             # specified version.
-            if origin is None:
-                raise ValueError('missing value for schema origin')
-            orig_schema = self.at_version(version=origin)
+            if origin is not None:
+                orig_schema = self.at_version(version=origin)
+            else:
+                orig_schema = list()
             if match_by_name:
                 # Find matches for columns by name in the snapshot schema. Then
                 # modify the columns list by replacing entries with their

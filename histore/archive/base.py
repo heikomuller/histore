@@ -9,7 +9,7 @@
 
 from histore.archive.reader import RowIndexReader
 from histore.archive.store.mem import VolatileArchiveStore
-from archive.document.base import Document
+from archive.document.base import PartialDocument, PKDocument, RIDocument
 
 import histore.archive.merge as nested_merge
 
@@ -49,7 +49,26 @@ class Archive(object):
         self, df, description=None, valid_time=None, match_by_name=True,
         renamed=None, renamed_to=True, partial=False, origin=None
     ):
-        """
+        """Commit a new snapshot to the dataset archive. The given data frame
+        represents the dataset snapshot that is being merged into the archive.
+        The data frame may represent a complete snapshot of the data or only
+        a partial snapshot. In the latter case, all columns and rows from the
+        snapshot that the data frame originated from (origin) are considered
+        unchanged.
+
+        Matching of snapshot schema columns to archive columns can either be
+        done by name or by their unique identifier (if present). When matching
+        by name a snapshot version of origin is used to match against. Data
+        frames or snapshot versions with duplicate column names cannot be used
+        for matching columns by name.
+
+        If no origin is specified, the last commited snapshot is assumed as the
+        default snapshot of origin. If this is the first snapshot in the
+        archive the partial flag cannot be True (will raise a ValueError).
+
+        Returns the descriptor of the merged snapshot in the new version of
+        the archive.
+
         Parameters
         ----------
         df: pandas.DataFrame
@@ -86,19 +105,28 @@ class Archive(object):
         Returns
         -------
         histore.archive.snapshot.Snapshot
+
+        Raises
+        ------
+        ValueError
         """
+        # Ensure that partial is not set for an empty archive.
+        if partial and self.is_empty():
+            raise ValueError('merge partial snapshot into empty archive')
+        # Use the last commited version as origin if match_by_name or partial
+        # are True and origin is None.
+        if (match_by_name or partial) and origin is None:
+            last_snapshot = self.snapshots().last_snapshot()
+            if last_version:
+                origin = last_snapshot.version()
         # Get a modified snapshot list where the last entry represents the
-        # new snapshot
+        # new snapshot.
         snapshots = self.snapshots().append(
             valid_time=valid_time,
             description=description
         )
         version = snapshots.last_snapshot().version
-        # Merge the new snapshot schema with the current archive schema. Use
-        # the last commited version as origin if match_by_name or partial are
-        # True and origin is None.
-        if (match_by_name or partial) and origin is None:
-            origin = self.snapshots().last_snapshot().version()
+        # Merge the new snapshot schema with the current archive schema.
         schema, matched_columns, unchanged_columns = self.schema().merge(
             columns=list(df.columns),
             version=version,
@@ -108,19 +136,27 @@ class Archive(object):
             partial=partial,
             origin=origin
         )
-        # Create snapshot document for the given data frame. If the data frame
-        # is partial we need to get the row identifier and position for all
-        # existing rows first.
-        if partial:
-            row_index = RowIndexReader(reader=self.reader(), version=origin)
+        # Create snapshot document for the given data frame. The document type
+        # depends on how row identifier are generated.
+        if self.primary_key is not None:
+            doc = PKDocument(
+                df=df,
+                schema=matched_columns,
+                primary_key=self.primary_key
+            )
         else:
-            row_index = None
-        doc = Document(
-            df=df,
-            schema=matched_columns,
-            primary_key=self.primary_key,
-            origin_index=row_index
-        )
+            doc = RIDocument(
+                df=df,
+                schema=matched_columns,
+                row_counter=self.store.max_rowid() + 1
+            )
+        # If the data frame is partial we need to adjust the positions of the
+        # rows in the document.
+        if partial:
+            doc = PartialDocument(
+                doc=doc,
+                row_index=RowIndexReader(reader=self.reader(), version=origin)
+            )
         # Merge document rows into the archive.
         writer = self.store.get_writer()
         nested_merge.merge_rows(
@@ -136,6 +172,15 @@ class Archive(object):
         self.store.commit(schema=schema, writer=writer, snapshots=snapshots)
         # Return descriptor for the created snapshot.
         return snapshots.last_snapshot()
+
+    def is_empty(self):
+        """True if the archive does not contain any snapshots yet.
+
+        Returns
+        -------
+        bool
+        """
+        return self.store.is_empty()
 
     def reader(self):
         """Get the row reader for this archive.

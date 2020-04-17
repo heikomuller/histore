@@ -8,8 +8,9 @@
 """Unit tests for the document readers."""
 
 import pandas as pd
+import pytest
 
-from histore.document.base import Document
+from histore.document.base import Document, PKDocument, RIDocument
 from histore.document.schema import Column
 
 
@@ -22,13 +23,13 @@ def test_data_frame_with_primary_key():
         data=[['Alice', 1], ['Bob', 1], ['Claire', 1], ['Alice', 2]],
         columns=['Name', 'Index']
     )
-    reader = Document(df=df, schema=schema, primary_key='Name').reader()
+    reader = PKDocument(df=df, schema=schema, primary_key='Name').reader()
     keys = list()
     while reader.has_next():
         row = reader.next()
         keys.append(row.identifier)
     assert keys == ['Alice', 'Alice', 'Bob', 'Claire']
-    doc = Document(df=df, schema=schema, primary_key=['Index', 'Name'])
+    doc = PKDocument(df=df, schema=schema, primary_key=['Index', 'Name'])
     reader = doc.reader()
     keys = list()
     while reader.has_next():
@@ -37,23 +38,23 @@ def test_data_frame_with_primary_key():
     assert keys == [(1, 'Alice'), (1, 'Bob'), (1, 'Claire'), (2, 'Alice')]
 
 
-def test_read_dataframe():
-    """Test reading simple data frames."""
+def test_data_frame_with_row_index():
+    """Test reading a data frame document with row index identifier."""
     # All row identifier are -1
     schema = [Column(colid=1, name='Name'), Column(colid=2, name='Index')]
     df = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=['A', 'B', 'C'])
-    reader = Document(df=df, schema=schema).reader()
+    reader = RIDocument(df=df, schema=schema, row_counter=0).reader()
     rowcount = 0
     while reader.has_next():
         row = reader.next()
-        assert row.identifier == -1
+        assert row.identifier == rowcount
         assert row.pos == rowcount
         assert row.values[1] == ((rowcount + 1) * 2) - 1
         rowcount += 1
     assert rowcount == 3
     # Positive row identifier
     df = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=[1, 2, 3])
-    reader = Document(df=df, schema=schema).reader()
+    reader = RIDocument(df=df, schema=schema, row_counter=4).reader()
     rowcount = 0
     while reader.has_next():
         row = reader.next()
@@ -64,12 +65,21 @@ def test_read_dataframe():
     assert rowcount == 3
     # Mixed row identifier
     df = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=[1, 2, 'A'])
-    reader = Document(df=df, schema=schema).reader()
+    reader = RIDocument(df=df, schema=schema, row_counter=3).reader()
     rowids = list()
     while reader.has_next():
         row = reader.next()
         rowids.append(row.identifier)
-    assert rowids == [1, 2, -1]
+    assert rowids == [1, 2, 3]
     # No error for non-unique row identifier
     df = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=[1, 2, 1])
-    Document(df=df, schema=schema)
+    RIDocument(df=df, schema=schema, row_counter=3)
+
+
+def test_invalid_schema_error():
+    """Ensure an error is raised if the number of data frame columns does not
+    match the number of elements in the given document schema.
+    """
+    df = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]])
+    with pytest.raises(ValueError):
+        Document(df=df, schema=[], rows=[])
