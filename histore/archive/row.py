@@ -115,9 +115,16 @@ class ArchiveRow(object):
         -------
         histore.archive.row.ArchiveRow
         """
+        # If the row was not present at the given version of origin the object
+        # is returned unchanged.
+        if not self.timestamp.contains(origin):
+            return self
+        # Extend all cell values that were valid at the origin.
         ext_cells = dict()
         for colid, value in self.cells.items():
             ext_cells[colid] = value.extend(version=version, origin=origin)
+        # Return an extended copy of the row. the row position is assumed to be
+        # unchanged.
         return ArchiveRow(
             identifier=self.identifier,
             index=self.index.extend(version=version, origin=origin),
@@ -125,7 +132,7 @@ class ArchiveRow(object):
             timestamp=self.timestamp.append(version)
         )
 
-    def merge(self, values, pos, version, unchanged=None, origin=None):
+    def merge(self, values, pos, version, unchanged_cells=None, origin=None):
         """Create a new version of the dataset row for a given set of cell
         values and a specified index position. The set of extend cells
         identifies those columns that are not present in the value dictionary
@@ -148,11 +155,11 @@ class ArchiveRow(object):
             Index position of the row in the dataset snapshot.
         version: int
             Identifier of the new row version.
-        unchanged: set, optional
+        unchanged_cells: set, default=None
             Set of identifier for columns whose cell values are not included in
             the values dictionary but that remain unchanged with respect to the
             specified source version (origin).
-        origin: int, optional
+        origin: int, default=None
             Version that the row values originate from. Cell that remain
             unchanged have the timestamp extended for the version the was
             present the version of origin.
@@ -177,7 +184,7 @@ class ArchiveRow(object):
         # has been deleted) or if they are included in the unchanged set append
         # the new version to the timestamp for the value that was valid at the
         # source version.
-        unchanged = unchanged if unchanged is not None else set()
+        unchanged = unchanged_cells if unchanged_cells is not None else set()
         for colid, cell in self.cells.items():
             if colid not in history:
                 if colid in unchanged:

@@ -1,90 +1,146 @@
-# Copyright (C) 2018 New York University
-# This file is part of OpenClean which is released under the Revised BSD License
-# See file LICENSE for full license details.
+# This file is part of the History Store (histore).
+#
+# Copyright (C) 2018-2020 New York University.
+#
+# The History Store (histore) is released under the Revised BSD License. See
+# file LICENSE for full license details.
 
-"""Simple in-memory store for archives."""
+"""Implementation of the archive store and related classes. Maintains all data
+in main memory. Archive information is not persisted.
+"""
 
+from histore.archive.reader import ArchiveReader
+from histore.archive.schema import ArchiveSchema
+from histore.archive.snapshot import SnapshotListing
 from histore.archive.store.base import ArchiveStore
-from histore.schema.document import DocumentSchema
+from histore.archive.writer import ArchiveWriter
 
 
-class InMemoryArchiveStore(ArchiveStore):
-    """Implements an archive store that keept the archive root node in memory
+class VolatileArchiveStore(ArchiveStore):
+    """Archive store that keeps all archive related information in main memory.
+    The store is volatile as no information is persisted on disk.
     """
-    def __init__(self, root=None, schema=None, snapshots=None):
-        """Initialize the archive root node, document schema and list of
-        document snapshot handles. By default the root is None.
+    def __init__(self):
+        """Initialize the archive archive components."""
+        self.rows = list()
+        self.schema = ArchiveSchema()
+        self.snapshots = SnapshotListing()
+
+    def commit(self, schema, writer, snapshots):
+        """Commit a new version of the dataset archive. The modified components
+        of the archive are given as the three arguments of this method.
 
         Parameters
         ----------
-        root: histore.archive.node.ArchiveElement, optional
-        schema: histore.schema.document.DocumentSchema
-        snapshots: list(histore.archive.snapshot.Snapshot)
+        schema: histore.archive.schema.ArchiveSchema
+            Schema history for the new archive version.
+        writer: histore.archive.writer.ArchiveWriter
+            Instance of the archive writer class returned by this store that
+            was used to output the rows of the new archive version.
+        snapshots: histore.archive.snapshot.SnapshotListing
+            Modified list of snapshots in the new archive. The new archive
+            version is the last entry in the list.
         """
-        self.root = root
-        self.snapshots = snapshots if not snapshots is None else list()
-        self.schema = schema if not schema is None else DocumentSchema()
-        # Validate snapshots if given and root is not None
-        if self.root is None and len(self.snapshots) > 0:
-            raise ValueError('invalid list of snapshots for empty archive')
-        elif not self.root is None:
-            self.validate_snapshots(self.root, self.snapshots)
+        self.rows = writer.rows
+        self.schema = schema
+        self.snapshots = snapshots
 
-    def get_root(self):
-        """Get the root node for the archive that is maintained by this store.
+    def get_reader(self):
+        """Get the row reader for this archive.
 
         Returns
         -------
-        histore.archive.node.ArchiveElement
+        histore.archive.store.mem.BufferedReader
         """
-        return self.root
+        return BufferedReader(rows=self.rows)
 
     def get_schema(self):
-        """Get the current archive schema.
+        """Get the schema history for the archived dataset.
 
         Returns
         -------
-        histore.schema.document.DocumentSchema
+        histore.archive.schema.ArchiveSchema
         """
         return self.schema
 
     def get_snapshots(self):
-        """Get the current list of document snapshot handles.
+        """Get listing of all snapshots in the archive.
 
         Returns
         -------
-        list(histore.archive.snapshot.Snapshot)
+        histore.archive.snapshot.SnapshotListing
         """
-        return list(self.snapshots)
+        return self.snapshots
 
-    def read(self):
-        """Read the complete archive information. Returns a triple containing
-        the archive root, the list of snapshots, and the archive schema.
+    def get_writer(self):
+        """Get a a new archive buffer to maintain rows for a new archive
+        version.
 
         Returns
         -------
-        histore.archive.node.ArchiveElement
-        list(histore.archive.snapshot.Snapshot)
-        histore.schema.document.DocumentSchema
+        histore.archive.store.mem.ArchiveBuffer
         """
-        return (self.root, self.snapshots, self.schema)
+        return ArchiveBuffer()
 
-    def write(self, root, snapshots, schema=None):
-        """Relace the current archive information with an updated version
-        (e.g., after adding a new snapshot to the archive). At this point the
-        schema is not expected to be changed after the archive is created.
-        However, the system is capable to manage changes to the schema if they
-        only afect elements that have not been present in any of the previous
-        document snapshots.
+
+# -- In-memory archive reader and writer --------------------------------------
+
+class ArchiveBuffer(ArchiveWriter):
+    """The archive buffer maintains a list of archive rows in memory."""
+    def __init__(self):
+        """Initialize an empty row buffer."""
+        self.rows = list()
+
+    def write(self, row):
+        """Add the given row to the row buffer.
 
         Parameters
         ----------
-        root: histore.archive.node.ArchiveElement
-        snapshots: list(histore.archive.snapshot.Snapshot)
-        schema: histore.schema.document.DocumentSchema
+        row: histore.archive.row.ArchiveRow
+            Row in a new version of a dataset archive.
         """
-        self.validate_snapshots(root, snapshots)
-        self.root = root
-        self.snapshots = snapshots
-        if not schema is None:
-            self.schema = schema
+        self.rows.append(row)
+
+
+class BufferedReader(ArchiveReader):
+    """Reader for a list of archive rows that are kept in main memory."""
+    def __init__(self, rows):
+        """Initialize the list of rows that the reader will return.
+
+        Parameters
+        ----------
+        rows: list(histore.archive.row.ArchiveRow)
+            List of rows in the input stream.
+        """
+        self.rows = rows
+        # Maintain a read index that points to the next row in the input
+        # stream.
+        self.read_index = 0
+
+    def has_next(self):
+        """Test if the reader has more rows to read. If True the next() method
+        will return the next row. Otherwise, the next() method will return
+        None.
+
+        Returns
+        -------
+        bool
+        """
+        return self.read_index < len(self.rows)
+
+    def next(self):
+        """Read the next row in the dataset archive. Returns None if the end of
+        the archive rows has been reached.
+
+        Returns
+        -------
+        histore.archive.row.ArchiveRow
+        """
+        # Return None if the reader has no more rows.
+        if not self.has_next():
+            return None
+        # Get the next row that the read index points to. Advance the read
+        # index before returning that row..
+        row = self.rows[self.read_index]
+        self.read_index += 1
+        return row

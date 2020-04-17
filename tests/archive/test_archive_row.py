@@ -86,7 +86,7 @@ def test_merge_archive_rows():
         pos=2,
         values={1: 'C'},
         version=4,
-        unchanged=[2, 3],
+        unchanged_cells=[2, 3],
         origin=3
     )
     pos, values = row.at_version(version=4, columns=[1, 2, 3])
@@ -97,7 +97,7 @@ def test_merge_archive_rows():
         pos=2,
         values={2: 0},
         version=5,
-        unchanged=[1, 3],
+        unchanged_cells=[1, 3],
         origin=2
     )
     pos, values = row.at_version(version=5, columns=[1, 2, 3])

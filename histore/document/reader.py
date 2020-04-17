@@ -41,7 +41,7 @@ class DocumentReader(object):
 
     def has_next(self):
         """Test if the reader has more rows to read. If True the next() method
-        will return the next row. Otehrwise, the next() method will return
+        will return the next row. Otherwise, the next() method will return
         None.
 
         Returns
