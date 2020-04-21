@@ -15,12 +15,28 @@ class ArchiveWriter(metaclass=ABCMeta):
     individual archive rows to the output stream.
     """
     @abstractmethod
-    def write(self, row):
+    def write_archive_row(self, row):
         """Add the given row to a new archive version.
 
         Parameters
         ----------
         row: histore.archive.row.ArchiveRow
             Row in a new version of a dataset archive.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
+    def write_document_row(self, row, version):
+        """Add a given document row to a new archive version with the given
+        identifier.
+
+        Parameters
+        ----------
+        row: histore.document.row.DocumentRow
+            Row from an inout document (snapshot) that is being added to the
+            archive snapshot for the given version.
+        version: int
+            Unique identifier for the snapshot version that the document row is
+            added to.
         """
         raise NotImplementedError()

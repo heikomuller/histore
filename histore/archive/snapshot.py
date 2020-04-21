@@ -39,6 +39,20 @@ class Snapshot(object):
         self.transaction_time = transaction_time
         self.description = description if description is not None else ''
 
+    def __repr__(self):
+        """Unambiguous string representation of the archive snapshot
+        descriptor.
+
+        Returns
+        -------
+        string
+        """
+        return "<Snapshot (version={} description='{}' at={})>".format(
+            self.version,
+            self.description,
+            str(util.to_localtime(self.transaction_time))
+        )
+
 
 class SnapshotListing(object):
     """Listing of snapshot descriptors for snapshots in an archive. Ensures
@@ -167,6 +181,24 @@ class SnapshotListing(object):
             s1 = s2
         # The last snapshot was valid at or before the given timestamp.
         return s1
+
+    def has_version(self, version):
+        """Check if the given version identifier references an existing
+        snapshot in the listing.
+
+        Parameters
+        ----------
+        version: int
+            Unique version identifier.
+
+        Returns
+        -------
+        bool
+        """
+        for s in self.snapshots:
+            if s.version == version:
+                return True
+        return False
 
     def is_empty(self):
         """Shortcut to test if the list of snapshots is empty.

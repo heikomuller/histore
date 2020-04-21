@@ -112,10 +112,7 @@ class SingleVersionValue(ArchiveValue):
         -------
         string
         """
-        return '<SingleVersionValue (value={}, timestamp={})'.format(
-            self.value,
-            str(self.timestamp)
-        )
+        return '({} [{}])'.format(self.value, str(self.timestamp))
 
     def at_version(self, version, raise_error=True):
         """Get value for the given version. If the given version is not
@@ -231,7 +228,7 @@ class MultiVersionValue(ArchiveValue):
         -------
         string
         """
-        return ','.join(str(v) for v in self.values)
+        return '({})'.format(', '.join(str(v) for v in self.values))
 
     def at_version(self, version, raise_error=True):
         """Get value for the given version. Raises ValueError if the value does

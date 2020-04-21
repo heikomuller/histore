@@ -27,53 +27,53 @@ def test_data_frame_with_primary_key():
     keys = list()
     while reader.has_next():
         row = reader.next()
-        keys.append(row.identifier)
+        keys.append(row.key)
     assert keys == ['Alice', 'Alice', 'Bob', 'Claire']
     doc = PKDocument(df=df, schema=schema, primary_key=['Index', 'Name'])
     reader = doc.reader()
     keys = list()
     while reader.has_next():
         row = reader.next()
-        keys.append(row.identifier)
+        keys.append(row.key)
     assert keys == [(1, 'Alice'), (1, 'Bob'), (1, 'Claire'), (2, 'Alice')]
 
 
 def test_data_frame_with_row_index():
     """Test reading a data frame document with row index identifier."""
-    # All row identifier are -1
+    # All row keys are -1
     schema = [Column(colid=1, name='Name'), Column(colid=2, name='Index')]
     df = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=['A', 'B', 'C'])
-    reader = RIDocument(df=df, schema=schema, row_counter=0).reader()
+    reader = RIDocument(df=df, schema=schema).reader()
     rowcount = 0
     while reader.has_next():
         row = reader.next()
-        assert row.identifier == rowcount
+        assert row.key is None
         assert row.pos == rowcount
         assert row.values[1] == ((rowcount + 1) * 2) - 1
         rowcount += 1
     assert rowcount == 3
-    # Positive row identifier
+    # Positive row key
     df = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=[1, 2, 3])
-    reader = RIDocument(df=df, schema=schema, row_counter=4).reader()
+    reader = RIDocument(df=df, schema=schema).reader()
     rowcount = 0
     while reader.has_next():
         row = reader.next()
-        assert row.identifier == rowcount + 1
+        assert row.key == rowcount + 1
         assert row.pos == rowcount
         assert row.values[1] == ((rowcount + 1) * 2) - 1
         rowcount += 1
     assert rowcount == 3
-    # Mixed row identifier
+    # Mixed row keys
     df = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=[1, 2, 'A'])
-    reader = RIDocument(df=df, schema=schema, row_counter=3).reader()
+    reader = RIDocument(df=df, schema=schema).reader()
     rowids = list()
     while reader.has_next():
         row = reader.next()
-        rowids.append(row.identifier)
-    assert rowids == [1, 2, 3]
-    # No error for non-unique row identifier
+        rowids.append(row.key)
+    assert rowids == [1, 2, None]
+    # No error for non-unique row key
     df = pd.DataFrame(data=[[1, 2], [3, 4], [5, 6]], index=[1, 2, 1])
-    RIDocument(df=df, schema=schema, row_counter=3)
+    RIDocument(df=df, schema=schema)
 
 
 def test_invalid_schema_error():

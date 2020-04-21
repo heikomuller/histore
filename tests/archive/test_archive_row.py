@@ -18,15 +18,21 @@ def test_compare_row_keys():
     """test comparing row keys."""
     ts = Timestamp(version=1)
     pos = SingleVersionValue(value=0, timestamp=ts)
-    row = ArchiveRow(identifier=0, index=pos, cells=dict(), timestamp=ts)
+    row = ArchiveRow(rowid=0, key=0, index=pos, cells=dict(), timestamp=ts)
     assert row.comp(0) == 0
     assert row.comp(2) == -1
     assert row.comp(-2) == 1
-    row = ArchiveRow(identifier='B', index=pos, cells=dict(), timestamp=ts)
+    row = ArchiveRow(rowid=0, key='B', index=pos, cells=dict(), timestamp=ts)
     assert row.comp('B') == 0
     assert row.comp('C') == -1
     assert row.comp('A') == 1
-    row = ArchiveRow(identifier=(0, 1), index=pos, cells=dict(), timestamp=ts)
+    row = ArchiveRow(
+        rowid=0,
+        key=(0, 1),
+        index=pos,
+        cells=dict(),
+        timestamp=ts
+    )
     assert row.comp((0, 1)) == 0
     assert row.comp((0, 2)) == -1
     assert row.comp((-1, 10)) == 1
@@ -38,7 +44,7 @@ def test_extend_archive_row():
     """
     ts = Timestamp(version=1)
     pos = SingleVersionValue(value=0, timestamp=ts)
-    row = ArchiveRow(identifier=0, index=pos, cells=dict(), timestamp=ts)
+    row = ArchiveRow(rowid=0, key=0, index=pos, cells=dict(), timestamp=ts)
     row = row.merge(pos=1, values={1: 'A', 2: 1, 3: 'a'}, version=2)
     row = row.merge(pos=1, values={1: 'B', 2: 1, 3: 'b'}, version=3)
     row = row.extend(version=4, origin=2)
@@ -62,7 +68,7 @@ def test_merge_archive_rows():
     ts = Timestamp(version=1)
     # First version []
     row = ArchiveRow(
-        identifier=0,
+        rowid=0, key=0,
         index=SingleVersionValue(value=2, timestamp=ts),
         cells=dict(),
         timestamp=ts

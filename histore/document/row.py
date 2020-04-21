@@ -19,22 +19,22 @@ class DocumentRow(object):
     not unique) indicating new rows for which unique identifier need to be
     generated.
     """
-    def __init__(self, identifier, pos, values):
+    def __init__(self, key, pos, values):
         """Initialize the row identifier, the index positions, and the cell
         values. Cell values are provided as a dictionary that maps column
         identifier (from the dataset archive schema) to cell values.
 
         Parameters
         ----------
-        identifier: int, string, or tuple
-            Row identifier (may be negative).
+        key: int, string, or tuple
+            Derived row identifier.
         pos: int
             Index position for the row in the dataset.
         values: dict(int, scalar)
             Mapping of column identifier from the archive schema to cell values
             in the corresponding data frame row cells.
         """
-        self.identifier = identifier
+        self.key = key
         self.pos = pos
         self.values = values
 
@@ -45,8 +45,8 @@ class DocumentRow(object):
         -------
         string
         """
-        return '<DocumentRow(id={}, pos={}, values={})'.format(
-            self.identifier,
+        return '<DocumentRow(key={}, pos={}, values={})'.format(
+            self.key,
             self.pos,
             self.values
         )

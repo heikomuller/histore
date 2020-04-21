@@ -25,13 +25,13 @@ def test_align_partial_document():
     rows = list()
     for rid in range(5):
         idx = SingleVersionValue(value=rid, timestamp=ts)
-        row = ArchiveRow(identifier=rid, index=idx, cells=dict(), timestamp=ts)
+        row = ArchiveRow(rowid=rid, index=idx, cells=dict(), timestamp=ts)
         rows.append(row)
     # Create a partial document with rows 2 and 3 and one new row 10.
     data = [['A'], ['B'], ['C']]
     df = pd.DataFrame(data=data, index=[10, 3, 2], columns=['Col'])
     schema = [Column(colid=1, name='Col')]
-    doc = RIDocument(df=df, schema=schema, row_counter=5)
+    doc = RIDocument(df=df, schema=schema)
     assert doc.rows == [(2, 2), (3, 1), (10, 0)]
     # Adjust the row positions based on the original row order.
     row_index = RowIndexReader(reader=BufferedReader(rows), version=1)

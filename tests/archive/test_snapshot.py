@@ -29,6 +29,9 @@ def test_append_snapshots():
     assert s.version == 1
     assert s.description == 'some text'
     assert len(snapshots) == 2
+    assert snapshots.has_version(0)
+    assert snapshots.has_version(1)
+    assert not snapshots.has_version(2)
 
 
 def test_create_snapshot_descriptor():

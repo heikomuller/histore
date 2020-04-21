@@ -83,15 +83,3 @@ class ArchiveStore(metaclass=ABCMeta):
         histore.archive.writer.ArchiveWriter
         """
         raise NotImplementedError()
-
-    @abstractmethod
-    def max_rowid(self):
-        """Get the maximum value for row identifiers in the current archive.
-        This method is primarily intended for archives where row identifiers
-        are generated from the data frame index and not using primary keys.
-
-        Returns
-        -------
-        scalar or tuple
-        """
-        raise NotImplementedError()

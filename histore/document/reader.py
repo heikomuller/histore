@@ -71,4 +71,4 @@ class DocumentReader(object):
         row = self.df.iloc[rowpos]
         for i in range(len(self.schema)):
             values[self.schema[i].colid] = row[i]
-        return DocumentRow(identifier=rowid, pos=rowpos, values=values)
+        return DocumentRow(key=rowid, pos=rowpos, values=values)

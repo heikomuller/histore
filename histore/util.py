@@ -44,7 +44,7 @@ def to_datetime(timestamp):
     ValueError('unknown time format')
 
 
-def to_localtime(self, ts):
+def to_localtime(ts):
     """Conbert timestamp in UTC timezone to local time.
 
     Parameters

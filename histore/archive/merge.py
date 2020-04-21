@@ -9,12 +9,10 @@
 dataset archive.
 """
 
-from histore.archive.row import ArchiveRow
-
 
 def merge_rows(
-    self, archive, document, version, writer, partial=False,
-    unchanged_cells=None, origin=None
+    archive, document, version, writer, partial=False, unchanged_cells=None,
+    origin=None
 ):
     """Merge rows in the given archive and database snapshot. Outputs the
     merged rows in the resulting archive to the given archive writer.
@@ -48,7 +46,7 @@ def merge_rows(
     arch_row = arch_reader.next()
     doc_row = doc_reader.next()
     while arch_row is not None and doc_row is not None:
-        comp = arch_row.comp(doc_row.identifier)
+        comp = arch_row.comp(doc_row.key)
         if comp < 0:
             # The row is not present in the document. If the document is
             # a partial document we need to extend the row for the given
@@ -57,13 +55,13 @@ def merge_rows(
                 arch_row = arch_row.extend(version=version, origin=origin)
             # Add the row to the new archive version and progress the
             # archive reader.
-            writer.write(arch_row)
+            writer.write_archive_row(arch_row)
             arch_row = arch_reader.next()
         elif comp > 0:
             # The document row is a new row. Create an archive row from the
             # document row and pass it to the writer. Progress the document
             # reader.
-            writer.write(ArchiveRow.from_doc(row=doc_row, version=version))
+            writer.write_document_row(row=doc_row, version=version)
             doc_row = doc_reader.next()
         else:
             # Merge the archive row and the document row.
@@ -76,7 +74,7 @@ def merge_rows(
             )
             # Add the merged row to the new archive version and progress
             # both readers.
-            writer.write(arch_row)
+            writer.write_archive_row(arch_row)
             arch_row = arch_reader.next()
             doc_row = doc_reader.next()
     # Add remaining rows to the archive. Only one of the two conditions can
@@ -87,10 +85,10 @@ def merge_rows(
         # Extend the row for the given origin if the document is partial.
         if partial:
             arch_row = arch_row.extend(version=version, origin=origin)
-        writer.write(arch_row)
+        writer.write_archive_row(arch_row)
         arch_row = arch_reader.next()
     # Add remaining document rows to the new archive version.
     while doc_row is not None:
         # Outout an archive row created from the document row.
-        writer.write(ArchiveRow.from_doc(row=doc_row, version=version))
+        writer.write_document_row(row=doc_row, version=version)
         doc_row = doc_reader.next()

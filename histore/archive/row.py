@@ -19,14 +19,14 @@ class ArchiveRow(object):
     maintains the history of index positions that it had, and the history of
     all cell values.
     """
-    def __init__(self, identifier, index, cells, timestamp):
+    def __init__(self, rowid, index, cells, timestamp, key=None):
         """Initialize the row identifier and the objects that maintain history
         information about the row index positions and cell values.
 
         Parameters
         ----------
-        identifier: int, string, or tuple
-            Unique row identifier
+        rowid: int
+            Unique internal row identifier
         index: histore.archive.value.ArchiveValue
             Index positions for the row in the history of the dataset.
         cells: dict(int, histore.archive.value.ArchiveValue)
@@ -35,11 +35,37 @@ class ArchiveRow(object):
         timestamp: histore.archive.timestamp.Timestamp
             Sequence of version from the dataset history in which the row was
             present.
+        key: int, string, or tuple, default=None
+            Derived row key for matching and merging purposes. If the key is
+            None the rowid is used as key
         """
-        self.identifier = identifier
+        self.rowid = rowid
         self.cells = cells
         self.index = index
         self.timestamp = timestamp
+        self.key = key if key is not None else rowid
+
+    def __repr__(self):
+        """Unambiguous string representation of the archive row.
+
+        Returns
+        -------
+        string
+        """
+        return (
+            '<ArchiveRow ('
+            '\n\tid={}'
+            '\n\tkey={}'
+            '\n\ttimestampts=[{}]'
+            '\n\tpos={}'
+            '\n\tvalues={})>'
+        ).format(
+            self.rowid,
+            self.key,
+            str(self.timestamp),
+            str(self.index),
+            self.cells
+        )
 
     def at_version(self, version, columns, raise_error=True):
         """Get cell values and the index position for the row in the given
@@ -80,7 +106,8 @@ class ArchiveRow(object):
         """Compare the identifier of the archive row to the given row key. The
         result is:
 
-        - -1 if the archive key is lower that the given key,
+        - -1 if the archive key is lower that the given key or if the given
+             key is None,
         -  0 if both keys are equal, or
         -  1 if the archive key is greater than the given key.
 
@@ -93,9 +120,9 @@ class ArchiveRow(object):
         -------
         int
         """
-        if self.identifier < key:
+        if key is None or self.key < key:
             return -1
-        elif self.identifier > key:
+        elif self.key > key:
             return 1
         else:
             return 0
@@ -126,7 +153,8 @@ class ArchiveRow(object):
         # Return an extended copy of the row. the row position is assumed to be
         # unchanged.
         return ArchiveRow(
-            identifier=self.identifier,
+            rowid=self.rowid,
+            key=self.key,
             index=self.index.extend(version=version, origin=origin),
             cells=ext_cells,
             timestamp=self.timestamp.append(version)
@@ -195,7 +223,8 @@ class ArchiveRow(object):
                 history[colid] = cell
         # Return a modified archive row.
         return ArchiveRow(
-            identifier=self.identifier,
+            rowid=self.rowid,
+            key=self.key,
             index=self.index.merge(value=pos, version=version),
             cells=history,
             timestamp=self.timestamp.append(version)

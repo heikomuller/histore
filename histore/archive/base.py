@@ -7,9 +7,11 @@
 
 """Archives are collections of snapshots of an evolving dataset."""
 
+import pandas as pd
+
 from histore.archive.reader import RowIndexReader
 from histore.archive.store.mem import VolatileArchiveStore
-from archive.document.base import PartialDocument, PKDocument, RIDocument
+from histore.document.base import PartialDocument, PKDocument, RIDocument
 
 import histore.archive.merge as nested_merge
 
@@ -41,9 +43,45 @@ class Archive(object):
         self.store = store if store is not None else VolatileArchiveStore()
 
     def checkout(self, version):
+        """Access a dataset snapshot in the archive. Retrieves the datset that
+        was commited with the given version identifier. Raises an error if the
+        version identifier is unknown.
+
+        Parameters
+        ----------
+        version: int
+            Unique version identifier.
+
+        Returns
+        -------
+        pandas.DataFrame
+
+        Raises
+        ------
+        ValueError
         """
-        """
-        raise NotImplementedError()
+        # Ensure that the version exists in the snapshot index.
+        if not self.snapshots().has_version(version):
+            raise ValueError('unknown version {}'.format(version))
+        # Get dataset schema at the given version.
+        columns = self.schema().at_version(version)
+        colids = [c.colid for c in columns]
+        # Get the row values and their position.
+        rows = list()
+        reader = self.reader()
+        while reader.has_next():
+            row = reader.next()
+            if row.timestamp.contains(version):
+                pos, vals = row.at_version(version, colids, raise_error=False)
+                rows.append((row.rowid, pos, vals))
+        # Sort rows in ascending order.
+        rows.sort(key=lambda r: r[1])
+        # Create data frame for the retrieved snapshot.
+        data, rowindex = list(), list()
+        for rowid, _, vals in rows:
+            data.append(vals)
+            rowindex.append(rowid)
+        return pd.DataFrame(data=data, index=rowindex, columns=columns)
 
     def commit(
         self, df, description=None, valid_time=None, match_by_name=True,
@@ -117,8 +155,8 @@ class Archive(object):
         # are True and origin is None.
         if (match_by_name or partial) and origin is None:
             last_snapshot = self.snapshots().last_snapshot()
-            if last_version:
-                origin = last_snapshot.version()
+            if last_snapshot:
+                origin = last_snapshot.version
         # Get a modified snapshot list where the last entry represents the
         # new snapshot.
         snapshots = self.snapshots().append(
@@ -145,11 +183,7 @@ class Archive(object):
                 primary_key=self.primary_key
             )
         else:
-            doc = RIDocument(
-                df=df,
-                schema=matched_columns,
-                row_counter=self.store.max_rowid() + 1
-            )
+            doc = RIDocument(df=df, schema=matched_columns)
         # If the data frame is partial we need to adjust the positions of the
         # rows in the document.
         if partial:
