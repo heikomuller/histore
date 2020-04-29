@@ -140,10 +140,15 @@ class Timestamp(object):
         if version is not None:
             self.intervals = [TimeInterval(version)]
         else:
-            self.intervals = intervals if intervals is not None else list()
+            if intervals is None:
+                self.intervals = list()
+            elif isinstance(intervals, TimeInterval):
+                self.intervals = [intervals]
+            else:
+                self.intervals = intervals
             # Validate the given list of intervals
             for i in range(1, len(self.intervals)):
-                if self.intervals[i - 1].end >= self.intervals[i].start:
+                if self.intervals[i - 1].end + 1 >= self.intervals[i].start:
                     raise ValueError('ajacent or overlapping intervals')
 
     def __str__(self):

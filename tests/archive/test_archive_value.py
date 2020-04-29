@@ -17,6 +17,8 @@ def test_cell_history():
     """Test adding values to the history of a dataset row cell."""
     cell = SingleVersionValue(value=1, timestamp=Timestamp(version=1))
     assert cell.at_version(version=1) == 1
+    assert cell.is_single_version()
+    assert not cell.is_multi_version()
     with pytest.raises(ValueError):
         cell.at_version(version=2)
     assert cell.at_version(version=2, raise_error=False) is None
@@ -36,6 +38,8 @@ def test_cell_history():
     assert cell.at_version(version=1) == 1
     assert cell.at_version(version=2) == '1'
     assert cell.at_version(version=3) == 1
+    assert not cell.is_single_version()
+    assert cell.is_multi_version()
 
 
 def test_extend_cell_value_timestamp():

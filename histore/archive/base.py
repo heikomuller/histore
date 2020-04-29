@@ -10,7 +10,7 @@
 import pandas as pd
 
 from histore.archive.reader import RowIndexReader
-from histore.archive.store.mem import VolatileArchiveStore
+from histore.store.mem.base import VolatileArchiveStore
 from histore.document.base import PartialDocument, PKDocument, RIDocument
 
 import histore.archive.merge as nested_merge
@@ -33,7 +33,7 @@ class Archive(object):
 
         Parameters
         ----------
-        store: histore.archive.store.base.ArchiveStore, default=None
+        store: histore.store.base.ArchiveStore, default=None
             Associated archive store that is used to maintain all archive
             information. Uses the volatile in-memory store by default.
         primary_key: string or list

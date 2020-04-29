@@ -69,6 +69,27 @@ class ArchiveValue(metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
+    def is_multi_version(self):
+        """Helper method to get the type of an archive value. Values can either
+        be single version values or multi-version values.
+
+        Returns
+        -------
+        bool
+        """
+        return not self.is_single_version()
+
+    @abstractmethod
+    def is_single_version(self):
+        """Helper method to get the type of an archive value. Values can either
+        be single version values or multi-version values.
+
+        Returns
+        -------
+        bool
+        """
+        raise NotImplementedError()
+
     @abstractmethod
     def merge(self, value, version):
         """Add value for the given version into the cell history. Returns a
@@ -176,6 +197,15 @@ class SingleVersionValue(ArchiveValue):
             value=self.value,
             timestamp=self.timestamp.append(version)
         )
+
+    def is_single_version(self):
+        """Return True for the single version value class.
+
+        Returns
+        -------
+        bool
+        """
+        return True
 
     def merge(self, value, version):
         """Add value for the given version into the cell history. Depending on
@@ -291,14 +321,14 @@ class MultiVersionValue(ArchiveValue):
         # No value for the source version. Return the value unchanged.
         return self
 
-    def is_timestamped(self):
-        """Returns True for the timestamped cell value.
+    def is_single_version(self):
+        """Return False for the single version value class.
 
         Returns
         -------
         bool
         """
-        return True
+        return False
 
     def merge(self, value, version):
         """Add value for the given version into the cell history. Returns a

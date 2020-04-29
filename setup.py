@@ -56,7 +56,7 @@ with open('README.rst', 'rt') as f:
 setup(
     name='histore-tabluar',
     version=version,
-    description='Library for maintaining snapshots of evolving tabular data sets',
+    description='Library for maintaining evolving tabular data sets',
     long_description=readme,
     long_description_content_type='text/x-rst',
     keywords='data versioning',

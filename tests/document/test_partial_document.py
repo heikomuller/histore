@@ -11,7 +11,7 @@ import pandas as pd
 
 from histore.archive.reader import RowIndexReader
 from histore.archive.row import ArchiveRow
-from histore.archive.store.mem import BufferedReader
+from histore.store.mem.reader import BufferedReader
 from histore.archive.timestamp import Timestamp
 from histore.archive.value import SingleVersionValue
 from histore.document.base import PartialDocument, RIDocument
