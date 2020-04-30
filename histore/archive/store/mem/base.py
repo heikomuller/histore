@@ -11,9 +11,9 @@ memory. Archive information is not persisted.
 
 from histore.archive.schema import ArchiveSchema
 from histore.archive.snapshot import SnapshotListing
-from histore.store.base import ArchiveStore
-from histore.store.mem.reader import BufferedReader
-from histore.store.mem.writer import ArchiveBuffer
+from histore.archive.store.base import ArchiveStore
+from histore.archive.store.mem.reader import BufferedReader
+from histore.archive.store.mem.writer import ArchiveBuffer
 
 
 class VolatileArchiveStore(ArchiveStore):
@@ -61,7 +61,7 @@ class VolatileArchiveStore(ArchiveStore):
 
         Returns
         -------
-        histore.store.mem.BufferedReader
+        histore.archive.store.mem.BufferedReader
         """
         return BufferedReader(rows=self.rows)
 
@@ -89,6 +89,6 @@ class VolatileArchiveStore(ArchiveStore):
 
         Returns
         -------
-        histore.store.mem.ArchiveBuffer
+        histore.archive.store.mem.ArchiveBuffer
         """
         return ArchiveBuffer(row_counter=self.row_counter)

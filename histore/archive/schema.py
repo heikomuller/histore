@@ -120,6 +120,10 @@ class ArchiveSchema(object):
         else:
             raise ValueError('expected list or dict of columns')
 
+    def __iter__(self):
+        """Make column list iterable."""
+        return iter(self.columns.values())
+
     def __repr__(self):
         """Unambiguous string representation of the archive schema.
 

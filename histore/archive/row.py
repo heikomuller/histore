@@ -56,7 +56,7 @@ class ArchiveRow(object):
             '<ArchiveRow ('
             '\n\tid={}'
             '\n\tkey={}'
-            '\n\ttimestampts=[{}]'
+            '\n\ttimestamp=[{}]'
             '\n\tpos={}'
             '\n\tvalues={})>'
         ).format(

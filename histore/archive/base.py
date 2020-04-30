@@ -10,7 +10,8 @@
 import pandas as pd
 
 from histore.archive.reader import RowIndexReader
-from histore.store.mem.base import VolatileArchiveStore
+from histore.archive.store.fs.base import ArchiveFileStore
+from histore.archive.store.mem.base import VolatileArchiveStore
 from histore.document.base import PartialDocument, PKDocument, RIDocument
 
 import histore.archive.merge as nested_merge
@@ -33,7 +34,7 @@ class Archive(object):
 
         Parameters
         ----------
-        store: histore.store.base.ArchiveStore, default=None
+        store: histore.archive.store.base.ArchiveStore, default=None
             Associated archive store that is used to maintain all archive
             information. Uses the volatile in-memory store by default.
         primary_key: string or list
@@ -242,3 +243,47 @@ class Archive(object):
         histore.archive.snapshot.SnapshotListing
         """
         return self.store.get_snapshots()
+
+
+class PersistentArchive(Archive):
+    """Archive that persists all dataset snapshots in files on the file system.
+    All the data is maintained within a given directory on the file system.
+
+    This class is a wrapper for an archive with a persistent archive store. It
+    uses the default file system store.
+    """
+    def __init__(
+        self, basedir, replace=False, serializer=None, compression=None,
+        primary_key=None
+    ):
+        """Initialize the associated archive store and the optional primary
+        key columns that are used to generate row identifier. If no primary
+        key is specified the row index for committed data frame is used to
+        generate identifier for archive rows.
+
+        Parameters
+        ----------
+        basedir: string
+            Path to the base directory for archive files. If the directory does
+            not exist it will be created.
+        replace: boolean, default=False
+            Do not read existing files in the base directory to initialize the
+            archive. Treat the archive as being empty instead if True.
+        serializer: histore.archive.serialize.ArchiveSerializer, default=None
+            Implementation of the archive serializer interface that is used to
+            serialize rows that are written to file.
+        compression: string, default=None
+            String representing the compression mode. Only te data file will be
+            compressed. the metadata file is always storesd as plain text.
+        primary_key: string or list
+            Column(s) that are used to generate identifier for snapshot rows.
+        """
+        super(PersistentArchive, self).__init__(
+            store=ArchiveFileStore(
+                basedir=basedir,
+                replace=replace,
+                serializer=serializer,
+                compression=compression
+            ),
+            primary_key=primary_key
+        )

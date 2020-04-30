@@ -9,11 +9,29 @@
 
 from abc import ABCMeta, abstractmethod
 
+from histore.archive.row import ArchiveRow
+from histore.archive.timestamp import Timestamp
+from histore.archive.value import SingleVersionValue
+
 
 class ArchiveWriter(metaclass=ABCMeta):
-    """The archive writer interface defines a single method for adding
-    individual archive rows to the output stream.
+    """The abstract archive writer class defines the methods for adding rows
+    to an output archive. The writer maintains an internal counter to assign
+    unique identifier to document rows.
     """
+    def __init__(self, row_counter):
+        """Initialize the counter that is used to generate unique row
+        identifier.
+
+        Parameters
+        ----------
+        row_counter: int
+            Counter that is used to generate unique internal row identifier.
+            The current value of the counter is the value for the next unique
+            identifier.
+        """
+        self.row_counter = row_counter
+
     @abstractmethod
     def write_archive_row(self, row):
         """Add the given row to a new archive version.
@@ -25,9 +43,9 @@ class ArchiveWriter(metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
-    @abstractmethod
     def write_document_row(self, row, version):
         """Add a given document row to a new archive version with the given
+        identifier. Uses the internal row counter to assign a new unique row
         identifier.
 
         Parameters
@@ -39,4 +57,19 @@ class ArchiveWriter(metaclass=ABCMeta):
             Unique identifier for the snapshot version that the document row is
             added to.
         """
-        raise NotImplementedError()
+        # Create a new archive row with unique row identifier for the given
+        # document row.
+        ts = Timestamp(version=version)
+        cells = dict()
+        for colid, value in row.values.items():
+            cells[colid] = SingleVersionValue(value=value, timestamp=ts)
+        arch_row = ArchiveRow(
+            rowid=self.row_counter,
+            key=row.key if row.key is not None else self.row_counter,
+            index=SingleVersionValue(value=row.pos, timestamp=ts),
+            cells=cells,
+            timestamp=ts
+        )
+        # Increment the row counter and add the new row to the archive.
+        self.row_counter += 1
+        self.write_archive_row(arch_row)

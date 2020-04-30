@@ -131,7 +131,7 @@ class DefaultSerializer(ArchiveSerializer):
         index = self.deserialize_value(obj=obj[self.index], ts=ts)
         cells = dict()
         for colid, value in obj[self.cells].items():
-            cells[colid] = self.deserialize_value(obj=value, ts=ts)
+            cells[int(colid)] = self.deserialize_value(obj=value, ts=ts)
         if self.key in obj:
             key = obj[self.key]
             if isinstance(key, list):
