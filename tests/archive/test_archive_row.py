@@ -10,26 +10,28 @@
 import pytest
 
 from histore.archive.row import ArchiveRow
-from histore.archive.value import SingleVersionValue
-from histore.archive.timestamp import Timestamp
+from histore.archive.timestamp import Timestamp, TimeInterval
+from histore.archive.value import (
+    MultiVersionValue, SingleVersionValue, TimestampedValue
+)
 
 
 def test_compare_row_keys():
-    """test comparing row keys."""
+    """Test comparing row keys."""
     ts = Timestamp(version=1)
     pos = SingleVersionValue(value=0, timestamp=ts)
-    row = ArchiveRow(rowid=0, key=0, index=pos, cells=dict(), timestamp=ts)
+    row = ArchiveRow(rowid=0, key=0, pos=pos, cells=dict(), timestamp=ts)
     assert row.comp(0) == 0
     assert row.comp(2) == -1
     assert row.comp(-2) == 1
-    row = ArchiveRow(rowid=0, key='B', index=pos, cells=dict(), timestamp=ts)
+    row = ArchiveRow(rowid=0, key='B', pos=pos, cells=dict(), timestamp=ts)
     assert row.comp('B') == 0
     assert row.comp('C') == -1
     assert row.comp('A') == 1
     row = ArchiveRow(
         rowid=0,
         key=(0, 1),
-        index=pos,
+        pos=pos,
         cells=dict(),
         timestamp=ts
     )
@@ -44,7 +46,7 @@ def test_extend_archive_row():
     """
     ts = Timestamp(version=1)
     pos = SingleVersionValue(value=0, timestamp=ts)
-    row = ArchiveRow(rowid=0, key=0, index=pos, cells=dict(), timestamp=ts)
+    row = ArchiveRow(rowid=0, key=0, pos=pos, cells=dict(), timestamp=ts)
     row = row.merge(pos=1, values={1: 'A', 2: 1, 3: 'a'}, version=2)
     row = row.merge(pos=1, values={1: 'B', 2: 1, 3: 'b'}, version=3)
     row = row.extend(version=4, origin=2)
@@ -69,7 +71,7 @@ def test_merge_archive_rows():
     # First version []
     row = ArchiveRow(
         rowid=0, key=0,
-        index=SingleVersionValue(value=2, timestamp=ts),
+        pos=SingleVersionValue(value=2, timestamp=ts),
         cells=dict(),
         timestamp=ts
     )
@@ -109,3 +111,59 @@ def test_merge_archive_rows():
     pos, values = row.at_version(version=5, columns=[1, 2, 3])
     assert pos == 2
     assert values == ['A', 0, 'a']
+
+
+def test_row_provenance():
+    """Test diff operation for archive rows."""
+    row = ArchiveRow(
+        rowid=0,
+        pos=MultiVersionValue(
+            values=[
+                TimestampedValue(
+                    value=1,
+                    timestamp=Timestamp(intervals=TimeInterval(1, 3))
+                ),
+                TimestampedValue(
+                    value=2,
+                    timestamp=Timestamp(intervals=TimeInterval(4, 5))
+                )
+            ]
+        ),
+        cells=dict({
+            1: SingleVersionValue(
+                value='A',
+                timestamp=Timestamp(intervals=TimeInterval(2, 3))
+            ),
+            2: MultiVersionValue(
+                values=[
+                    TimestampedValue(
+                        value='X',
+                        timestamp=Timestamp(intervals=TimeInterval(1, 3))
+                    ),
+                    TimestampedValue(
+                        value='Y',
+                        timestamp=Timestamp(intervals=TimeInterval(4, 5))
+                    )
+                ]
+            )
+        }),
+        timestamp=Timestamp(intervals=TimeInterval(1, 5))
+    )
+    assert row.diff(0, 1).is_insert()
+    assert row.diff(5, 6).is_delete()
+    prov = row.diff(1, 2)
+    assert prov.updated_position() is None
+    upd_cells = prov.updated_cells()
+    assert len(upd_cells) == 1
+    upd_cells[1].old_value is None
+    upd_cells[1].new_value == 'A'
+    assert row.diff(2, 3) is None
+    prov = row.diff(3, 4)
+    assert prov.updated_position().old_value == 1
+    assert prov.updated_position().new_value == 2
+    upd_cells = prov.updated_cells()
+    assert len(upd_cells) == 2
+    upd_cells[1].old_value == 'A'
+    upd_cells[1].new_value is None
+    upd_cells[2].old_value == 'X'
+    upd_cells[1].new_value == 'Y'

@@ -14,6 +14,7 @@ value, e.g., if the cell never changed over the history of the dataset.
 
 from abc import ABCMeta, abstractmethod
 
+from histore.archive.provenance.value import UpdateValue
 from histore.archive.timestamp import Timestamp
 
 
@@ -44,6 +45,30 @@ class ArchiveValue(metaclass=ABCMeta):
         ValueError
         """
         raise NotImplementedError()
+
+    def diff(self, original_version, new_version):
+        """Get provenance information representing the difference for this
+        value between the original version and a new version. If the value
+        was the same for both versions the result is None.
+
+        Parameters
+        ----------
+        original_version: int
+            Unique identifier for the original version.
+        new_version: int
+            Unique identifier for the version that the original version is
+            compared against.
+
+        Returns
+        -------
+        histore.archive.provenance.value.UpdateValue
+        """
+        old_value = self.at_version(original_version, raise_error=False)
+        new_value = self.at_version(new_version, raise_error=False)
+        if old_value != new_value:
+            return UpdateValue(old_value=old_value, new_value=new_value)
+        # The value has not changed.
+        return None
 
     @abstractmethod
     def extend(self, version, origin):

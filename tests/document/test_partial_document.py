@@ -24,8 +24,8 @@ def test_align_partial_document():
     # Create a list of 5 archive rows.
     rows = list()
     for rid in range(5):
-        idx = SingleVersionValue(value=rid, timestamp=ts)
-        row = ArchiveRow(rowid=rid, index=idx, cells=dict(), timestamp=ts)
+        pos = SingleVersionValue(value=rid, timestamp=ts)
+        row = ArchiveRow(rowid=rid, pos=pos, cells=dict(), timestamp=ts)
         rows.append(row)
     # Create a partial document with rows 2 and 3 and one new row 10.
     data = [['A'], ['B'], ['C']]

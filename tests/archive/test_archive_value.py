@@ -25,12 +25,21 @@ def test_cell_history():
     cell = cell.merge(value=1, version=2)
     assert cell.at_version(version=1) == 1
     assert cell.at_version(version=2) == 1
+    assert cell.diff(original_version=1, new_version=2) is None
     assert cell.at_version(version=3, raise_error=False) is None
+    prov = cell.diff(original_version=2, new_version=3)
+    assert prov is not None
+    assert prov.old_value == 1
+    assert prov.new_value is None
     cell = SingleVersionValue(value=1, timestamp=Timestamp(version=1))
     cell = cell.merge(value='1', version=2)
     assert len(cell.values) == 2
     assert cell.at_version(version=1) == 1
     assert cell.at_version(version=2) == '1'
+    prov = cell.diff(original_version=1, new_version=2)
+    assert prov is not None
+    assert prov.old_value == 1
+    assert prov.new_value == '1'
     with pytest.raises(ValueError):
         cell.at_version(version=3)
     cell = cell.merge(value=1, version=3)

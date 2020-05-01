@@ -58,11 +58,11 @@ def test_serialize_row():
             )
         ])
     }
-    row = ArchiveRow(rowid=0, key=key, index=pos, cells=cells, timestamp=ts)
+    row = ArchiveRow(rowid=0, key=key, pos=pos, cells=cells, timestamp=ts)
     obj = serializer.serialize_row(row)
     row = serializer.deserialize_row(obj)
     assert row.rowid == 0
-    assert row.index.value == 0
+    assert row.pos.value == 0
     assert len(row.cells) == 2
     assert row.key == key
 

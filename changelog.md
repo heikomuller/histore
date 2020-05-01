@@ -2,4 +2,4 @@
 
 ### 0.1.0 - ???
 
-* Support for snapshot archives in main-memory.
+* Initial version. Support for snapshot archives in main-memory and on file system.

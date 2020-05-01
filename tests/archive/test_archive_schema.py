@@ -13,6 +13,35 @@ from histore.archive.schema import ArchiveSchema, match_columns
 from histore.document.schema import Column
 
 
+def test_column_provenance():
+    """Test provenance information for column updates."""
+    schema = ArchiveSchema()
+    schema, _, _ = schema.merge(
+        columns=['Name', 'Age', 'Salary'],
+        match_by_name=True,
+        version=0
+    )
+    schema, _, _ = schema.merge(
+        columns=['Age', 'Name', 'Salary'],
+        match_by_name=True,
+        version=1,
+        origin=0
+    )
+    schema, _, _ = schema.merge(
+        columns=['Name', 'Height'],
+        renamed={'Age': 'Height'},
+        match_by_name=True,
+        version=2,
+        origin=1
+    )
+    prov = schema.columns[0].diff(0, 1)
+    assert prov.updated_name() is None
+    assert prov.updated_position() is not None
+    prov = schema.columns[1].diff(1, 2)
+    assert prov.updated_name().values() == ('Age', 'Height')
+    assert prov.updated_position().values() == (0, 1)
+    
+
 def test_match_columns_by_name():
     """Test match columns by name function."""
     matches = match_columns(

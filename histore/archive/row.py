@@ -10,6 +10,7 @@ of the row in the history of the dataset, and the cell values in the row
 history.
 """
 
+from histore.archive.provenance.row import DeleteRow, InsertRow, UpdateRow
 from histore.archive.value import SingleVersionValue
 from histore.archive.timestamp import Timestamp
 
@@ -19,7 +20,7 @@ class ArchiveRow(object):
     maintains the history of index positions that it had, and the history of
     all cell values.
     """
-    def __init__(self, rowid, index, cells, timestamp, key=None):
+    def __init__(self, rowid, pos, cells, timestamp, key=None):
         """Initialize the row identifier and the objects that maintain history
         information about the row index positions and cell values.
 
@@ -27,7 +28,7 @@ class ArchiveRow(object):
         ----------
         rowid: int
             Unique internal row identifier
-        index: histore.archive.value.ArchiveValue
+        pos: histore.archive.value.ArchiveValue
             Index positions for the row in the history of the dataset.
         cells: dict(int, histore.archive.value.ArchiveValue)
             Mapping of column identifier to cell values over the history of the
@@ -41,7 +42,7 @@ class ArchiveRow(object):
         """
         self.rowid = rowid
         self.cells = cells
-        self.index = index
+        self.pos = pos
         self.timestamp = timestamp
         self.key = key if key is not None else rowid
 
@@ -63,7 +64,7 @@ class ArchiveRow(object):
             self.rowid,
             self.key,
             str(self.timestamp),
-            str(self.index),
+            str(self.pos),
             self.cells
         )
 
@@ -100,7 +101,7 @@ class ArchiveRow(object):
             else:
                 value = value.at_version(version, raise_error=raise_error)
             values.append(value)
-        return self.index.at_version(version, raise_error=raise_error), values
+        return self.pos.at_version(version, raise_error=raise_error), values
 
     def comp(self, key):
         """Compare the identifier of the archive row to the given row key. The
@@ -126,6 +127,59 @@ class ArchiveRow(object):
             return 1
         else:
             return 0
+
+    def diff(self, original_version, new_version):
+        """Get provenance information representing the difference for this
+        row between the original version and a new version.
+
+        The three main types of changes that the row can experience are:
+
+        - InsertRow: The row did not exists in the original version but in the
+          new version.
+        - DeleteRow: The row did exist in the original version but not in the
+          new version.
+        - UpdateRow: Row updates can be comprised of two types of changes:
+                     (i) The row position changed
+                     (ii) One or more row values were updated
+
+        If the row has no changes between both versions the result is None.
+
+        Parameters
+        ----------
+        original_version: int
+            Unique identifier for the original version.
+        new_version: int
+            Unique identifier for the version that the original version is
+            compared against.
+
+        Returns
+        -------
+        histore.archive.provenance.row.RowOp
+        """
+        exists_in_orig = self.timestamp.contains(original_version)
+        exists_in_new = self.timestamp.contains(new_version)
+        if exists_in_orig and not exists_in_new:
+            # Row has been deleted
+            return DeleteRow(self.key)
+        elif not exists_in_orig and exists_in_new:
+            # Row has been inserted
+            return InsertRow(self.key)
+        elif exists_in_orig and exists_in_new:
+            # Check if row has been updated.
+            upd_cells = dict()
+            for colid, value in self.cells.items():
+                upd_val = value.diff(original_version, new_version)
+                if upd_val is not None:
+                    upd_cells[colid] = upd_val
+            upd_pos = self.pos.diff(original_version, new_version)
+            if upd_pos is not None or len(upd_cells) > 0:
+                return UpdateRow(
+                    key=self.key,
+                    cells=upd_cells,
+                    position=upd_pos
+                )
+        # Row has not changed
+        return None
 
     def extend(self, version, origin):
         """Extend the timestamp of the row and all cell values and the index
@@ -155,7 +209,7 @@ class ArchiveRow(object):
         return ArchiveRow(
             rowid=self.rowid,
             key=self.key,
-            index=self.index.extend(version=version, origin=origin),
+            pos=self.pos.extend(version=version, origin=origin),
             cells=ext_cells,
             timestamp=self.timestamp.append(version)
         )
@@ -225,7 +279,7 @@ class ArchiveRow(object):
         return ArchiveRow(
             rowid=self.rowid,
             key=self.key,
-            index=self.index.merge(value=pos, version=version),
+            pos=self.pos.merge(value=pos, version=version),
             cells=history,
             timestamp=self.timestamp.append(version)
         )

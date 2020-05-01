@@ -9,6 +9,8 @@
 the rows in a data frame sorted by their row identifier.
 """
 
+import math
+
 from histore.document.row import DocumentRow
 
 
@@ -70,5 +72,10 @@ class DocumentReader(object):
         values = dict()
         row = self.df.iloc[rowpos]
         for i in range(len(self.schema)):
-            values[self.schema[i].colid] = row[i]
+            val = row[i]
+            try:
+                val = None if math.isnan(val) else val
+            except TypeError:
+                pass
+            values[self.schema[i].colid] = val
         return DocumentRow(key=rowid, pos=rowpos, values=values)

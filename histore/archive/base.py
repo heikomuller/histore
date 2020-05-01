@@ -9,6 +9,7 @@
 
 import pandas as pd
 
+from histore.archive.provenance.archive import SnapshotDiff
 from histore.archive.reader import RowIndexReader
 from histore.archive.store.fs.base import ArchiveFileStore
 from histore.archive.store.mem.base import VolatileArchiveStore
@@ -207,6 +208,41 @@ class Archive(object):
         self.store.commit(schema=schema, writer=writer, snapshots=snapshots)
         # Return descriptor for the created snapshot.
         return snapshots.last_snapshot()
+
+    def diff(self, original_version, new_version):
+        """Get provenance information representing the difference between two
+        dataset snapshots.
+
+        Parameters
+        ----------
+        original_version: int
+            Unique identifier for the original version.
+        new_version: int
+            Unique identifier for the version that the original version is
+            compared against.
+
+        Returns
+        -------
+        histore.archive.provenance.archive.SnapshotDiff
+        """
+        prov = SnapshotDiff()
+        # Get changes in the dataset schema.
+        schema_diff = prov.schema()
+        for colid, column in self.schema().columns.items():
+            col_prov = column.diff(original_version, new_version)
+            if col_prov is not None:
+                schema_diff.add(col_prov)
+        # Get changes in dataset rows.
+        rows_diff = prov.rows()
+        reader = self.reader()
+        row_count = 0
+        while reader.has_next():
+            row = reader.next()
+            row_prov = row.diff(original_version, new_version)
+            if row_prov is not None:
+                rows_diff.add(row_prov)
+            row_count += 1
+        return prov
 
     def is_empty(self):
         """True if the archive does not contain any snapshots yet.

@@ -89,6 +89,10 @@ class ArchiveFileStore(ArchiveStore):
             self.schema = ArchiveSchema()
             self.snapshots = SnapshotListing()
             self.row_counter = 0
+            # Remove any previous files that may exist in the base folder.
+            for f in [self.datafile, self.metafile]:
+                if os.path.isfile(f):
+                    os.remove(f)
 
     def commit(self, schema, writer, snapshots):
         """Commit a new version of the dataset archive. The modified components

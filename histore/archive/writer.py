@@ -66,7 +66,7 @@ class ArchiveWriter(metaclass=ABCMeta):
         arch_row = ArchiveRow(
             rowid=self.row_counter,
             key=row.key if row.key is not None else self.row_counter,
-            index=SingleVersionValue(value=row.pos, timestamp=ts),
+            pos=SingleVersionValue(value=row.pos, timestamp=ts),
             cells=cells,
             timestamp=ts
         )

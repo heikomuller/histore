@@ -9,9 +9,12 @@
 timestamped names and positions.
 """
 
+from histore.archive.provenance.column import (
+    DeleteColumn, InsertColumn, UpdateColumn
+)
+from histore.archive.timestamp import Timestamp
 from histore.archive.value import SingleVersionValue
 from histore.document.schema import Column
-from histore.archive.timestamp import Timestamp
 
 
 class ArchiveColumn(object):
@@ -44,7 +47,15 @@ class ArchiveColumn(object):
         -------
         string
         """
-        return '<ArchiveColumn (\n\tname=%s\n\tpos=%s\n\tts=%s\n)>' % (
+        template = (
+            '<ArchiveColumn (\n'
+            '\tid=%d\n'
+            '\tname=%s\n'
+            '\tpos=%s\n'
+            '\tts=%s\n)>'
+        )
+        return template % (
+            self.identifier,
             str(self.name),
             str(self.pos),
             str(self.timestamp)
@@ -64,6 +75,56 @@ class ArchiveColumn(object):
         (string, int)
         """
         return self.name.at_version(version), self.pos.at_version(version)
+
+    def diff(self, original_version, new_version):
+        """Get provenance information representing the difference for this
+        column between the original version and a new version.
+
+        The three main types of changes that the column can experience are:
+
+        - InsertColumn: The column did not exists in the original version but
+          in the new version.
+        - DeleteColumn: The column did exist in the original version but not in
+          the new version.
+        - UpdateColumn: Column updates can be comprised of two types of
+          changes:
+            (i) The column position changed
+            (ii) The column name changed
+
+        If the column has no changes between both versions the result is None.
+
+        Parameters
+        ----------
+        original_version: int
+            Unique identifier for the original version.
+        new_version: int
+            Unique identifier for the version that the original version is
+            compared against.
+
+        Returns
+        -------
+        histore.archive.provenance.column.ColumnOp
+        """
+        exists_in_orig = self.timestamp.contains(original_version)
+        exists_in_new = self.timestamp.contains(new_version)
+        if exists_in_orig and not exists_in_new:
+            # Column has been deleted
+            return DeleteColumn(self.identifier)
+        elif not exists_in_orig and exists_in_new:
+            # Column has been inserted
+            return InsertColumn(self.identifier)
+        elif exists_in_orig and exists_in_new:
+            # Check if column name or position has been updated.
+            upd_name = self.name.diff(original_version, new_version)
+            upd_pos = self.pos.diff(original_version, new_version)
+            if upd_pos is not None or upd_name is not None:
+                return UpdateColumn(
+                    key=self.identifier,
+                    name=upd_name,
+                    position=upd_pos
+                )
+        # Column has not changed
+        return None
 
     def merge(self, name, pos, version):
         """Create a modified version of the column for the given version. Adds

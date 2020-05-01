@@ -24,7 +24,7 @@ class DefaultSerializer(ArchiveSerializer):
     serializer used by HISTORE.
     """
     def __init__(
-        self, timestamp='t', index='p', name='n', cells='c', value='v',
+        self, timestamp='t', pos='p', name='n', cells='c', value='v',
         key='k', rowid='r', colid='c', version='v', valid_time='vt',
         transaction_time='tt', description='d'
     ):
@@ -35,8 +35,8 @@ class DefaultSerializer(ArchiveSerializer):
         ----------
         timestamp: string, default='t'
             Element label for timestamp objects.
-        index: string, default='p'
-            Element label for object index position values.
+        pos: string, default='p'
+            Element label for objects index position values.
         name: string, default='n'
             Element label for column names.
         cells: string, default='c'
@@ -59,7 +59,7 @@ class DefaultSerializer(ArchiveSerializer):
             Element label for snapshot descriptions.
         """
         self.timestamp = timestamp
-        self.index = index
+        self.pos = pos
         self.name = name
         self.cells = cells
         self.value = value
@@ -87,7 +87,7 @@ class DefaultSerializer(ArchiveSerializer):
         return ArchiveColumn(
             identifier=obj[self.colid],
             name=self.deserialize_value(obj=obj[self.name], ts=ts),
-            pos=self.deserialize_value(obj=obj[self.index], ts=ts),
+            pos=self.deserialize_value(obj=obj[self.pos], ts=ts),
             timestamp=ts
         )
 
@@ -109,7 +109,7 @@ class DefaultSerializer(ArchiveSerializer):
         return {
             self.colid: column.identifier,
             self.name: self.serialize_value(value=column.name, ts=ts),
-            self.index: self.serialize_value(value=column.pos, ts=ts),
+            self.pos: self.serialize_value(value=column.pos, ts=ts),
             self.timestamp: self.serialize_timestamp(ts)
         }
 
@@ -128,7 +128,7 @@ class DefaultSerializer(ArchiveSerializer):
         """
         ts = self.deserialize_timestamp(obj[self.timestamp])
         rowid = obj[self.rowid]
-        index = self.deserialize_value(obj=obj[self.index], ts=ts)
+        pos = self.deserialize_value(obj=obj[self.pos], ts=ts)
         cells = dict()
         for colid, value in obj[self.cells].items():
             cells[int(colid)] = self.deserialize_value(obj=value, ts=ts)
@@ -140,7 +140,7 @@ class DefaultSerializer(ArchiveSerializer):
             key = None
         return ArchiveRow(
             rowid=rowid,
-            index=index,
+            pos=pos,
             cells=cells,
             timestamp=ts,
             key=key
@@ -165,7 +165,7 @@ class DefaultSerializer(ArchiveSerializer):
         obj = {
             self.rowid: row.rowid,
             self.timestamp: self.serialize_timestamp(ts),
-            self.index: self.serialize_value(value=row.index, ts=ts),
+            self.pos: self.serialize_value(value=row.pos, ts=ts),
             self.cells: cells
         }
         if row.key != row.rowid:
