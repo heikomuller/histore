@@ -11,6 +11,7 @@ import pandas as pd
 
 from histore.archive.provenance.archive import SnapshotDiff
 from histore.archive.reader import RowIndexReader
+from histore.archive.schema import MATCH_ID, MATCH_IDNAME
 from histore.archive.store.fs.base import ArchiveFileStore
 from histore.archive.store.mem.base import VolatileArchiveStore
 from histore.document.base import PartialDocument, PKDocument, RIDocument
@@ -86,7 +87,7 @@ class Archive(object):
         return pd.DataFrame(data=data, index=rowindex, columns=columns)
 
     def commit(
-        self, df, description=None, valid_time=None, match_by_name=True,
+        self, df, description=None, valid_time=None, matching=MATCH_IDNAME,
         renamed=None, renamed_to=True, partial=False, origin=None
     ):
         """Commit a new snapshot to the dataset archive. The given data frame
@@ -119,10 +120,19 @@ class Archive(object):
         valid_time: datetime.datetime
             Timestamp when the snapshot was first valid. A snapshot is valid
             until the valid time of the next snapshot in the archive.
-        match_by_name: bool, default=True
-            Match columns from the given snapshot to columns in the origin
-            schema by name instead of matching columns by identifier against
-            the columns in the archive schema.
+        matching: string, default='idname'
+            Match mode for columns. Excepts one of three modes:
+            - idonly: The columns in the schema of the comitted data frame are
+            matched against columns in the archive schema by their identifier.
+            Assumes that columns in the data frame schema are instances of the
+            class histore.document.schema.Column.
+            - nameonly: Columns in the commited data frame schema are matched
+            by name against the columns in the schema of the snapshot that is
+            identified by origin.
+            - idname: Match columns of type histore.document.schema.Column
+            first against the columns in the archive schema. Match remaining
+            columns by name against the schema of the snapshot that is
+            identified by origin.
         renamed: dict, default=None
             Optional mapping of columns that have been renamed. Maps the new
             column name to the original name.
@@ -153,9 +163,9 @@ class Archive(object):
         # Ensure that partial is not set for an empty archive.
         if partial and self.is_empty():
             raise ValueError('merge partial snapshot into empty archive')
-        # Use the last commited version as origin if match_by_name or partial
-        # are True and origin is None.
-        if (match_by_name or partial) and origin is None:
+        # Use the last commited version as origin if matching columns by name
+        # or if a partial data frame is commited and origin is None.
+        if (matching != MATCH_ID or partial) and origin is None:
             last_snapshot = self.snapshots().last_snapshot()
             if last_snapshot:
                 origin = last_snapshot.version
@@ -170,7 +180,7 @@ class Archive(object):
         schema, matched_columns, unchanged_columns = self.schema().merge(
             columns=list(df.columns),
             version=version,
-            match_by_name=match_by_name,
+            matching=matching,
             renamed=renamed,
             renamed_to=renamed_to,
             partial=partial,
