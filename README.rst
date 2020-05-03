@@ -5,7 +5,7 @@
    :target: https://github.com/heikomuller/histore/actions?query=workflow%3A%22build%22
 
 
-.. figure:: https://github.com/heikomuller/histore/blob/master/docs/graphics/logo.png
+.. figure:: https://github.com/heikomuller/histore/raw/pandas/docs/graphics/logo.png
    :align: center
    :alt: History Store
 
