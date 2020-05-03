@@ -1,5 +1,15 @@
-History Store
-=============
+.. image:: https://img.shields.io/badge/License-BSD-green.svg
+   :target: https://github.com/heikomuller/histore/blob/master/LICENSE
+
+.. image:: https://github.com/heikomuller/histore/workflows/build/badge.svg
+   :target: https://github.com/heikomuller/histore/actions?query=workflow%3A%22build%22
+
+
+.. figure:: https://github.com/heikomuller/histore/blob/master/docs/graphics/logo.png
+   :align: center
+   :alt: History Store
+
+
 
 **History Store** (histore) is a Pyhton library for maintaining snapshots of evolving data sets in an efficient manner. **histore** is an implementation of the core functionality that was implemented in [XArch](http://xarch.sourceforge.net/).
 
