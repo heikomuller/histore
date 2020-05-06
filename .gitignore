@@ -101,5 +101,5 @@ ENV/
 # mypy
 .mypy_cache/
 
-# Example data files
-data/
+# Example archive files
+data/nyc-open-data/y43c-5n92/archive/
