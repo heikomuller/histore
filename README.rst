@@ -1,11 +1,19 @@
-.. image:: https://img.shields.io/badge/License-BSD-green.svg
-   :target: https://github.com/heikomuller/histore/blob/master/LICENSE
+.. image:: https://img.shields.io/pypi/pyversions/histore.svg
+    :target: https://pypi.org/pypi/histore
+
+.. image:: https://badge.fury.io/py/histore.svg
+    :target: https://badge.fury.io/py/histore
 
 .. image:: https://github.com/heikomuller/histore/workflows/build/badge.svg
-   :target: https://github.com/heikomuller/histore/actions?query=workflow%3A%22build%22
+    :target: https://github.com/heikomuller/histore/actions?query=workflow%3A%22build%22
 
+.. image:: https://codecov.io/gh/heikomuller/histore/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/heikomuller/histore
 
-.. figure:: https://github.com/heikomuller/histore/raw/pandas/docs/graphics/logo.png
+.. image:: https://img.shields.io/badge/License-BSD-green.svg
+    :target: https://github.com/heikomuller/histore/blob/master/LICENSE
+
+.. figure:: https://raw.githubusercontent.com/heikomuller/histore/master/docs/graphics/logo.png
    :align: center
    :alt: History Store
 
@@ -44,8 +52,8 @@ Start by creating a new archive. At creating time, a primary key (list of column
 
    import histore as hs
    archive = hs.Archive(primary_key='Name')
-   
-   
+
+
 Add the first two data set versions to the archive:
 
 .. code-block:: python
