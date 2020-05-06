@@ -8,7 +8,9 @@
 """Helper methods for timestamp management."""
 
 from abc import ABCMeta, abstractmethod
-from datetime import datetime, timezone
+from datetime import datetime
+from dateutil.parser import isoparse
+from dateutil.tz import UTC
 
 import errno
 import gzip
@@ -16,15 +18,6 @@ import os
 
 
 # -- Datetime -----------------------------------------------------------------
-
-"""List of recognized time formats."""
-TIMEFORMAT = [
-    '%Y-%m-%d',
-    '%Y-%m-%dT%H:%M:%S.%f%z',
-    '%Y-%m-%dT%H:%M:%S.%f',
-    '%Y-%m-%dT%H:%M:%S'
-]
-
 
 def to_datetime(timestamp):
     """Converts a timestamp string in ISO format into a datatime object in
@@ -40,15 +33,13 @@ def to_datetime(timestamp):
     datetime.datetime
         Datetime object
     """
-    for format in TIMEFORMAT:
-        try:
-            dt = datetime.strptime(timestamp, format)
-            if not dt.tzinfo == timezone.utc:
-                dt = dt.astimezone(timezone.utc)
-            return dt
-        except ValueError:
-            pass
-    ValueError('unknown time format')
+    try:
+        dt = isoparse(timestamp)
+        if not dt.tzinfo == UTC:
+            dt = dt.astimezone(UTC)
+        return dt
+    except ValueError:
+        raise ValueError('unknown time format {}'.format(timestamp))
 
 
 def to_localtime(ts):
@@ -73,7 +64,7 @@ def utc_now():
     -------
     datetime.datetime
     """
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 # -- I/O ----------------------------------------------------------------------
