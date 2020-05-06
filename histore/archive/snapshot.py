@@ -82,7 +82,7 @@ class SnapshotListing(object):
                 if s.version <= prev.version:
                     msg = 'invalid version sequence{} ->{}'
                     raise ValueError(msg.format(prev.version, s.version))
-                if s.valid_time <= prev.valid_time:
+                if s.valid_time < prev.valid_time:
                     msg = 'invalid time sequence {} -> {}'
                     raise ValueError(msg.format(prev.valid_time, s.valid_time))
                 prev = s
