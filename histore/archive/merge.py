@@ -1,186 +1,94 @@
-# Copyright (C) 2018 New York University
-# This file is part of OpenClean which is released under the Revised BSD License
-# See file LICENSE for full license details.
+# This file is part of the History Store (histore).
+#
+# Copyright (C) 2018-2020 New York University.
+#
+# The History Store (histore) is released under the Revised BSD License. See
+# file LICENSE for full license details.
 
-"""Contains the nested-merge logic for merging archives and input documents
-(i.e., dataset snapshots). Assumes that archive and document  follow the same
-dataset schema.
+"""Nested-merge logic that merges rows in a snapshot document into an existing
+dataset archive.
 """
 
-from histore.archive.node import ArchiveElement, ArchiveNode, ArchiveValue
 
-
-class NestedMerger(object):
-    """The nested merger contains the logic to merge an archive tree and a new
-    dataset snapshot.
-    """
-    def merge(self, archive_node, doc_node, version, timestamp, list_index=None):
-        """Recirsively merges the children of a node in an archive and a node
-        from a document snapshot. Both nodes are expected to be archive
-        elements. Returns a modified copy of the archive node.
-
-        Parameters
-        ----------
-        archive_node: histore.archive.node.ArchiveElement
-            Archive element that mathces the parent of the given document nodes
-        doc_node: histore.archive.node.ArchiveElement
-            Archive element generated from a document snapshot
-        version: int
-            Version of the document snapshot
-        timestamp: histore.timestamp.Timestamp
-            Timestamp of the parent node in the new archive
-        list_index: list(histore.archive.node.ValueNode)
-            History of list index positions for this node among its siblings
-            with the same label (for keyed nodes only)
-
-        Returns
-        -------
-        histore.archive.node.ArchiveElement
-        """
-        # Create modified copy of the archive node
-        result_node = ArchiveElement(
-            label=archive_node.label,
-            key=archive_node.key,
-            list_index=list_index,
-            timestamp=timestamp
-        )
-        # Populate list of children in modified copy of the archive node by
-        # recursively merging matching nodes from the archive and the document.
-        arch_idx = 0
-        doc_idx = 0
-        arch_children = archive_node.children
-        doc_children = doc_node.children
-        while arch_idx < len(arch_children) and doc_idx < len(doc_children):
-            arch_child = arch_children[arch_idx]
-            doc_child = doc_children[doc_idx]
-            comp = ArchiveNode.compare(doc_child, arch_child)
-            if comp < 0:
-                # The node has never been in any previous snapshot.
-                result_node.add(doc_child)
-                doc_idx += 1
-            elif comp > 0:
-                # The archive node is not present in this merged snapshot.
-                # Add it to the children of the new node. The timestamp should
-                # not change.
-                result_node.add(arch_child)
-                arch_idx += 1
-            else:
-                # Merge the two nodes recursively if they are element nodes. For
-                # value nodes we add the merged node directly to the result
-                # node's children.
-                if arch_child.is_value() and doc_child.is_value():
-                    # Create a new value node with the modified timestamp
-                    value_node = ArchiveValue(
-                        timestamp=pick_node_timestamp(
-                            arch_child.timestamp.append(version),
-                            timestamp
-                        ),
-                        value=arch_child.value
-                    )
-                    result_node.add(value_node)
-                elif arch_child.is_element() and doc_child.is_element():
-                    # If the nodes have a key value add the position of the
-                    # document node to the list of list_index for the archive
-                    # element.
-                    merged_index = None
-                    if not arch_child.key is None:
-                        merged_index = merge_positions(
-                            list_index=arch_child.list_index,
-                            pos=doc_child.list_index[0],
-                            version=version,
-                            timestamp=timestamp
-                        )
-                    # Merge element nodes recursively.
-                    merged_node = self.merge(
-                        archive_node=arch_child,
-                        doc_node=doc_child,
-                        version=version,
-                        timestamp=pick_node_timestamp(
-                            arch_child.timestamp.append(version),
-                            timestamp
-                        ),
-                        list_index=merged_index
-                    )
-                    result_node.add(merged_node)
-                else:
-                    # This should never happen if the compare method is
-                    # implemented correctly.
-                    raise RuntimeError('nodes of different type have been matched')
-                arch_idx += 1
-                doc_idx += 1
-        # Add remaining nodes
-        while arch_idx < len(arch_children):
-            result_node.add(arch_children[arch_idx])
-            arch_idx += 1
-        while doc_idx < len(doc_children):
-            result_node.add(doc_children[doc_idx])
-            doc_idx += 1
-        # Return new archive node
-        return result_node
-
-
-# ------------------------------------------------------------------------------
-# Helper Methods
-# ------------------------------------------------------------------------------
-
-def merge_positions(list_index, pos, version, timestamp):
-    """Insert a given node list index into a list of node index positions. Node
-    list indexes are represented as archive values. Return a new list of node
-    index positions. It is expected that the given list of list index positions
-    and the result are sorted by the list indexes in ascending order.
+def merge_rows(
+    archive, document, version, writer, partial=False, unchanged_cells=None,
+    origin=None
+):
+    """Merge rows in the given archive and database snapshot. Outputs the
+    merged rows in the resulting archive to the given archive writer.
 
     Parameters
     ----------
-    list_index: list(histore.archive.node.ArchiveValue)
-    pos: histore.archive.node.ArchiveValue
+    archive: histore.archive.base.Archive
+        Archive containing previous snapshots of the dataset.
+    document: histore.document.base.Document
+        Dataset snapshot that is being merged into the archive.
     version: int
-    timestamp: histore.timestamp.Timestamp
-
-    Returns
-    -------
-    list(histore.archive.node.ArchiveValue)
+        Identifier of the new archive version.
+    writer: histore.archive.writer.ArchiveWriter
+        Consumer for rows in the new archive version.
+    partial: bool, default=False
+        Flag indicating whether the given document is a partial document. For
+        partial documents missing rows in the archive are considered unchanged
+        with respect to the given origin.
+    unchanged_cells: set, default=None
+        Set of identifier for columns whose cell values are not included in
+        the values dictionary for document rows but that remain unchanged with
+        respect to the specified source version (origin).
+    origin: int, default=None
+        Version that the row values originate from. Rows that remain unchanged
+        have the timestamp extended for the version of origin.
     """
-    result = list()
-    was_added = False
-    for node in list_index:
-        if node.value < pos.value:
-            result.append(node)
-        elif node.value > pos.value:
-            if not was_added:
-                result.append(pos)
-                was_added = True
-            result.append(node)
+    # Get reader for the given archive and document.
+    arch_reader = archive.reader()
+    doc_reader = document.reader()
+    # Get the first row for each reader.
+    arch_row = arch_reader.next()
+    doc_row = doc_reader.next()
+    while arch_row is not None and doc_row is not None:
+        comp = arch_row.comp(doc_row.key)
+        if comp < 0:
+            # The row is not present in the document. If the document is
+            # a partial document we need to extend the row for the given
+            # origin.
+            if partial:
+                arch_row = arch_row.extend(version=version, origin=origin)
+            # Add the row to the new archive version and progress the
+            # archive reader.
+            writer.write_archive_row(arch_row)
+            arch_row = arch_reader.next()
+        elif comp > 0:
+            # The document row is a new row. Create an archive row from the
+            # document row and pass it to the writer. Progress the document
+            # reader.
+            writer.write_document_row(row=doc_row, version=version)
+            doc_row = doc_reader.next()
         else:
-            result.append(
-                ArchiveValue(
-                    timestamp=pick_node_timestamp(
-                        node.timestamp.append(version),
-                        timestamp
-                    ),
-                    value=node.value
-                )
+            # Merge the archive row and the document row.
+            arch_row = arch_row.merge(
+                values=doc_row.values,
+                pos=doc_row.pos,
+                version=version,
+                unchanged_cells=unchanged_cells,
+                origin=origin
             )
-            was_added = True
-    # If the new position wasn't added yet append it to the result
-    if not was_added:
-        result.append(pos)
-    return result
-
-
-def pick_node_timestamp(node_timestamp, parent_timestamp):
-    """Avoid replication of identical timestamps for parent and child. Assign
-    a node the parent timestamp if it is equals to the node timestamp.
-
-    Parameters
-    ----------
-    node_timestamp: histore.timestamp.Timestamp
-    parent_timestamp: histore.timestamp.Timestamp
-
-    Returns
-    -------
-    histore.timestamp.Timestamp
-    """
-    if node_timestamp.is_equal(parent_timestamp):
-        return parent_timestamp
-    else:
-        return node_timestamp
+            # Add the merged row to the new archive version and progress
+            # both readers.
+            writer.write_archive_row(arch_row)
+            arch_row = arch_reader.next()
+            doc_row = doc_reader.next()
+    # Add remaining rows to the archive. Only one of the two conditions can
+    # be true; either there are additional archive rows or there are additional
+    # document rows.
+    # Add remaining archive rows to the new archive version.
+    while arch_row is not None:
+        # Extend the row for the given origin if the document is partial.
+        if partial:
+            arch_row = arch_row.extend(version=version, origin=origin)
+        writer.write_archive_row(arch_row)
+        arch_row = arch_reader.next()
+    # Add remaining document rows to the new archive version.
+    while doc_row is not None:
+        # Outout an archive row created from the document row.
+        writer.write_document_row(row=doc_row, version=version)
+        doc_row = doc_reader.next()

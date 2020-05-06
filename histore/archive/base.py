@@ -1,18 +1,22 @@
-# Copyright (C) 2018 New York University
-# This file is part of OpenClean which is released under the Revised BSD License
-# See file LICENSE for full license details.
-
-from histore.archive.node import ArchiveElement
-from histore.archive.merge import NestedMerger
-from histore.archive.query.engine import SnapshotQueryEngine
-from histore.archive.snapshot import Snapshot
-from histore.archive.store.mem import InMemoryArchiveStore
-from histore.document.base import Document
-from histore.document.serialize import DefaultDocumentSerializer
-from histore.path import Path
-
+# This file is part of the History Store (histore).
+#
+# Copyright (C) 2018-2020 New York University.
+#
+# The History Store (histore) is released under the Revised BSD License. See
+# file LICENSE for full license details.
 
 """Archives are collections of snapshots of an evolving dataset."""
+
+import pandas as pd
+
+from histore.archive.provenance.archive import SnapshotDiff
+from histore.archive.reader import RowIndexReader
+from histore.archive.schema import MATCH_ID, MATCH_IDNAME
+from histore.archive.store.fs.base import ArchiveFileStore
+from histore.archive.store.mem.base import VolatileArchiveStore
+from histore.document.base import PartialDocument, PKDocument, RIDocument
+
+import histore.archive.merge as nested_merge
 
 
 class Archive(object):
@@ -24,190 +28,308 @@ class Archive(object):
     archive object does not have to deal with the different ways in which
     archives are managed by different systems.
     """
-    def __init__(self, schema=None, store=None):
-        """Initialize the archive. Every archive has to have an associated
-        archive store. If the archive store paratemter is given the schema
-        has to be None. Providing only a schema (or none of the two arguments)
-        will create an archive with a in-memory store. If no schema is provided
-        an empty document schema is used.
-
-        Raises ValueError if both arguments (schema and store) are not None.
+    def __init__(self, store=None, primary_key=None):
+        """Initialize the associated archive store and the optional primary
+        key columns that are used to generate row identifier. If no primary
+        key is specified the row index for committed data frame is used to
+        generate identifier for archive rows.
 
         Parameters
         ----------
-        schema: histore.schema.DocumentSchema, optional
-        store: histore.archive.store.base.ArchiveStore
+        store: histore.archive.store.base.ArchiveStore, default=None
+            Associated archive store that is used to maintain all archive
+            information. Uses the volatile in-memory store by default.
+        primary_key: string or list
+            Column(s) that are used to generate identifier for snapshot rows.
         """
-        if not schema is None and not store is None:
-            raise ValueError('invalid combination of arguments')
-        # If the store is not given create an archive with an in-memory store
-        if store is None:
-            self.store = InMemoryArchiveStore(schema=schema)
-        else:
-            self.store = store
+        self.primary_key = primary_key
+        self.store = store if store is not None else VolatileArchiveStore()
 
-    def find_all(self, query):
-        """Find all nodes in the archive that match the given path query.
-        Returns an empty list if no matching node is found.
-
-        Parameters
-        ----------
-        query: histore.archive.query.path.PathQuery
-
-        Returns
-        -------
-        node: list(histore.archive.node.ArchiveElement)
-        """
-        return self.root().find_all(query)
-
-    def find_one(self, query, strict=False):
-        """Evaluate a given path query on this archive. Return one matching node
-        or None if no node matches the path query.
-
-        In strict mode, a ValueError() is raised if more that one node matches
-        the query.
-
-        Parameters
-        ----------
-        query: histore.archive.query.path.PathQuery
-
-        Returns
-        -------
-        node: histore.archive.node.ArchiveElement
-        """
-        return self.root().find_one(query, strict=strict)
-
-    def get(self, version, serializer=None):
-        """Retrieve a document snapshot from the archive. The version identifies
-        the snapshot that is being retireved. Use the provided document
-        serializer to convert the internal document representation into the
-        format that is used by the application/user.
-
-        Raises ValueError if the provided version number does not identify a
-        valid snapshot.
+    def checkout(self, version):
+        """Access a dataset snapshot in the archive. Retrieves the datset that
+        was commited with the given version identifier. Raises an error if the
+        version identifier is unknown.
 
         Parameters
         ----------
         version: int
-        serializer: histore.document.serializer.DocumentSerializer
+            Unique version identifier.
 
         Returns
         -------
-        any
+        pandas.DataFrame
+
+        Raises
+        ------
+        ValueError
         """
-        # Raise exception if version number is unknown
-        if version < 0 or version >= len(self.snapshots()):
-            raise ValueError('unknown version number \'' + str(version) + '\'')
-        # Evaluate snapshot query for requested document snapshot
-        doc_root = SnapshotQueryEngine(self.snapshot(version)).get(self)
-        doc = Document(nodes=doc_root.children)
-        # Use the default serializer if the application did not provide a
-        # serializer
-        if serializer is None:
-            return DefaultDocumentSerializer().serialize(doc)
-        else:
-            return serializer.serialize(doc)
+        # Ensure that the version exists in the snapshot index.
+        if not self.snapshots().has_version(version):
+            raise ValueError('unknown version {}'.format(version))
+        # Get dataset schema at the given version.
+        columns = self.schema().at_version(version)
+        colids = [c.colid for c in columns]
+        # Get the row values and their position.
+        rows = list()
+        reader = self.reader()
+        while reader.has_next():
+            row = reader.next()
+            if row.timestamp.contains(version):
+                pos, vals = row.at_version(version, colids, raise_error=False)
+                rows.append((row.rowid, pos, vals))
+        # Sort rows in ascending order.
+        rows.sort(key=lambda r: r[1])
+        # Create data frame for the retrieved snapshot.
+        data, rowindex = list(), list()
+        for rowid, _, vals in rows:
+            data.append(vals)
+            rowindex.append(rowid)
+        return pd.DataFrame(data=data, index=rowindex, columns=columns)
 
-    def insert(self, doc, name=None, strict=False):
-        """Insert a new document version as snapshot into this archive.
+    def commit(
+        self, df, description=None, valid_time=None, matching=MATCH_IDNAME,
+        renamed=None, renamed_to=True, partial=False, origin=None
+    ):
+        """Commit a new snapshot to the dataset archive. The given data frame
+        represents the dataset snapshot that is being merged into the archive.
+        The data frame may represent a complete snapshot of the data or only
+        a partial snapshot. In the latter case, all columns and rows from the
+        snapshot that the data frame originated from (origin) are considered
+        unchanged.
 
-        Strict mode ensures that all nodes in the given document have a unique
-        key.
+        Matching of snapshot schema columns to archive columns can either be
+        done by name or by their unique identifier (if present). When matching
+        by name a snapshot version of origin is used to match against. Data
+        frames or snapshot versions with duplicate column names cannot be used
+        for matching columns by name.
+
+        If no origin is specified, the last commited snapshot is assumed as the
+        default snapshot of origin. If this is the first snapshot in the
+        archive the partial flag cannot be True (will raise a ValueError).
+
+        Returns the descriptor of the merged snapshot in the new version of
+        the archive.
 
         Parameters
         ----------
-        doc: dict
-        name: string, optional
-        strict: bool, optional
+        df: pandas.DataFrame
+            Data frame representing the dataset snapshot that is being merged
+            into the archive.
+        description: string, default=None
+            Optional user-provided description for the snapshot.
+        valid_time: datetime.datetime
+            Timestamp when the snapshot was first valid. A snapshot is valid
+            until the valid time of the next snapshot in the archive.
+        matching: string, default='idname'
+            Match mode for columns. Excepts one of three modes:
+            - idonly: The columns in the schema of the comitted data frame are
+            matched against columns in the archive schema by their identifier.
+            Assumes that columns in the data frame schema are instances of the
+            class histore.document.schema.Column.
+            - nameonly: Columns in the commited data frame schema are matched
+            by name against the columns in the schema of the snapshot that is
+            identified by origin.
+            - idname: Match columns of type histore.document.schema.Column
+            first against the columns in the archive schema. Match remaining
+            columns by name against the schema of the snapshot that is
+            identified by origin.
+        renamed: dict, default=None
+            Optional mapping of columns that have been renamed. Maps the new
+            column name to the original name.
+        renamed_to: bool, default=True
+            Flag that determines the semantics of the mapping in the renamed
+            dictionary. By default a mapping from the original column name
+            (i.e., the dictionary key) to the new column name (the dictionary
+            value) is assumed. If the flag is False a mapping from the new
+            column name to the original column name is assumed.
+        partial: bool, default=False
+            If True the given snapshot is assumed to be partial. All columns
+            from the snapshot schema that is specified by origin that are not
+            matched by any column in the snapshot schema are assumed to be
+            unchanged. All rows from the orignal snapshot that are not in the
+            given snapshot are also assumed to be unchnged.
+        origin: int, default=None
+            Version identifier of the original column against which the given
+            column list is matched.
 
         Returns
         -------
         histore.archive.snapshot.Snapshot
+
+        Raises
+        ------
+        ValueError
         """
-        # Get the document schema
-        schema = self.schema()
-        # Create a handle for the new snapshot
-        snapshots = self.snapshots()
-        snapshot = Snapshot(len(snapshots), name=name)
-        # Create an archive from the given document with a single root node
-        doc_root = ArchiveElement.from_document(
-            doc=Document(doc=doc),
-            schema=schema,
-            version=snapshot.version,
-            strict=strict
+        # Ensure that partial is not set for an empty archive.
+        if partial and self.is_empty():
+            raise ValueError('merge partial snapshot into empty archive')
+        # Use the last commited version as origin if matching columns by name
+        # or if a partial data frame is commited and origin is None.
+        if (matching != MATCH_ID or partial) and origin is None:
+            last_snapshot = self.snapshots().last_snapshot()
+            if last_snapshot:
+                origin = last_snapshot.version
+        # Get a modified snapshot list where the last entry represents the
+        # new snapshot.
+        snapshots = self.snapshots().append(
+            valid_time=valid_time,
+            description=description
         )
-        # Get the current root node
-        root = self.store.get_root()
-        if root is None:
-            # This is the first snapshot in the archive. We do not need to
-            # merge anything.
-            self.store.write(
-                root=doc_root,
-                snapshots=snapshots + [snapshot],
-                schema=schema
+        version = snapshots.last_snapshot().version
+        # Merge the new snapshot schema with the current archive schema.
+        schema, matched_columns, unchanged_columns = self.schema().merge(
+            columns=list(df.columns),
+            version=version,
+            matching=matching,
+            renamed=renamed,
+            renamed_to=renamed_to,
+            partial=partial,
+            origin=origin
+        )
+        # Create snapshot document for the given data frame. The document type
+        # depends on how row identifier are generated.
+        if self.primary_key is not None:
+            doc = PKDocument(
+                df=df,
+                schema=matched_columns,
+                primary_key=self.primary_key
             )
         else:
-            root = NestedMerger().merge(
-                archive_node=root,
-                doc_node=doc_root,
-                version=snapshot.version,
-                timestamp=root.timestamp.append(snapshot.version)
+            doc = RIDocument(df=df, schema=matched_columns)
+        # If the data frame is partial we need to adjust the positions of the
+        # rows in the document.
+        if partial:
+            doc = PartialDocument(
+                doc=doc,
+                row_index=RowIndexReader(reader=self.reader(), version=origin)
             )
-            self.store.write(
-                root=root,
-                snapshots=snapshots + [snapshot],
-                schema=schema
-            )
-        return snapshot
+        # Merge document rows into the archive.
+        writer = self.store.get_writer()
+        nested_merge.merge_rows(
+            archive=self,
+            document=doc,
+            version=version,
+            writer=writer,
+            partial=partial,
+            unchanged_cells=[c.colid for c in unchanged_columns],
+            origin=origin
+        )
+        # Commit all changes to the associated archive store.
+        self.store.commit(schema=schema, writer=writer, snapshots=snapshots)
+        # Return descriptor for the created snapshot.
+        return snapshots.last_snapshot()
 
-    def length(self):
-        """Number of snapshots in the archive.
+    def diff(self, original_version, new_version):
+        """Get provenance information representing the difference between two
+        dataset snapshots.
+
+        Parameters
+        ----------
+        original_version: int
+            Unique identifier for the original version.
+        new_version: int
+            Unique identifier for the version that the original version is
+            compared against.
 
         Returns
         -------
-        int
+        histore.archive.provenance.archive.SnapshotDiff
         """
-        return len(self.snapshots())
+        prov = SnapshotDiff()
+        # Get changes in the dataset schema.
+        schema_diff = prov.schema()
+        for colid, column in self.schema().columns.items():
+            col_prov = column.diff(original_version, new_version)
+            if col_prov is not None:
+                schema_diff.add(col_prov)
+        # Get changes in dataset rows.
+        rows_diff = prov.rows()
+        reader = self.reader()
+        row_count = 0
+        while reader.has_next():
+            row = reader.next()
+            row_prov = row.diff(original_version, new_version)
+            if row_prov is not None:
+                rows_diff.add(row_prov)
+            row_count += 1
+        return prov
 
-    def root(self):
-        """Get the root of the archive from the associated store.
+    def is_empty(self):
+        """True if the archive does not contain any snapshots yet.
 
         Returns
         -------
-        histore.archive.node.ArchiveElement
+        bool
         """
-        return self.store.get_root()
+        return self.store.is_empty()
+
+    def reader(self):
+        """Get the row reader for this archive.
+
+        Returns
+        -------
+        histore.archive.reader.ArchiveReader
+        """
+        return self.store.get_reader()
 
     def schema(self):
-        """Shortcut to access the archive schema maintained by the archive
-        store.
+        """Get the schema history for the archived dataset.
 
         Returns
         -------
-        histore.schema.document.DocumentSchema
+        histore.archive.schema.ArchiveSchema
         """
         return self.store.get_schema()
 
-    def snapshot(self, version):
-        """Get handle for snapshot with given version number.
+    def snapshots(self):
+        """Get listing of all snapshots in the archive.
+
+        Returns
+        -------
+        histore.archive.snapshot.SnapshotListing
+        """
+        return self.store.get_snapshots()
+
+
+class PersistentArchive(Archive):
+    """Archive that persists all dataset snapshots in files on the file system.
+    All the data is maintained within a given directory on the file system.
+
+    This class is a wrapper for an archive with a persistent archive store. It
+    uses the default file system store.
+    """
+    def __init__(
+        self, basedir, replace=False, serializer=None, compression=None,
+        primary_key=None
+    ):
+        """Initialize the associated archive store and the optional primary
+        key columns that are used to generate row identifier. If no primary
+        key is specified the row index for committed data frame is used to
+        generate identifier for archive rows.
 
         Parameters
         ----------
-        version: int
-            Unique snapshot version identifier
-
-        Returns
-        -------
-        histore.archive.snapshot.Snapshot
+        basedir: string
+            Path to the base directory for archive files. If the directory does
+            not exist it will be created.
+        replace: boolean, default=False
+            Do not read existing files in the base directory to initialize the
+            archive. Treat the archive as being empty instead if True.
+        serializer: histore.archive.serialize.ArchiveSerializer, default=None
+            Implementation of the archive serializer interface that is used to
+            serialize rows that are written to file.
+        compression: string, default=None
+            String representing the compression mode. Only te data file will be
+            compressed. the metadata file is always storesd as plain text.
+        primary_key: string or list
+            Column(s) that are used to generate identifier for snapshot rows.
         """
-        return self.store.get_snapshots()[version]
-
-    def snapshots(self):
-        """Shortcut to access the list of document snapshot handles maintained
-        by the archive store.
-
-        Returns
-        -------
-        list(histore.archive.snapshot.Snapshot)
-        """
-        return self.store.get_snapshots()
+        super(PersistentArchive, self).__init__(
+            store=ArchiveFileStore(
+                basedir=basedir,
+                replace=replace,
+                serializer=serializer,
+                compression=compression
+            ),
+            primary_key=primary_key
+        )
