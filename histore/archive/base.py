@@ -10,11 +10,11 @@
 import pandas as pd
 
 from histore.archive.provenance.archive import SnapshotDiff
-from histore.archive.reader import RowIndexReader
+from histore.archive.reader import RowPositionReader
 from histore.archive.schema import MATCH_ID, MATCH_IDNAME
 from histore.archive.store.fs.base import ArchiveFileStore
 from histore.archive.store.mem.base import VolatileArchiveStore
-from histore.document.base import PartialDocument, PKDocument, RIDocument
+#from histore.document.base import PartialDocument, PKDocument, RIDocument
 
 import histore.archive.merge as nested_merge
 
@@ -201,7 +201,7 @@ class Archive(object):
         if partial:
             doc = PartialDocument(
                 doc=doc,
-                row_index=RowIndexReader(reader=self.reader(), version=origin)
+                row_index=RowPositionReader(reader=self.reader(), version=origin)
             )
         # Merge document rows into the archive.
         writer = self.store.get_writer()

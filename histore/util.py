@@ -87,7 +87,7 @@ def createdir(directory, abs=False):
     if not os.path.exists(directory):
         try:
             os.makedirs(directory)
-        except OSError as e:
+        except OSError as e:  # pragma: no cover
             if e.errno != errno.EEXIST:
                 raise
     if abs:
@@ -204,7 +204,7 @@ class GZipFile(IOStream):
         line: string
             Output line that is bein written.
         """
-        self.f.write(str.encode(line))
+        self.f.write(str.encode(line, 'utf8'))
         self.f.write(b'\n')
 
 

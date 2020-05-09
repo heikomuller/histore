@@ -36,7 +36,7 @@ class ArchiveReader(metaclass=ABCMeta):
         raise NotImplementedError()
 
 
-class RowIndexReader(object):
+class RowPositionReader(object):
     """Reader for row index information for a given snapshot version in a
     dataset archive. The row information is read in ascending order of the
     row identifier in the archive.

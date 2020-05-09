@@ -9,7 +9,7 @@
 
 import pandas as pd
 
-from histore.archive.reader import RowIndexReader
+from histore.archive.reader import RowPositionReader
 from histore.archive.row import ArchiveRow
 from histore.archive.store.mem.reader import BufferedReader
 from histore.archive.timestamp import Timestamp
@@ -34,6 +34,6 @@ def test_align_partial_document():
     doc = RIDocument(df=df, schema=schema)
     assert doc.rows == [(2, 2), (3, 1), (10, 0)]
     # Adjust the row positions based on the original row order.
-    row_index = RowIndexReader(reader=BufferedReader(rows), version=1)
+    row_index = RowPositionReader(reader=BufferedReader(rows), version=1)
     doc = PartialDocument(doc=doc, row_index=row_index)
     assert doc.rows == [(2, 2), (3, 3), (10, 5)]
