@@ -14,7 +14,7 @@ from histore.archive.reader import RowPositionReader
 from histore.archive.schema import MATCH_ID, MATCH_IDNAME
 from histore.archive.store.fs.base import ArchiveFileStore
 from histore.archive.store.mem.base import VolatileArchiveStore
-#from histore.document.base import PartialDocument, PKDocument, RIDocument
+#from histore.document.base import PKDocument, RIDocument
 
 import histore.archive.merge as nested_merge
 
@@ -31,7 +31,7 @@ class Archive(object):
     def __init__(self, store=None, primary_key=None):
         """Initialize the associated archive store and the optional primary
         key columns that are used to generate row identifier. If no primary
-        key is specified the row index for committed data frame is used to
+        key is specified the row index for committed document is used to
         generate identifier for archive rows.
 
         Parameters
@@ -79,7 +79,7 @@ class Archive(object):
                 rows.append((row.rowid, pos, vals))
         # Sort rows in ascending order.
         rows.sort(key=lambda r: r[1])
-        # Create data frame for the retrieved snapshot.
+        # Create document for the retrieved snapshot.
         data, rowindex = list(), list()
         for rowid, _, vals in rows:
             data.append(vals)
@@ -87,14 +87,14 @@ class Archive(object):
         return pd.DataFrame(data=data, index=rowindex, columns=columns)
 
     def commit(
-        self, df, description=None, valid_time=None, matching=MATCH_IDNAME,
+        self, doc, description=None, valid_time=None, matching=MATCH_IDNAME,
         renamed=None, renamed_to=True, partial=False, origin=None
     ):
-        """Commit a new snapshot to the dataset archive. The given data frame
+        """Commit a new snapshot to the dataset archive. The given document
         represents the dataset snapshot that is being merged into the archive.
-        The data frame may represent a complete snapshot of the data or only
+        The document may represent a complete snapshot of the data or only
         a partial snapshot. In the latter case, all columns and rows from the
-        snapshot that the data frame originated from (origin) are considered
+        snapshot that the document originated from (origin) are considered
         unchanged.
 
         Matching of snapshot schema columns to archive columns can either be
@@ -112,7 +112,7 @@ class Archive(object):
 
         Parameters
         ----------
-        df: pandas.DataFrame
+        doc: histore.document.base.Document
             Data frame representing the dataset snapshot that is being merged
             into the archive.
         description: string, default=None
@@ -122,11 +122,11 @@ class Archive(object):
             until the valid time of the next snapshot in the archive.
         matching: string, default='idname'
             Match mode for columns. Excepts one of three modes:
-            - idonly: The columns in the schema of the comitted data frame are
+            - idonly: The columns in the schema of the comitted document are
             matched against columns in the archive schema by their identifier.
-            Assumes that columns in the data frame schema are instances of the
+            Assumes that columns in the document schema are instances of the
             class histore.document.schema.Column.
-            - nameonly: Columns in the commited data frame schema are matched
+            - nameonly: Columns in the commited document schema are matched
             by name against the columns in the schema of the snapshot that is
             identified by origin.
             - idname: Match columns of type histore.document.schema.Column
@@ -163,8 +163,20 @@ class Archive(object):
         # Ensure that partial is not set for an empty archive.
         if partial and self.is_empty():
             raise ValueError('merge partial snapshot into empty archive')
+        # If the given document is a pandas DataFrame we need to wrap it in
+        # the appropriate document class. The document type depends on how row
+        # keys are generated.
+        if isinstance(doc, pd.DataFrame):
+            if self.primary_key is not None:
+                doc = PKDocument(
+                    df=df,
+                    schema=matched_columns,
+                    primary_key=self.primary_key
+                )
+            else:
+                doc = RIDocument(df=df, schema=matched_columns)
         # Use the last commited version as origin if matching columns by name
-        # or if a partial data frame is commited and origin is None.
+        # or if a partial document is commited and origin is None.
         if (matching != MATCH_ID or partial) and origin is None:
             last_snapshot = self.snapshots().last_snapshot()
             if last_snapshot:
@@ -178,7 +190,7 @@ class Archive(object):
         version = snapshots.last_snapshot().version
         # Merge the new snapshot schema with the current archive schema.
         schema, matched_columns, unchanged_columns = self.schema().merge(
-            columns=list(df.columns),
+            columns=doc.columns,
             version=version,
             matching=matching,
             renamed=renamed,
@@ -186,23 +198,11 @@ class Archive(object):
             partial=partial,
             origin=origin
         )
-        # Create snapshot document for the given data frame. The document type
-        # depends on how row identifier are generated.
-        if self.primary_key is not None:
-            doc = PKDocument(
-                df=df,
-                schema=matched_columns,
-                primary_key=self.primary_key
-            )
-        else:
-            doc = RIDocument(df=df, schema=matched_columns)
-        # If the data frame is partial we need to adjust the positions of the
+        # If the document is partial we need to adjust the positions of the
         # rows in the document.
         if partial:
-            doc = PartialDocument(
-                doc=doc,
-                row_index=RowPositionReader(reader=self.reader(), version=origin)
-            )
+            posreader = RowPositionReader(reader=self.reader(), version=origin)
+            doc = doc.partial(reader=posreader)
         # Merge document rows into the archive.
         writer = self.store.get_writer()
         nested_merge.merge_rows(
@@ -304,7 +304,7 @@ class PersistentArchive(Archive):
     ):
         """Initialize the associated archive store and the optional primary
         key columns that are used to generate row identifier. If no primary
-        key is specified the row index for committed data frame is used to
+        key is specified the row index for committed document is used to
         generate identifier for archive rows.
 
         Parameters

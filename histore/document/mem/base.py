@@ -37,10 +37,10 @@ class InMemoryDocument(Document):
             List of document rows. Each row in the list is an array of the same
             length as the number of columns in the document.
         readorder: list
-            The read order of a document is a sorted list of 2-tuples with
+            The read order of a document is a sorted list of 3-tuples with
             (list index, key, position). The list is sorted by the row key.
         """
-        self.columns = columns
+        super(InMemoryDocument, self).__init__(columns=columns)
         self.rows = rows
         self.readorder = readorder
 

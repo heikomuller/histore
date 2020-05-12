@@ -17,6 +17,21 @@ class Document(metaclass=ABCMeta):
     is expected to give access to a document that is sorted in ascending order
     of the row key that is used by an archive during merge.
     """
+    def __init__(self, columns):
+        """Initialize the object properties. The abstract document class
+        maintains a list of column names in the document schema. Columns may
+        either be represented by strings or by instances of the Column class.
+
+        Parameters
+        ----------
+        columns: list
+            List of column names. The number of values in each document row is
+            expected to be the same as the number of columns and the order of
+            values in each row is expected to correspond to their respective
+            column in this list.
+        """
+        self.columns = columns
+
     @abstractmethod
     def partial(self, reader):
         """Return a copy of the document that provides access to the set of

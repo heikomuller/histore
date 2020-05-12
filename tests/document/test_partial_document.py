@@ -14,7 +14,7 @@ from histore.archive.row import ArchiveRow
 from histore.archive.store.mem.reader import BufferedReader
 from histore.archive.timestamp import Timestamp
 from histore.archive.value import SingleVersionValue
-from histore.document.base import PartialDocument, RIDocument
+from histore.document.base import RIDocument
 from histore.document.schema import Column
 
 
@@ -34,6 +34,6 @@ def test_align_partial_document():
     doc = RIDocument(df=df, schema=schema)
     assert doc.rows == [(2, 2), (3, 1), (10, 0)]
     # Adjust the row positions based on the original row order.
-    row_index = RowPositionReader(reader=BufferedReader(rows), version=1)
-    doc = PartialDocument(doc=doc, row_index=row_index)
+    posreader = RowPositionReader(reader=BufferedReader(rows), version=1)
+    doc = doc.partial(reader=posreader)
     assert doc.rows == [(2, 2), (3, 3), (10, 5)]
