@@ -97,7 +97,7 @@ def createdir(directory, abs=False):
 
 
 def inputstream(filename, compression=None):
-    """Open the given file for input. The compression mide string determines
+    """Open the given file for input. The compression mode string determines
     which compression algorithm is being used (or no compression if None).
 
     Parameters
@@ -117,7 +117,7 @@ def inputstream(filename, compression=None):
 
 
 def outputstream(filename, compression=None):
-    """Open the given file for output. The compression mide string determines
+    """Open the given file for output. The compression mode string determines
     which compression algorithm is being used (or no compression if None).
 
     Parameters
@@ -152,7 +152,7 @@ class IOStream(metaclass=ABCMeta):
         self.f.close()
 
     @abstractmethod
-    def readline(self):
+    def readline(self):  # pragma: no cover
         """Read sting line from input file. The returned line is stripped of
         any leading or trailing whitespace characters.
 
@@ -163,7 +163,7 @@ class IOStream(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def writeline(self, line):
+    def writeline(self, line):  # pragma: no cover
         """Write sting line to output file.
 
         Parameters

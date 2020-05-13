@@ -58,7 +58,7 @@ def test_persistent_archive(tmpdir):
     assert len(rows) == 5
     keys = ['Alice', 'Bob', 'Claire', 'Dave', 'Eve']
     for rowid in range(5):
-        assert rows[rowid].key == keys[rowid]
+        assert rows[rowid].key.value == keys[rowid]
     ts = Timestamp(intervals=TimeInterval(0, 3))
     for i in range(3):
         assert rows[i].timestamp.is_equal(ts)

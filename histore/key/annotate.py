@@ -11,12 +11,15 @@ keyed by a primary key or by list of row index values.
 
 import numpy as np
 
-from histore.annotate.key import NewRow, NumberKey, to_key
+from histore.key.base import NewRow, NumberKey, to_key
 
 
 def pk_readorder(columns, rows, primary_key):
     """Create a read order list for a document that derives row identifier from
     cell values using a list of primary key colums.
+
+    Returns a list of 3-tuples with (row position, key, row position). The
+    returned list is sorted by the key values.
 
     Parameters
     ----------
@@ -84,7 +87,7 @@ def pk_readorder(columns, rows, primary_key):
             key = tuple([to_key(values[c]) for c in pk])
             pos = len(readorder)
             readorder.append((pos, key, pos))
-    return readorder
+    return sorted(readorder, key=lambda r: r[1])
 
 
 def rowindex_readorder(index):
@@ -94,7 +97,8 @@ def rowindex_readorder(index):
     Index values that are not positive integers are treated as new rows.
 
     Returns a list of 3-tuples with (row position, key, row position). The row
-    position represents the index position of a row in the given list.
+    position represents the index position of a row in the given list. The
+    returned list is sorted by the key values.
 
     Parameters
     ----------
@@ -117,4 +121,4 @@ def rowindex_readorder(index):
         else:
             key = NumberKey(value=ridx)
         readorder.append((pos, key, pos))
-    return readorder
+    return sorted(readorder, key=lambda r: r[1])

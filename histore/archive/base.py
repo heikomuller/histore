@@ -14,7 +14,7 @@ from histore.archive.reader import RowPositionReader
 from histore.archive.schema import MATCH_ID, MATCH_IDNAME
 from histore.archive.store.fs.base import ArchiveFileStore
 from histore.archive.store.mem.base import VolatileArchiveStore
-#from histore.document.base import PKDocument, RIDocument
+from histore.document.mem.dataframe import DataFrameDocument
 
 import histore.archive.merge as nested_merge
 
@@ -39,7 +39,7 @@ class Archive(object):
         store: histore.archive.store.base.ArchiveStore, default=None
             Associated archive store that is used to maintain all archive
             information. Uses the volatile in-memory store by default.
-        primary_key: string or list
+        primary_key: string or list, default=None
             Column(s) that are used to generate identifier for snapshot rows.
         """
         self.primary_key = primary_key
@@ -167,14 +167,7 @@ class Archive(object):
         # the appropriate document class. The document type depends on how row
         # keys are generated.
         if isinstance(doc, pd.DataFrame):
-            if self.primary_key is not None:
-                doc = PKDocument(
-                    df=df,
-                    schema=matched_columns,
-                    primary_key=self.primary_key
-                )
-            else:
-                doc = RIDocument(df=df, schema=matched_columns)
+            doc = DataFrameDocument(df=doc, primary_key=self.primary_key)
         # Use the last commited version as origin if matching columns by name
         # or if a partial document is commited and origin is None.
         if (matching != MATCH_ID or partial) and origin is None:
@@ -206,8 +199,8 @@ class Archive(object):
         # Merge document rows into the archive.
         writer = self.store.get_writer()
         nested_merge.merge_rows(
-            archive=self,
-            document=doc,
+            arch_reader=self.reader(),
+            doc_reader=doc.reader(schema=matched_columns),
             version=version,
             writer=writer,
             partial=partial,

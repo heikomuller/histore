@@ -77,7 +77,7 @@ def validate_rowindex_archive(reader):
     rows = dict()
     while reader.has_next():
         row = reader.next()
-        assert row.rowid == row.key
+        assert row.rowid == row.key.value
         rows[row.rowid] = row
     assert len(rows) == 5
     ts = Timestamp(intervals=TimeInterval(0, 3))

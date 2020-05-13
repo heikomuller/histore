@@ -33,7 +33,7 @@ class Document(metaclass=ABCMeta):
         self.columns = columns
 
     @abstractmethod
-    def partial(self, reader):
+    def partial(self, reader):  # pragma: no cover
         """Return a copy of the document that provides access to the set of
         rows such that the document is considered a partial document. In a
         partial document the rows are aligned with the position of the
@@ -53,7 +53,7 @@ class Document(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def reader(self, schema):
+    def reader(self, schema):  # pragma: no cover
         """Get reader for data frame rows ordered by their row identifier. In
         a partial document the row positions as provided by the reader are
         aligned with the positions of the corresponding rows in the document

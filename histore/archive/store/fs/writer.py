@@ -12,6 +12,7 @@ system.
 import json
 import numpy as np
 
+from histore.key.base import KeyValue
 from histore.archive.serialize.default import DefaultSerializer
 from histore.archive.writer import ArchiveWriter
 
@@ -112,5 +113,8 @@ class NumpyEncoder(json.JSONEncoder):
             return float(obj)
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
+        elif isinstance(obj, KeyValue):
+            assert not obj.is_new()
+            return obj.value
         else:
             return super(NumpyEncoder, self).default(obj)

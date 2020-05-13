@@ -94,7 +94,7 @@ class NewRow(KeyValue):
 
         Parameters
         ----------
-        other: histore.annotate.key.KeyValue
+        other: histore.key.base.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -109,7 +109,7 @@ class NewRow(KeyValue):
 
         Parameters
         ----------
-        other: histore.annotate.key.KeyValue
+        other: histore.key.base.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -148,7 +148,7 @@ class NullKey(KeyValue):
 
         Parameters
         ----------
-        other: histore.annotate.key.KeyValue
+        other: histore.key.base.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -162,7 +162,7 @@ class NullKey(KeyValue):
 
         Parameters
         ----------
-        other: histore.annotate.key.KeyValue
+        other: histore.key.base.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -200,7 +200,7 @@ class NumberKey(KeyValue):
 
         Parameters
         ----------
-        other: histore.annotate.key.KeyValue
+        other: histore.key.base.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -216,7 +216,7 @@ class NumberKey(KeyValue):
 
         Parameters
         ----------
-        other: histore.annotate.key.KeyValue
+        other: histore.key.base.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -254,7 +254,7 @@ class StringKey(KeyValue):
 
         Parameters
         ----------
-        other: histore.annotate.key.KeyValue
+        other: histore.key.base.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -270,7 +270,7 @@ class StringKey(KeyValue):
 
         Parameters
         ----------
-        other: histore.annotate.key.KeyValue
+        other: histore.key.base.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -306,10 +306,12 @@ def to_key(value):
 
     Returns
     -------
-    histore.annotate.key.KeyValue
+    histore.key.base.KeyValue
     """
     if value is None:
         return NullKey()
+    elif isinstance(value, KeyValue):
+        return value
     elif isinstance(value, int) or isinstance(value, np.integer):
         return NumberKey(value=value)
     elif isinstance(value, float) or isinstance(value, np.floating):

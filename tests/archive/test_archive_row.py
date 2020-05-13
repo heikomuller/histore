@@ -9,6 +9,7 @@
 
 import pytest
 
+from histore.key.base import NumberKey, StringKey
 from histore.archive.row import ArchiveRow
 from histore.archive.timestamp import Timestamp, TimeInterval
 from histore.archive.value import (
@@ -20,24 +21,37 @@ def test_compare_row_keys():
     """Test comparing row keys."""
     ts = Timestamp(version=1)
     pos = SingleVersionValue(value=0, timestamp=ts)
-    row = ArchiveRow(rowid=0, key=0, pos=pos, cells=dict(), timestamp=ts)
-    assert row.comp(0) == 0
-    assert row.comp(2) == -1
-    assert row.comp(-2) == 1
-    row = ArchiveRow(rowid=0, key='B', pos=pos, cells=dict(), timestamp=ts)
-    assert row.comp('B') == 0
-    assert row.comp('C') == -1
-    assert row.comp('A') == 1
     row = ArchiveRow(
         rowid=0,
-        key=(0, 1),
+        key=NumberKey(0),
         pos=pos,
         cells=dict(),
         timestamp=ts
     )
-    assert row.comp((0, 1)) == 0
-    assert row.comp((0, 2)) == -1
-    assert row.comp((-1, 10)) == 1
+    assert row.comp(NumberKey(0)) == 0
+    assert row.comp(NumberKey(2)) == -1
+    assert row.comp(NumberKey(-2)) == 1
+    assert row.comp(StringKey('0')) == -1
+    row = ArchiveRow(
+        rowid=0,
+        key=StringKey('B'),
+        pos=pos,
+        cells=dict(),
+        timestamp=ts
+    )
+    assert row.comp(StringKey('B')) == 0
+    assert row.comp(StringKey('C')) == -1
+    assert row.comp(StringKey('A')) == 1
+    row = ArchiveRow(
+        rowid=0,
+        key=(NumberKey(0), NumberKey(1)),
+        pos=pos,
+        cells=dict(),
+        timestamp=ts
+    )
+    assert row.comp((NumberKey(0), NumberKey(1))) == 0
+    assert row.comp((NumberKey(0), NumberKey(2))) == -1
+    assert row.comp((NumberKey(-1), NumberKey(10))) == 1
 
 
 def test_extend_archive_row():
@@ -46,7 +60,13 @@ def test_extend_archive_row():
     """
     ts = Timestamp(version=1)
     pos = SingleVersionValue(value=0, timestamp=ts)
-    row = ArchiveRow(rowid=0, key=0, pos=pos, cells=dict(), timestamp=ts)
+    row = ArchiveRow(
+        rowid=0,
+        key=NumberKey(0),
+        pos=pos,
+        cells=dict(),
+        timestamp=ts
+    )
     row = row.merge(pos=1, values={1: 'A', 2: 1, 3: 'a'}, version=2)
     row = row.merge(pos=1, values={1: 'B', 2: 1, 3: 'b'}, version=3)
     row = row.extend(version=4, origin=2)
@@ -70,7 +90,8 @@ def test_merge_archive_rows():
     ts = Timestamp(version=1)
     # First version []
     row = ArchiveRow(
-        rowid=0, key=0,
+        rowid=0,
+        key=NumberKey(0),
         pos=SingleVersionValue(value=2, timestamp=ts),
         cells=dict(),
         timestamp=ts
@@ -117,6 +138,7 @@ def test_row_provenance():
     """Test diff operation for archive rows."""
     row = ArchiveRow(
         rowid=0,
+        key=NumberKey(0),
         pos=MultiVersionValue(
             values=[
                 TimestampedValue(
