@@ -15,6 +15,7 @@ from dateutil.tz import UTC
 import errno
 import gzip
 import os
+import uuid
 
 
 # -- Datetime -----------------------------------------------------------------
@@ -240,3 +241,15 @@ class PlainTextFile(IOStream):
         """
         self.f.write(line)
         self.f.write('\n')
+
+
+# -- Unique identifier --------------------------------------------------------
+
+def get_unique_identifier():
+    """Create a new unique identifier.
+
+    Returns
+    -------
+    string
+    """
+    return str(uuid.uuid4()).replace('-', '')

@@ -45,15 +45,16 @@ class Archive(object):
         self.primary_key = primary_key
         self.store = store if store is not None else VolatileArchiveStore()
 
-    def checkout(self, version):
+    def checkout(self, version=None):
         """Access a dataset snapshot in the archive. Retrieves the datset that
         was commited with the given version identifier. Raises an error if the
-        version identifier is unknown.
+        version identifier is unknown. If no version identifier is given the
+        last snapshot will be returned by default.
 
         Parameters
         ----------
-        version: int
-            Unique version identifier.
+        version: int, default=None
+            Unique version identifier. By default the last version is returned.
 
         Returns
         -------
@@ -63,6 +64,9 @@ class Archive(object):
         ------
         ValueError
         """
+        # Use the last snapshot as default if no version is specified.
+        if version is None:
+            version = self.snapshots().last_snapshot().version
         # Ensure that the version exists in the snapshot index.
         if not self.snapshots().has_version(version):
             raise ValueError('unknown version {}'.format(version))
@@ -121,7 +125,7 @@ class Archive(object):
             Timestamp when the snapshot was first valid. A snapshot is valid
             until the valid time of the next snapshot in the archive.
         matching: string, default='idname'
-            Match mode for columns. Excepts one of three modes:
+            Match mode for columns. Expects one of three modes:
             - idonly: The columns in the schema of the comitted document are
             matched against columns in the archive schema by their identifier.
             Assumes that columns in the document schema are instances of the

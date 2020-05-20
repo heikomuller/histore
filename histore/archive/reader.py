@@ -23,7 +23,7 @@ class ArchiveReader(metaclass=ABCMeta):
         return row_stream(self)
 
     @abstractmethod
-    def has_next(self):
+    def has_next(self):  # pragma: no cover
         """Test if the reader has more rows to read. If True the next() method
         will return the next row. Otherwise, the next() method will return
         None.
@@ -35,7 +35,7 @@ class ArchiveReader(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def next(self):
+    def next(self):  # pragma: no cover
         """Read the next row in the dataset archive. Returns None if the end of
         the archive rows has been reached.
 
