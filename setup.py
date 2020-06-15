@@ -16,7 +16,8 @@ from setuptools import setup, find_packages
 install_requires = [
     'pandas>=1.0.0',
     'jsonschema>=3.2.0',
-    'pyyaml'
+    'pyyaml',
+    'csvsort==1.5'
 ]
 
 

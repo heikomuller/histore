@@ -172,45 +172,53 @@ class Archive(object):
         # keys are generated.
         if isinstance(doc, pd.DataFrame):
             doc = DataFrameDocument(df=doc, primary_key=self.primary_key)
-        # Use the last commited version as origin if matching columns by name
-        # or if a partial document is commited and origin is None.
-        if (matching != MATCH_ID or partial) and origin is None:
-            last_snapshot = self.snapshots().last_snapshot()
-            if last_snapshot:
-                origin = last_snapshot.version
-        # Get a modified snapshot list where the last entry represents the
-        # new snapshot.
-        snapshots = self.snapshots().append(
-            valid_time=valid_time,
-            description=description
-        )
-        version = snapshots.last_snapshot().version
-        # Merge the new snapshot schema with the current archive schema.
-        schema, matched_columns, unchanged_columns = self.schema().merge(
-            columns=doc.columns,
-            version=version,
-            matching=matching,
-            renamed=renamed,
-            renamed_to=renamed_to,
-            partial=partial,
-            origin=origin
-        )
-        # If the document is partial we need to adjust the positions of the
-        # rows in the document.
-        if partial:
-            posreader = RowPositionReader(reader=self.reader(), version=origin)
-            doc = doc.partial(reader=posreader)
-        # Merge document rows into the archive.
-        writer = self.store.get_writer()
-        nested_merge.merge_rows(
-            arch_reader=self.reader(),
-            doc_reader=doc.reader(schema=matched_columns),
-            version=version,
-            writer=writer,
-            partial=partial,
-            unchanged_cells=[c.colid for c in unchanged_columns],
-            origin=origin
-        )
+        try:
+            # Use the last commited version as origin if matching columns by
+            # name or if a partial document is commited and origin is None.
+            if (matching != MATCH_ID or partial) and origin is None:
+                last_snapshot = self.snapshots().last_snapshot()
+                if last_snapshot:
+                    origin = last_snapshot.version
+            # Get a modified snapshot list where the last entry represents the
+            # new snapshot.
+            snapshots = self.snapshots().append(
+                valid_time=valid_time,
+                description=description
+            )
+            version = snapshots.last_snapshot().version
+            # Merge the new snapshot schema with the current archive schema.
+            schema, matched_columns, unchanged_columns = self.schema().merge(
+                columns=doc.columns,
+                version=version,
+                matching=matching,
+                renamed=renamed,
+                renamed_to=renamed_to,
+                partial=partial,
+                origin=origin
+            )
+            # If the document is partial we need to adjust the positions of the
+            # rows in the document.
+            if partial:
+                posreader = RowPositionReader(
+                    reader=self.reader(),
+                    version=origin
+                )
+                doc = doc.partial(reader=posreader)
+            # Merge document rows into the archive.
+            writer = self.store.get_writer()
+            nested_merge.merge_rows(
+                arch_reader=self.reader(),
+                doc_reader=doc.reader(schema=matched_columns),
+                version=version,
+                writer=writer,
+                partial=partial,
+                unchanged_cells=[c.colid for c in unchanged_columns],
+                origin=origin
+            )
+        finally:
+            # Ensure that the close method for the document is called to allow
+            # for cleanup of temporary files.
+            doc.close()
         # Commit all changes to the associated archive store.
         self.store.commit(schema=schema, writer=writer, snapshots=snapshots)
         # Return descriptor for the created snapshot.

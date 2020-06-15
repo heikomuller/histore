@@ -38,11 +38,21 @@ class InMemoryDocument(Document):
             length as the number of columns in the document.
         readorder: list
             The read order of a document is a sorted list of 3-tuples with
-            (list index, key, position). The list is sorted by the row key.
+            (list index, key, position). The list is sorted by the row key. The
+            list index is the index of a row in the given row list. The key is
+            the unique key value for the associated row. The position is the
+            position of the row in the document. The list index and the
+            position may differ for a row, especially for partial documents.
         """
         super(InMemoryDocument, self).__init__(columns=columns)
         self.rows = rows
         self.readorder = readorder
+
+    def close(self):
+        """There are no resources that need to be released by the in-memory
+        document.
+        """
+        pass
 
     def partial(self, reader):
         """Return a copy of the document where the rows are aligned with the

@@ -33,6 +33,14 @@ class Document(metaclass=ABCMeta):
         self.columns = columns
 
     @abstractmethod
+    def close(self):  # pragma: no cover
+        """Signal that the archive merge is done reading the document. Any
+        resources (e.g., temporary files) that were created for the document
+        can be released.
+        """
+        raise NotImplementedError()
+
+    @abstractmethod
     def partial(self, reader):  # pragma: no cover
         """Return a copy of the document that provides access to the set of
         rows such that the document is considered a partial document. In a
@@ -55,9 +63,9 @@ class Document(metaclass=ABCMeta):
     @abstractmethod
     def reader(self, schema):  # pragma: no cover
         """Get reader for data frame rows ordered by their row identifier. In
-        a partial document the row positions as provided by the reader are
-        aligned with the positions of the corresponding rows in the document
-        of origin.
+        a partial document the row positions that are returned by the reader
+        are aligned with the positions of the corresponding rows in the
+        document of origin.
 
         Parameters
         ----------

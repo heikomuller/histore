@@ -91,14 +91,18 @@ def pk_readorder(columns, rows, primary_key):
 
 
 def rowindex_readorder(index):
-    """Create a read order list from agiven list of row index values. The index
-    list for example correspondes to the row index of a pandas data frame.
+    """Create a read order list from a given list of row index values. The
+    index list, for example, corresponds to the row index of a pandas data
+    frame.
 
-    Index values that are not positive integers are treated as new rows.
+    Index values are considered as primary key values for document rows. Index
+    values that are not positive integers are treated as new rows.
 
     Returns a list of 3-tuples with (row position, key, row position). The row
-    position represents the index position of a row in the given list. The
-    returned list is sorted by the key values.
+    position represents the index position of a row in the given list. The key
+    is the value in the index at the poistion (or a new row identifier if the
+    original value was negative integer or not of type integer). The returned
+    list is sorted by the key values.
 
     Parameters
     ----------
