@@ -19,9 +19,9 @@
 
 
 
-**History Store** (histore) is a Pyhton package for maintaining snapshots of evolving data sets. This package provides an implementation of the core functionality that was implemented in the `XML Archiver (XArch) <http://xarch.sourceforge.net/>`_. The package is a lightweight implementation that is intended for maintaining data set snapshots that are represented as pandas data frames.
+**History Store** (HISTORE) is a Pyhton package for maintaining snapshots of evolving data sets. This package provides an implementation of the core functionality that was implemented in the `XML Archiver (XArch) <http://xarch.sourceforge.net/>`_. The package is a lightweight implementation that is intended for maintaining data set snapshots that are represented as pandas data frames.
 
-**histore** is based on a nested merge approach that efficiently stores multiple dataset snapshots in a compact archive `[Buneman, Khanna, Tajima, Tan. 2004] <https://dl.acm.org/citation.cfm?id=974752>`_. The library allows one to create new archives, to merge new data set snapshots into an existing archive, and to retrieve data set snapshots from the archive.
+**HISTORE** is based on a nested merge approach that efficiently stores multiple dataset snapshots in a compact archive `[Buneman, Khanna, Tajima, Tan. 2004] <https://dl.acm.org/citation.cfm?id=974752>`_. The library allows one to create new archives, to merge new data set snapshots into an existing archive, and to retrieve data set snapshots from the archive.
 
 
 Installation
@@ -37,7 +37,7 @@ Install ``histore`` from the  `Python Package Index (PyPI) <https://pypi.org/>`_
 Examples
 ========
 
-**histore** maintains data set versions (snapshots) in an archive. A separate archive is created for each data set. The package currently provides two different types of archive: a volatile archive that maintains all data set snapshots in main-memory and a persistent archive that writes data set snapshots to disk.
+**HISTORE** maintains data set versions (snapshots) in an archive. A separate archive is created for each data set. The package currently provides two different types of archive: a volatile archive that maintains all data set snapshots in main-memory and a persistent archive that writes data set snapshots to disk.
 
 
 Example using Volatile Archive

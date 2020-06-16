@@ -5,7 +5,7 @@
 * Initial version. Support for snapshot archives in main-memory and on file system.
 
 
-### 0.1.1 - ???
+### 0.1.1 - 06-16-2020
 
 * Allow different types of input documents (e.g., CSV files or Json)
 * External merge-sort for large CSV files.
