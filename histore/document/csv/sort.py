@@ -230,6 +230,8 @@ def decorated_csv(filename, columns):
     """
     with open(filename, 'r') as f:
         for row in csv.reader(f):
+            if not row:
+                break
             yield keyvalue(row, columns), row
 
 
@@ -248,10 +250,7 @@ def keyvalue(row, columns):
     -------
     list
     """
-    try:
-        return [row[column] for column in columns]
-    except IndexError:
-        raise ValueError('invalid row {}'.format(row))
+    return [row[column] for column in columns]
 
 
 def mergesort(buffer, filenames, sortkey):
