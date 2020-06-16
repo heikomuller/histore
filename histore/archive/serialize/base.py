@@ -15,7 +15,7 @@ class ArchiveSerializer(metaclass=ABCMeta):
     dataset archives. All serializations are either lists or dictionaries.
     """
     @abstractmethod
-    def deserialize_column(self, obj):
+    def deserialize_column(self, obj):  # pragma: no cover
         """Get archive schema column instance from a serialized object. The
         type of the object depends on the serializer implementation. It is
         assumed that the object has been serialized using the respective method
@@ -33,7 +33,7 @@ class ArchiveSerializer(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def serialize_column(self, column):
+    def serialize_column(self, column):  # pragma: no cover
         """Get serialization for an archive schema column.
 
         Parameters
@@ -48,7 +48,7 @@ class ArchiveSerializer(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def deserialize_row(self, obj):
+    def deserialize_row(self, obj):  # pragma: no cover
         """Get archive row instance from a serialized object. The type of the
         object depends on the serializer implementation. It is assumed that
         the object has been serialized using the respective method from
@@ -66,7 +66,7 @@ class ArchiveSerializer(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def serialize_row(self, row):
+    def serialize_row(self, row):  # pragma: no cover
         """Get serialization for an archive row object.
 
         Parameters
@@ -81,7 +81,7 @@ class ArchiveSerializer(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def deserialize_snapshot(self, obj):
+    def deserialize_snapshot(self, obj):  # pragma: no cover
         """Get snapshot descriptor instance from a serialized object. The type
         of the object depends on the serializer implementation. It is assumed
         that the object has been serialized using the respective method from
@@ -99,7 +99,7 @@ class ArchiveSerializer(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def serialize_snapshot(self, snapshot):
+    def serialize_snapshot(self, snapshot):  # pragma: no cover
         """Get serialization for an archive snapshot descriptor.
 
         Parameters
@@ -114,7 +114,7 @@ class ArchiveSerializer(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def deserialize_timestamp(self, obj):
+    def deserialize_timestamp(self, obj):  # pragma: no cover
         """Get timestamp instance from serialized object. The type of the
         object depends on the serializer implementation. It is assumed that
         the object has been serialized using the respective method from
@@ -132,7 +132,7 @@ class ArchiveSerializer(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def serialize_timestamp(self, ts):
+    def serialize_timestamp(self, ts):  # pragma: no cover
         """Get serialization for a timestamp object.
 
         Parameters
@@ -147,7 +147,7 @@ class ArchiveSerializer(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def deserialize_value(self, obj, ts):
+    def deserialize_value(self, obj, ts):  # pragma: no cover
         """Get timestamped value object from a serialization object. The type
         of the object depends on the serializer implementation. It is assumed
         that the object has been serialized using the respective method from
@@ -165,7 +165,7 @@ class ArchiveSerializer(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def serialize_value(self, value, ts):
+    def serialize_value(self, value, ts):  # pragma: no cover
         """Get serialization for a timestamp value.
 
         Parameters

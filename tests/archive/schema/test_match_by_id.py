@@ -139,3 +139,5 @@ def test_partial_match_by_id():
         assert isinstance(col, Column)
         assert 0 <= col.colid < 4
     assert len(unmatched_columns) == 2
+    # String represenation (for completeness).
+    str(schema.columns[0])

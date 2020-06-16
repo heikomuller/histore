@@ -10,6 +10,7 @@ of the row in the history of the dataset, and the cell values in the row
 history.
 """
 
+from histore.key.base import KeyValue
 from histore.archive.provenance.row import DeleteRow, InsertRow, UpdateRow
 from histore.archive.value import SingleVersionValue
 from histore.archive.timestamp import Timestamp
@@ -20,7 +21,7 @@ class ArchiveRow(object):
     maintains the history of index positions that it had, and the history of
     all cell values.
     """
-    def __init__(self, rowid, pos, cells, timestamp, key=None):
+    def __init__(self, rowid, key, pos, cells, timestamp):
         """Initialize the row identifier and the objects that maintain history
         information about the row index positions and cell values.
 
@@ -28,6 +29,8 @@ class ArchiveRow(object):
         ----------
         rowid: int
             Unique internal row identifier
+        key: histore.key.base.KeyValue, or tuple
+            Derived row key for matching and merging purposes.
         pos: histore.archive.value.ArchiveValue
             Index positions for the row in the history of the dataset.
         cells: dict(int, histore.archive.value.ArchiveValue)
@@ -36,15 +39,17 @@ class ArchiveRow(object):
         timestamp: histore.archive.timestamp.Timestamp
             Sequence of version from the dataset history in which the row was
             present.
-        key: int, string, or tuple, default=None
-            Derived row key for matching and merging purposes. If the key is
-            None the rowid is used as key
         """
+        if isinstance(key, tuple):
+            for k in key:
+                assert isinstance(k, KeyValue)
+        else:
+            assert isinstance(key, KeyValue)
         self.rowid = rowid
+        self.key = key
         self.cells = cells
         self.pos = pos
         self.timestamp = timestamp
-        self.key = key if key is not None else rowid
 
     def __repr__(self):
         """Unambiguous string representation of the archive row.
@@ -114,14 +119,14 @@ class ArchiveRow(object):
 
         Parameters
         ----------
-        key: int, string, or tuple
+        key: histore.key.base.KeyValue, or tuple
             Key value of a document row.
 
         Returns
         -------
         int
         """
-        if key is None or self.key < key:
+        if self.key < key:
             return -1
         elif self.key > key:
             return 1

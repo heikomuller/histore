@@ -10,11 +10,11 @@
 import pandas as pd
 
 from histore.archive.provenance.archive import SnapshotDiff
-from histore.archive.reader import RowIndexReader
+from histore.archive.reader import RowPositionReader
 from histore.archive.schema import MATCH_ID, MATCH_IDNAME
 from histore.archive.store.fs.base import ArchiveFileStore
 from histore.archive.store.mem.base import VolatileArchiveStore
-from histore.document.base import PartialDocument, PKDocument, RIDocument
+from histore.document.mem.dataframe import DataFrameDocument
 
 import histore.archive.merge as nested_merge
 
@@ -31,7 +31,7 @@ class Archive(object):
     def __init__(self, store=None, primary_key=None):
         """Initialize the associated archive store and the optional primary
         key columns that are used to generate row identifier. If no primary
-        key is specified the row index for committed data frame is used to
+        key is specified the row index for committed document is used to
         generate identifier for archive rows.
 
         Parameters
@@ -39,21 +39,22 @@ class Archive(object):
         store: histore.archive.store.base.ArchiveStore, default=None
             Associated archive store that is used to maintain all archive
             information. Uses the volatile in-memory store by default.
-        primary_key: string or list
+        primary_key: string or list, default=None
             Column(s) that are used to generate identifier for snapshot rows.
         """
         self.primary_key = primary_key
         self.store = store if store is not None else VolatileArchiveStore()
 
-    def checkout(self, version):
+    def checkout(self, version=None):
         """Access a dataset snapshot in the archive. Retrieves the datset that
         was commited with the given version identifier. Raises an error if the
-        version identifier is unknown.
+        version identifier is unknown. If no version identifier is given the
+        last snapshot will be returned by default.
 
         Parameters
         ----------
-        version: int
-            Unique version identifier.
+        version: int, default=None
+            Unique version identifier. By default the last version is returned.
 
         Returns
         -------
@@ -63,6 +64,9 @@ class Archive(object):
         ------
         ValueError
         """
+        # Use the last snapshot as default if no version is specified.
+        if version is None:
+            version = self.snapshots().last_snapshot().version
         # Ensure that the version exists in the snapshot index.
         if not self.snapshots().has_version(version):
             raise ValueError('unknown version {}'.format(version))
@@ -79,7 +83,7 @@ class Archive(object):
                 rows.append((row.rowid, pos, vals))
         # Sort rows in ascending order.
         rows.sort(key=lambda r: r[1])
-        # Create data frame for the retrieved snapshot.
+        # Create document for the retrieved snapshot.
         data, rowindex = list(), list()
         for rowid, _, vals in rows:
             data.append(vals)
@@ -87,14 +91,14 @@ class Archive(object):
         return pd.DataFrame(data=data, index=rowindex, columns=columns)
 
     def commit(
-        self, df, description=None, valid_time=None, matching=MATCH_IDNAME,
+        self, doc, description=None, valid_time=None, matching=MATCH_IDNAME,
         renamed=None, renamed_to=True, partial=False, origin=None
     ):
-        """Commit a new snapshot to the dataset archive. The given data frame
+        """Commit a new snapshot to the dataset archive. The given document
         represents the dataset snapshot that is being merged into the archive.
-        The data frame may represent a complete snapshot of the data or only
+        The document may represent a complete snapshot of the data or only
         a partial snapshot. In the latter case, all columns and rows from the
-        snapshot that the data frame originated from (origin) are considered
+        snapshot that the document originated from (origin) are considered
         unchanged.
 
         Matching of snapshot schema columns to archive columns can either be
@@ -112,7 +116,7 @@ class Archive(object):
 
         Parameters
         ----------
-        df: pandas.DataFrame
+        doc: histore.document.base.Document
             Data frame representing the dataset snapshot that is being merged
             into the archive.
         description: string, default=None
@@ -121,12 +125,12 @@ class Archive(object):
             Timestamp when the snapshot was first valid. A snapshot is valid
             until the valid time of the next snapshot in the archive.
         matching: string, default='idname'
-            Match mode for columns. Excepts one of three modes:
-            - idonly: The columns in the schema of the comitted data frame are
+            Match mode for columns. Expects one of three modes:
+            - idonly: The columns in the schema of the comitted document are
             matched against columns in the archive schema by their identifier.
-            Assumes that columns in the data frame schema are instances of the
+            Assumes that columns in the document schema are instances of the
             class histore.document.schema.Column.
-            - nameonly: Columns in the commited data frame schema are matched
+            - nameonly: Columns in the commited document schema are matched
             by name against the columns in the schema of the snapshot that is
             identified by origin.
             - idname: Match columns of type histore.document.schema.Column
@@ -163,57 +167,58 @@ class Archive(object):
         # Ensure that partial is not set for an empty archive.
         if partial and self.is_empty():
             raise ValueError('merge partial snapshot into empty archive')
-        # Use the last commited version as origin if matching columns by name
-        # or if a partial data frame is commited and origin is None.
-        if (matching != MATCH_ID or partial) and origin is None:
-            last_snapshot = self.snapshots().last_snapshot()
-            if last_snapshot:
-                origin = last_snapshot.version
-        # Get a modified snapshot list where the last entry represents the
-        # new snapshot.
-        snapshots = self.snapshots().append(
-            valid_time=valid_time,
-            description=description
-        )
-        version = snapshots.last_snapshot().version
-        # Merge the new snapshot schema with the current archive schema.
-        schema, matched_columns, unchanged_columns = self.schema().merge(
-            columns=list(df.columns),
-            version=version,
-            matching=matching,
-            renamed=renamed,
-            renamed_to=renamed_to,
-            partial=partial,
-            origin=origin
-        )
-        # Create snapshot document for the given data frame. The document type
-        # depends on how row identifier are generated.
-        if self.primary_key is not None:
-            doc = PKDocument(
-                df=df,
-                schema=matched_columns,
-                primary_key=self.primary_key
+        # If the given document is a pandas DataFrame we need to wrap it in
+        # the appropriate document class. The document type depends on how row
+        # keys are generated.
+        if isinstance(doc, pd.DataFrame):
+            doc = DataFrameDocument(df=doc, primary_key=self.primary_key)
+        try:
+            # Use the last commited version as origin if matching columns by
+            # name or if a partial document is commited and origin is None.
+            if (matching != MATCH_ID or partial) and origin is None:
+                last_snapshot = self.snapshots().last_snapshot()
+                if last_snapshot:
+                    origin = last_snapshot.version
+            # Get a modified snapshot list where the last entry represents the
+            # new snapshot.
+            snapshots = self.snapshots().append(
+                valid_time=valid_time,
+                description=description
             )
-        else:
-            doc = RIDocument(df=df, schema=matched_columns)
-        # If the data frame is partial we need to adjust the positions of the
-        # rows in the document.
-        if partial:
-            doc = PartialDocument(
-                doc=doc,
-                row_index=RowIndexReader(reader=self.reader(), version=origin)
+            version = snapshots.last_snapshot().version
+            # Merge the new snapshot schema with the current archive schema.
+            schema, matched_columns, unchanged_columns = self.schema().merge(
+                columns=doc.columns,
+                version=version,
+                matching=matching,
+                renamed=renamed,
+                renamed_to=renamed_to,
+                partial=partial,
+                origin=origin
             )
-        # Merge document rows into the archive.
-        writer = self.store.get_writer()
-        nested_merge.merge_rows(
-            archive=self,
-            document=doc,
-            version=version,
-            writer=writer,
-            partial=partial,
-            unchanged_cells=[c.colid for c in unchanged_columns],
-            origin=origin
-        )
+            # If the document is partial we need to adjust the positions of the
+            # rows in the document.
+            if partial:
+                posreader = RowPositionReader(
+                    reader=self.reader(),
+                    version=origin
+                )
+                doc = doc.partial(reader=posreader)
+            # Merge document rows into the archive.
+            writer = self.store.get_writer()
+            nested_merge.merge_rows(
+                arch_reader=self.reader(),
+                doc_reader=doc.reader(schema=matched_columns),
+                version=version,
+                writer=writer,
+                partial=partial,
+                unchanged_cells=[c.colid for c in unchanged_columns],
+                origin=origin
+            )
+        finally:
+            # Ensure that the close method for the document is called to allow
+            # for cleanup of temporary files.
+            doc.close()
         # Commit all changes to the associated archive store.
         self.store.commit(schema=schema, writer=writer, snapshots=snapshots)
         # Return descriptor for the created snapshot.
@@ -304,7 +309,7 @@ class PersistentArchive(Archive):
     ):
         """Initialize the associated archive store and the optional primary
         key columns that are used to generate row identifier. If no primary
-        key is specified the row index for committed data frame is used to
+        key is specified the row index for committed document is used to
         generate identifier for archive rows.
 
         Parameters

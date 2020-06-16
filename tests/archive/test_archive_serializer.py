@@ -9,6 +9,7 @@
 
 import pytest
 
+from histore.key.base import NumberKey, StringKey
 from histore.archive.row import ArchiveRow
 from histore.archive.schema import ArchiveColumn
 from histore.archive.snapshot import Snapshot
@@ -44,7 +45,7 @@ def test_serialize_row():
     serializer = DefaultSerializer()
     ts = Timestamp(intervals=TimeInterval(start=1, end=5))
     pos = SingleVersionValue(value=0, timestamp=ts)
-    key = (0, 'A')
+    key = (NumberKey(0), StringKey('A'))
     cells = {
         0: SingleVersionValue(value=0, timestamp=ts),
         1: MultiVersionValue(values=[

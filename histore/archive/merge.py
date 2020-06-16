@@ -11,18 +11,18 @@ dataset archive.
 
 
 def merge_rows(
-    archive, document, version, writer, partial=False, unchanged_cells=None,
-    origin=None
+    arch_reader, doc_reader, version, writer, partial=False,
+    unchanged_cells=None, origin=None
 ):
     """Merge rows in the given archive and database snapshot. Outputs the
     merged rows in the resulting archive to the given archive writer.
 
     Parameters
     ----------
-    archive: histore.archive.base.Archive
-        Archive containing previous snapshots of the dataset.
-    document: histore.document.base.Document
-        Dataset snapshot that is being merged into the archive.
+    archive: histore.archive.reader.ArchiveReader
+        Reader for archive containing previous snapshots of the dataset.
+    doc_reader: histore.document.reader.DocumentReader
+        Reader for rows in the merged dataset snapshot.
     version: int
         Identifier of the new archive version.
     writer: histore.archive.writer.ArchiveWriter
@@ -39,9 +39,6 @@ def merge_rows(
         Version that the row values originate from. Rows that remain unchanged
         have the timestamp extended for the version of origin.
     """
-    # Get reader for the given archive and document.
-    arch_reader = archive.reader()
-    doc_reader = document.reader()
     # Get the first row for each reader.
     arch_row = arch_reader.next()
     doc_row = doc_reader.next()

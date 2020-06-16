@@ -10,6 +10,8 @@ position of the row in the dataset, and a list of cell values for all dataset
 columns.
 """
 
+from histore.key.base import KeyValue
+
 
 class DocumentRow(object):
     """Each row in snapshot document has a row identifier, an index position
@@ -34,6 +36,11 @@ class DocumentRow(object):
             Mapping of column identifier from the archive schema to cell values
             in the corresponding data frame row cells.
         """
+        if isinstance(key, tuple):
+            for k in key:
+                assert isinstance(k, KeyValue)
+        else:
+            assert isinstance(key, KeyValue)
         self.key = key
         self.pos = pos
         self.values = values

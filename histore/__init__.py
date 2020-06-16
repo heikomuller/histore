@@ -6,3 +6,4 @@
 # file LICENSE for full license details.
 
 from histore.archive.base import Archive, PersistentArchive  # noqa: F401
+from histore.archive.manager.fs import PersistentArchiveManager  # noqa: F401

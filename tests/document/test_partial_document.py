@@ -9,31 +9,27 @@
 
 import pandas as pd
 
-from histore.archive.reader import RowIndexReader
-from histore.archive.row import ArchiveRow
-from histore.archive.store.mem.reader import BufferedReader
-from histore.archive.timestamp import Timestamp
-from histore.archive.value import SingleVersionValue
-from histore.document.base import PartialDocument, RIDocument
+from histore.key.base import NumberKey
+from histore.document.mem.dataframe import DataFrameDocument
 from histore.document.schema import Column
+from histore.tests.base import ListReader
 
 
 def test_align_partial_document():
     """Test row position alignment for partial documents."""
-    ts = Timestamp(version=1)
-    # Create a list of 5 archive rows.
-    rows = list()
-    for rid in range(5):
-        pos = SingleVersionValue(value=rid, timestamp=ts)
-        row = ArchiveRow(rowid=rid, pos=pos, cells=dict(), timestamp=ts)
-        rows.append(row)
     # Create a partial document with rows 2 and 3 and one new row 10.
     data = [['A'], ['B'], ['C']]
     df = pd.DataFrame(data=data, index=[10, 3, 2], columns=['Col'])
-    schema = [Column(colid=1, name='Col')]
-    doc = RIDocument(df=df, schema=schema)
-    assert doc.rows == [(2, 2), (3, 1), (10, 0)]
-    # Adjust the row positions based on the original row order.
-    row_index = RowIndexReader(reader=BufferedReader(rows), version=1)
-    doc = PartialDocument(doc=doc, row_index=row_index)
-    assert doc.rows == [(2, 2), (3, 3), (10, 5)]
+    doc = DataFrameDocument(df=df)
+    posreader = ListReader(values=[(NumberKey(value=i), i) for i in range(5)])
+    doc = doc.partial(reader=posreader)
+    assert [r[0] for r in doc.readorder] == [2, 1, 0]
+    assert [r[1].value for r in doc.readorder] == [2, 3, 10]
+    assert [r[2] for r in doc.readorder] == [2, 3, 5]
+    reader = doc.reader(schema=[Column(colid=0, name='Col')])
+    values = list()
+    while reader.has_next():
+        row = reader.next()
+        values.append(row.values[0])
+        assert isinstance(row.key, NumberKey)
+    assert values == ['C', 'B', 'A']

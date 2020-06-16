@@ -16,6 +16,7 @@ from histore.archive.value import (
 )
 from histore.archive.serialize.base import ArchiveSerializer
 
+import histore.key.base as anno
 import histore.util as util
 
 
@@ -132,18 +133,17 @@ class DefaultSerializer(ArchiveSerializer):
         cells = dict()
         for colid, value in obj[self.cells].items():
             cells[int(colid)] = self.deserialize_value(obj=value, ts=ts)
-        if self.key in obj:
-            key = obj[self.key]
-            if isinstance(key, list):
-                key = tuple(key)
+        key = obj[self.key]
+        if isinstance(key, list) or isinstance(key, tuple):
+            key = tuple([anno.to_key(k) for k in key])
         else:
-            key = None
+            key = anno.to_key(key)
         return ArchiveRow(
             rowid=rowid,
+            key=key,
             pos=pos,
             cells=cells,
-            timestamp=ts,
-            key=key
+            timestamp=ts
         )
 
     def serialize_row(self, row):
@@ -162,15 +162,13 @@ class DefaultSerializer(ArchiveSerializer):
         cells = dict()
         for colid, value in row.cells.items():
             cells[colid] = self.serialize_value(value=value, ts=ts)
-        obj = {
+        return {
             self.rowid: row.rowid,
+            self.key: row.key,
             self.timestamp: self.serialize_timestamp(ts),
             self.pos: self.serialize_value(value=row.pos, ts=ts),
             self.cells: cells
         }
-        if row.key != row.rowid:
-            obj[self.key] = row.key
-        return obj
 
     def deserialize_snapshot(self, obj):
         """Get snapshot descriptor instance from a serialized object.

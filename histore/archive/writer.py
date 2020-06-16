@@ -9,6 +9,7 @@
 
 from abc import ABCMeta, abstractmethod
 
+from histore.key.base import NumberKey
 from histore.archive.row import ArchiveRow
 from histore.archive.timestamp import Timestamp
 from histore.archive.value import SingleVersionValue
@@ -33,7 +34,7 @@ class ArchiveWriter(metaclass=ABCMeta):
         self.row_counter = row_counter
 
     @abstractmethod
-    def write_archive_row(self, row):
+    def write_archive_row(self, row):  # pragma: no cover
         """Add the given row to a new archive version.
 
         Parameters
@@ -63,9 +64,12 @@ class ArchiveWriter(metaclass=ABCMeta):
         cells = dict()
         for colid, value in row.values.items():
             cells[colid] = SingleVersionValue(value=value, timestamp=ts)
+        key = row.key
+        if not isinstance(key, tuple) and key.is_new():
+            key = NumberKey(self.row_counter)
         arch_row = ArchiveRow(
             rowid=self.row_counter,
-            key=row.key if row.key is not None else self.row_counter,
+            key=key,
             pos=SingleVersionValue(value=row.pos, timestamp=ts),
             cells=cells,
             timestamp=ts

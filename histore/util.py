@@ -15,6 +15,7 @@ from dateutil.tz import UTC
 import errno
 import gzip
 import os
+import uuid
 
 
 # -- Datetime -----------------------------------------------------------------
@@ -87,7 +88,7 @@ def createdir(directory, abs=False):
     if not os.path.exists(directory):
         try:
             os.makedirs(directory)
-        except OSError as e:
+        except OSError as e:  # pragma: no cover
             if e.errno != errno.EEXIST:
                 raise
     if abs:
@@ -97,7 +98,7 @@ def createdir(directory, abs=False):
 
 
 def inputstream(filename, compression=None):
-    """Open the given file for input. The compression mide string determines
+    """Open the given file for input. The compression mode string determines
     which compression algorithm is being used (or no compression if None).
 
     Parameters
@@ -117,7 +118,7 @@ def inputstream(filename, compression=None):
 
 
 def outputstream(filename, compression=None):
-    """Open the given file for output. The compression mide string determines
+    """Open the given file for output. The compression mode string determines
     which compression algorithm is being used (or no compression if None).
 
     Parameters
@@ -152,7 +153,7 @@ class IOStream(metaclass=ABCMeta):
         self.f.close()
 
     @abstractmethod
-    def readline(self):
+    def readline(self):  # pragma: no cover
         """Read sting line from input file. The returned line is stripped of
         any leading or trailing whitespace characters.
 
@@ -163,7 +164,7 @@ class IOStream(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def writeline(self, line):
+    def writeline(self, line):  # pragma: no cover
         """Write sting line to output file.
 
         Parameters
@@ -204,7 +205,7 @@ class GZipFile(IOStream):
         line: string
             Output line that is bein written.
         """
-        self.f.write(str.encode(line))
+        self.f.write(str.encode(line, 'utf8'))
         self.f.write(b'\n')
 
 
@@ -240,3 +241,15 @@ class PlainTextFile(IOStream):
         """
         self.f.write(line)
         self.f.write('\n')
+
+
+# -- Unique identifier --------------------------------------------------------
+
+def get_unique_identifier():
+    """Create a new unique identifier.
+
+    Returns
+    -------
+    string
+    """
+    return str(uuid.uuid4()).replace('-', '')

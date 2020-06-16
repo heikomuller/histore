@@ -41,7 +41,7 @@ class ProvOp(object):
         ValueError
         """
         if type not in [PROV_DELETE, PROV_INSERT, PROV_UPDATE]:
-            raise ValueError('invalid provenance operator type'.format(type))
+            raise ValueError("invalid type '{}'".format(type))
         self._type = type
         self.key = key
 

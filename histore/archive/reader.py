@@ -12,8 +12,18 @@ class ArchiveReader(metaclass=ABCMeta):
     """Reader for rows in a dataset archive. Reads rows in ascending order of
     their identifier.
     """
+    def __iter__(self):
+        """Make the reader instance iterable by returning a generator that
+        yields all rows.
+
+        Returns
+        -------
+        Generator
+        """
+        return row_stream(self)
+
     @abstractmethod
-    def has_next(self):
+    def has_next(self):  # pragma: no cover
         """Test if the reader has more rows to read. If True the next() method
         will return the next row. Otherwise, the next() method will return
         None.
@@ -25,7 +35,7 @@ class ArchiveReader(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def next(self):
+    def next(self):  # pragma: no cover
         """Read the next row in the dataset archive. Returns None if the end of
         the archive rows has been reached.
 
@@ -36,7 +46,7 @@ class ArchiveReader(metaclass=ABCMeta):
         raise NotImplementedError()
 
 
-class RowIndexReader(object):
+class RowPositionReader(object):
     """Reader for row index information for a given snapshot version in a
     dataset archive. The row information is read in ascending order of the
     row identifier in the archive.
@@ -57,8 +67,8 @@ class RowIndexReader(object):
 
     def next(self):
         """Get information for the next row in the archive. The result is a
-        tuple of row identifier and position. If the end of the archive has
-        been reached the result is None.
+        tuple of row key and position. If the end of the archive has been
+        reached the result is None.
 
         Returns
         -------
@@ -68,3 +78,21 @@ class RowIndexReader(object):
             row = self.reader.next()
             if row.timestamp.contains(self.version):
                 return (row.key, row.pos.at_version(self.version))
+
+
+# -- Helper Methods -----------------------------------------------------------
+
+def row_stream(reader):
+    """Geterator that yields all rows in an archive.
+
+    Parameters
+    ----------
+    reader: histore.arcive.reader.ArchiveReader
+        Archive reader over which we are iterating.
+
+    Returns
+    -------
+    histore.archive.row.ArchiveRow
+    """
+    while reader.has_next():
+        yield reader.next()
