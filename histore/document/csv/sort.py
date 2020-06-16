@@ -18,7 +18,8 @@ import csv
 import heapq
 import os
 import sys
-import tempfile
+
+from tempfile import NamedTemporaryFile as TempFile
 
 from histore.document.base import Document
 from histore.document.mem.base import InMemoryDocument
@@ -274,7 +275,7 @@ def mergesort(buffer, filenames, sortkey):
     # Merge the buffer if it contains rows.
     if buffer:
         mergefile = filenames[0]
-        with tempfile.NamedTemporaryFile(delete=False, mode='w') as f_out:
+        with TempFile(delete=False, mode='w', newline='') as f_out:
             writer = csv.writer(f_out)
             files = [
                 decorated_buffer(buffer, sortkey),
@@ -286,12 +287,12 @@ def mergesort(buffer, filenames, sortkey):
         os.remove(mergefile)
     while len(filenames) > 1:
         mergefiles, filenames = filenames[:2], filenames[2:]
-        with tempfile.NamedTemporaryFile(delete=False, mode='w') as output_fp:
-            writer = csv.writer(output_fp)
+        with TempFile(delete=False, mode='w', newline='') as f_out:
+            writer = csv.writer(f_out)
             files = [decorated_csv(f, sortkey) for f in mergefiles]
             for _, row in heapq.merge(*files):
                 writer.writerow(row)
-            filenames.append(output_fp.name)
+            filenames.append(f_out.name)
         for filename in mergefiles:
             os.remove(filename)
     return filenames[0]
@@ -339,12 +340,12 @@ def split(reader, sortkey, buffer_size=None):
             # Sort buffer.
             buffer.sort(key=lambda row: keyvalue(row, sortkey))
             # Write buffer to disk.
-            f_temp = tempfile.NamedTemporaryFile(delete=False, mode='w')
-            writer = csv.writer(f_temp)
-            for r in buffer:
-                writer.writerow(r)
-            # Append file name to result file name list.
-            tmp_filenames.append(f_temp.name)
+            with TempFile(delete=False, mode='w', newline='') as f_out:
+                writer = csv.writer(f_out)
+                for r in buffer:
+                    writer.writerow(r)
+                # Append file name to result file name list.
+                tmp_filenames.append(f_out.name)
             # Clear buffer.
             buffer = list()
             current_size = 0
