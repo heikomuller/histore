@@ -5,9 +5,7 @@
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
 
-"""Snapshots are wrappers around data frames. A snapshot ensures that row
-identifier for the data frame are either -1 or a unique integer.
-"""
+"""Document wrapper around data frames."""
 
 from histore.document.mem.base import InMemoryDocument
 
@@ -24,7 +22,7 @@ class DataFrameDocument(InMemoryDocument):
 
         Parameters
         ----------
-        df: ps.DataFrame
+        df: pandas.DataFrame
             Pandas data frame that is being wrapped by the document class.
         primary_key: string or list, default=None
             Column(s) that are used to generate identifier for snapshot rows.

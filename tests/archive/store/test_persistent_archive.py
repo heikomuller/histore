@@ -71,10 +71,21 @@ def test_watershed_archive(tmpdir):
     """Test merging snapshots of the NYC Watershed data into an archive."""
     archive = PersistentArchive(
         basedir=str(tmpdir),
-        primary_key=['Site', 'Date']
+        primary_key=['Site', 'Date'],
+        replace=False
     )
     df = pd.read_csv(WATERSHED_1, compression='gzip', delimiter='\t')
     s = archive.commit(df)
     diff = archive.diff(s.version - 1, s.version)
     assert len(diff.schema().insert()) == 10
     assert len(diff.rows().insert()) == 1793
+    # -- Recreate the archive instance.
+    archive = PersistentArchive(
+        basedir=str(tmpdir),
+        primary_key=['Site', 'Date'],
+        replace=False
+    )
+    s = archive.commit(df)
+    diff = archive.diff(s.version - 1, s.version)
+    assert len(diff.schema().insert()) == 0
+    assert len(diff.rows().insert()) == 0

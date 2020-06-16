@@ -17,7 +17,7 @@ class ArchiveStore(metaclass=ABCMeta):
     archive information.
     """
     @abstractmethod
-    def commit(self, schema, writer, snapshots):
+    def commit(self, schema, writer, snapshots):  # pragma: no cover
         """Commit a new version of the dataset archive. The modified components
         of the archive are given as the three arguments of this method.
 
@@ -35,7 +35,7 @@ class ArchiveStore(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def is_empty(self):
+    def is_empty(self):  # pragma: no cover
         """True if the archive does not contain any snapshots yet.
 
         Returns
@@ -45,7 +45,7 @@ class ArchiveStore(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_reader(self):
+    def get_reader(self):  # pragma: no cover
         """Get the row reader for this archive.
 
         Returns
@@ -55,7 +55,7 @@ class ArchiveStore(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_schema(self):
+    def get_schema(self):  # pragma: no cover
         """Get the schema history for the archived dataset.
 
         Returns
@@ -65,7 +65,7 @@ class ArchiveStore(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_snapshots(self):
+    def get_snapshots(self):  # pragma: no cover
         """Get listing of all snapshots in the archive.
 
         Returns
@@ -75,7 +75,7 @@ class ArchiveStore(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def get_writer(self):
+    def get_writer(self):  # pragma: no cover
         """Get a writer for a new version of the archive.
 
         Returns
