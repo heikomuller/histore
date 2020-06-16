@@ -70,7 +70,7 @@ class SortedCSVDocument(Document):
         """
         rows = list()
         readorder = list()
-        with open(self.filename, 'r') as f:
+        with open(self.filename, 'r', newline='') as f:
             csvreader = csv.reader(f)
             for row in csvreader:
                 rows.append(row)
@@ -124,7 +124,7 @@ class SortedCSVDocumentReader(DocumentReader):
         primary_key: list
             List of index positions for sort columns.
         """
-        self.fh = open(filename, 'r')
+        self.fh = open(filename, 'r', newline='')
         self.reader = csv.reader(self.fh)
         self.schema = schema
         self.primary_key = primary_key
@@ -228,10 +228,8 @@ def decorated_csv(filename, columns):
     columns: list
         List of index positions for sort columns.
     """
-    with open(filename, 'r') as f:
+    with open(filename, 'r', newline='') as f:
         for row in csv.reader(f):
-            if not row:
-                break
             yield keyvalue(row, columns), row
 
 
