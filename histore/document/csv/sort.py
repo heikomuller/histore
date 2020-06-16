@@ -248,7 +248,10 @@ def keyvalue(row, columns):
     -------
     list
     """
-    return [row[column] for column in columns]
+    try:
+        return [row[column] for column in columns]
+    except IndexError:
+        raise ValueError('invalid row {}'.format(row))
 
 
 def mergesort(buffer, filenames, sortkey):
