@@ -11,6 +11,7 @@ index values.
 
 import pytest
 
+import histore.document.schema as schema
 import histore.key.annotate as annotate
 
 
@@ -27,9 +28,8 @@ def test_primarykey_keys():
     ]
     # Single column key
     readorder = annotate.pk_readorder(
-        columns=['ID', 'Name'],
         rows=rows,
-        primary_key='Name'
+        primary_key=schema.column_index(schema=['ID', 'Name'], columns='Name')
     )
     assert len(readorder) == 5
     assert [r[0] for r in readorder] == [1, 2, 0, 4, 3]
@@ -40,10 +40,10 @@ def test_primarykey_keys():
     assert readorder[3][1].is_string()
     assert readorder[4][1].is_null()
     # Multi column key
+    pk = schema.column_index(schema=['ID', 'Name'], columns=['Name', 'ID'])
     readorder = annotate.pk_readorder(
-        columns=['ID', 'Name'],
         rows=rows,
-        primary_key=['Name', 'ID']
+        primary_key=pk
     )
     assert [r[0] for r in readorder] == [1, 2, 0, 4, 3]
     assert [r[2] for r in readorder] == [1, 2, 0, 4, 3]
@@ -57,24 +57,11 @@ def test_primarykey_keys():
     assert readorder[3][1][1].is_number()
     assert readorder[4][1][0].is_null()
     assert readorder[4][1][1].is_number()
-    # Error cases
-    with pytest.raises(ValueError):
-        annotate.pk_readorder(
-            columns=['SSN', 'Name'],
-            rows=rows,
-            primary_key=['Name', 'ID']
-        )
-    with pytest.raises(ValueError):
-        annotate.pk_readorder(
-            columns=['Name', 'SSN', 'Name', 'Name'],
-            rows=rows,
-            primary_key=['Name']
-        )
     # No error if duplicate column is not part of the primary key.
+    pk = schema.column_index(schema=['SSN', 'Name', 'SSN'], columns=['Name'])
     annotate.pk_readorder(
-        columns=['ID', 'Name', 'SSN', 'SSN'],
         rows=rows,
-        primary_key=['Name']
+        primary_key=pk
     )
 
 

@@ -17,6 +17,8 @@ import os
 """Environment variables."""
 # Base directory for all files that are created by histore components.
 ENV_HISTORE_BASEDIR = 'HISTORE_BASEDIR'
+# Size of the sort buffer for CSV files that are sorted using external memory.
+ENV_HISTORE_SORTBUFFER = 'HISTORE_SORTBUFFER'
 
 
 def BASEDIR():
@@ -31,4 +33,24 @@ def BASEDIR():
     if value is None or value == '':  # pragma: no cover
         # Use the default value if the environment variable is not set.
         value = os.path.join(str(Path.home()), '.histore')
+    return value
+
+
+def SORTBUFFER():
+    """Get value for environment variable HISTORE_SORTBUFFER. The default value
+    if the variable is not set is 50% of the available main-memory.
+
+    Returns
+    -------
+    float
+    """
+    value = os.environ.get(ENV_HISTORE_SORTBUFFER)
+    if value is None or value == '':
+        # Use 50% of the available main-memory as buffer size. Ensure that the
+        # buffer is at least 1MB.
+        import psutil
+        mem = psutil.virtual_memory()
+        value = max(mem.available / (1024 * 1024 * 2), 1.0)
+    else:
+        value = float(value)
     return value

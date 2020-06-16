@@ -45,3 +45,5 @@ def test_archive_read_write(tmpdir):
     assert len(diff.rows().delete()) == 0
     assert len(diff.rows().insert()) == 0
     assert len(diff.rows().update()) == 4
+    # Ensure that we can print provenance information without error.
+    diff.describe()

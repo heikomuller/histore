@@ -11,11 +11,17 @@ import csv
 import gzip
 
 from histore.document.csv.simple import SimpleCSVDocument
+from histore.document.csv.sort import SortedCSVDocument
+from histore.document.mem.base import InMemoryDocument
+
+import histore.document.csv.sort as sort
+import histore.document.schema as schema
+import histore.key.annotate as anno
 
 
 def read_csv(
     filename, delimiter=',', quotechar='"', compression=None, has_header=True,
-    columns=None, primary_key=None
+    columns=None, primary_key=None, max_size=None
 ):
     """Read a document from a csv file. If the primary key attributes are given
     the returned document is sorted by the primary key values. Otherwise, the
@@ -48,6 +54,9 @@ def read_csv(
         columns may be identified by their name or index position. If a string
         in the primary key list refers to a non-unique column name in the file,
         a ValueError is raised.
+    max_size: float, default=None
+        Maximum size (in MB) of the main-memory buffer for blocks of the CSV
+        file that are sorted in main-memory.
 
     Returns
     -------
@@ -66,7 +75,7 @@ def read_csv(
         raise ValueError('no column information')
     elif columns is not None:
         if not isinstance(columns, list):
-            raise ValueError("invalid column list '{}'".format(columns))
+            columns = [columns]
         for col in columns:
             if not isinstance(col, str):
                 raise ValueError("invalid column name '{}'".format(col))
@@ -88,7 +97,32 @@ def read_csv(
             # If a primary key is given we first need to get the index position
             # for the key attributes in the document schema and then sort the
             # input file.
-            raise NotImplementedError()
+            pk = schema.column_index(schema=columns, columns=primary_key)
+            buffer, filenames = sort.split(
+                reader=reader,
+                sortkey=pk,
+                buffer_size=max_size
+            )
+            if not filenames:
+                # If the file fits into main-memory return a sorted in-memory
+                # document.
+                return InMemoryDocument(
+                    columns=columns,
+                    rows=buffer,
+                    readorder=anno.pk_readorder(rows=buffer, primary_key=pk)
+                )
+            else:
+                # Merge the CSV file blocks and return a sorted CSV document
+                # object that wrapps the sorted CSV file.
+                return SortedCSVDocument(
+                    filename=sort.mergesort(
+                        buffer=buffer,
+                        filenames=filenames,
+                        sortkey=pk
+                    ),
+                    columns=columns,
+                    primary_key=pk
+                )
         else:
             # In this case we do not need to sort the document. The document
             # will always be read in original order. Return a file reader for

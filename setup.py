@@ -17,7 +17,7 @@ install_requires = [
     'pandas>=1.0.0',
     'jsonschema>=3.2.0',
     'pyyaml',
-    'csvsort==1.5'
+    'psutil'
 ]
 
 

@@ -11,6 +11,7 @@ identifier for the data frame are either -1 or a unique integer.
 
 from histore.document.mem.base import InMemoryDocument
 
+import histore.document.schema as schema
 import histore.key.annotate as anno
 
 
@@ -32,9 +33,11 @@ class DataFrameDocument(InMemoryDocument):
         rows = Rows(df=df)
         if primary_key is not None:
             readorder = anno.pk_readorder(
-                columns=columns,
                 rows=rows,
-                primary_key=primary_key
+                primary_key=schema.column_index(
+                    schema=columns,
+                    columns=primary_key
+                )
             )
         else:
             readorder = anno.rowindex_readorder(index=df.index)

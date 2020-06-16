@@ -63,7 +63,7 @@ class SimpleCSVDocument(Document):
         self.has_header = has_header
 
     def close(self):
-        """The un-keyed csv document reader has no additional resources that
+        """The un-keyed CSV document reader has no additional resources that
         need to be released.
         """
         pass  # pragma: no cover
@@ -81,9 +81,9 @@ class SimpleCSVDocument(Document):
             return open(self.filename, 'r')
 
     def partial(self, reader):
-        """If the document in the csv file is a partial document we read it
+        """If the document in the CSV file is a partial document we read it
         into a data frame and use the respective data frame document method.
-        This requires that partial documents in csv files fit into main memory.
+        This requires that partial documents in CSV files fit into main memory.
 
         Parameters
         ----------
@@ -149,9 +149,9 @@ class SimpleCSVDocument(Document):
 
 
 class SimpleCSVDocumentReader(DocumentReader):
-    """Document reader for un-keyed csv documents."""
+    """Document reader for un-keyed CSV documents."""
     def __init__(self, reader, schema, fh):
-        """Initialize the csv reader and the list of column names.
+        """Initialize the CSV reader and the list of column names.
 
         Parameters
         ----------
