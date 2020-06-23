@@ -23,6 +23,11 @@ import histore.util as util
 class DefaultSerializer(ArchiveSerializer):
     """Implementation of the archive object serializer. This is the default
     serializer used by HISTORE.
+
+    The default serializer is configurable with respect to the labels that are
+    used in the serialization. Given labels should not start with the reserved
+    character '$' which is being used to encode the type of special values that
+    cannot be serialized by the default JSON encoder.
     """
     def __init__(
         self, timestamp='t', pos='p', name='n', cells='c', value='v',
@@ -31,6 +36,9 @@ class DefaultSerializer(ArchiveSerializer):
     ):
         """Initialize the labels for elements used in the serialized objects.
         By default short labels are used to reduce storage overhead.
+
+        Passing a label that starts with the reserved character '$' will result
+        in a ValueError.
 
         Parameters
         ----------
@@ -58,19 +66,23 @@ class DefaultSerializer(ArchiveSerializer):
             Element label for snapshot transaction time.
         description: string, default='d'
             Element label for snapshot descriptions.
+
+        Raises
+        ------
+        ValueError
         """
-        self.timestamp = timestamp
-        self.pos = pos
-        self.name = name
-        self.cells = cells
-        self.value = value
-        self.key = key
-        self.rowid = rowid
-        self.colid = colid
-        self.version = version
-        self.valid_time = valid_time
-        self.transaction_time = transaction_time
-        self.description = description
+        self.timestamp = validate_label(timestamp)
+        self.pos = validate_label(pos)
+        self.name = validate_label(name)
+        self.cells = validate_label(cells)
+        self.value = validate_label(value)
+        self.key = validate_label(key)
+        self.rowid = validate_label(rowid)
+        self.colid = validate_label(colid)
+        self.version = validate_label(version)
+        self.valid_time = validate_label(valid_time)
+        self.transaction_time = validate_label(transaction_time)
+        self.description = validate_label(description)
 
     def deserialize_column(self, obj):
         """Get archive schema column instance from a serialized object.
@@ -312,3 +324,30 @@ class DefaultSerializer(ArchiveSerializer):
                 self.value: v.value
             } for v in value.values]
         return obj
+
+
+# -- Helper Functions ---------------------------------------------------------
+
+def validate_label(label):
+    """Ensure that the given label does not start with the reserved '$'
+    character.
+
+    Returns the given label if valid. Raises a ValueError if an invalid label
+    is given.
+
+    Parameters
+    ----------
+    label: string
+        Label for serialization of an archive component.
+
+    Returns
+    -------
+    string
+
+    Raises
+    ------
+    ValueError
+    """
+    if label.startswith('$'):
+        raise ValueError("invalid label '{}'".format(label))
+    return label
