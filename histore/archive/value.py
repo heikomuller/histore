@@ -22,7 +22,7 @@ class ArchiveValue(metaclass=ABCMeta):
     """The archive value represents the history of a cell in a tabular dataset.
     """
     @abstractmethod
-    def at_version(self, version, raise_error=True):
+    def at_version(self, version, raise_error=True):  # pragma: no cover
         """Get cell value for the given version. Raises ValueError if the cell
         does not have a value for the given version and the raise error flag is
         set tot True. If the flag is false None is returned instead.
@@ -71,7 +71,7 @@ class ArchiveValue(metaclass=ABCMeta):
         return None
 
     @abstractmethod
-    def extend(self, version, origin):
+    def extend(self, version, origin):  # pragma: no cover
         """Extend the timestamp of the value that was valid at the given source
         version with the new version identifier. If no value was valid at the
         given version of origin the value is returned unchanged.
@@ -105,7 +105,7 @@ class ArchiveValue(metaclass=ABCMeta):
         return not self.is_single_version()
 
     @abstractmethod
-    def is_single_version(self):
+    def is_single_version(self):  # pragma: no cover
         """Helper method to get the type of an archive value. Values can either
         be single version values or multi-version values.
 
@@ -116,7 +116,7 @@ class ArchiveValue(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    def merge(self, value, version):
+    def merge(self, value, version):  # pragma: no cover
         """Add value for the given version into the cell history. Returns a
         modified copy of the value.
 

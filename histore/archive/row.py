@@ -102,7 +102,7 @@ class ArchiveRow(object):
             value = self.cells.get(colid)
             if value is None:
                 if raise_error:
-                    raise ValueError('unknown version %d' % version)
+                    raise ValueError('unknown column {}'.format(colid))
             else:
                 value = value.at_version(version, raise_error=raise_error)
             values.append(value)

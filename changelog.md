@@ -10,3 +10,8 @@
 * Allow different types of input documents (e.g., CSV files or Json)
 * External merge-sort for large CSV files.
 * Add managers for maintaining sets of archives
+
+
+### 0.1.2 - ???
+
+* Proper handling of date/time objects by the default archive reader and writer

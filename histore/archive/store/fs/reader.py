@@ -39,20 +39,20 @@ class ArchiveFileReader(ArchiveReader):
         compression: string, default=None
             String representing the compression mode for the output file.
         decoder: func, default=None
-            Custom decoder function for Json objects that are read from file.
-            If not given, the default decoder will be used.
+            Custom decoder function when reading archive rows from file. If not
+            given, the default decoder will be used.
         """
         self.serializer = serializer if serializer else DefaultSerializer()
         # Use the default decoder if None is given.
         self.decoder = decoder if decoder is not None else default_decoder
         # The archive is empty if the given file does not exists. In this case
-        # the buffer will remain empty,
+        # the buffer will remain empty.
         self.buffer = None
         if os.path.isfile(filename):
             self.fin = util.inputstream(filename, compression=compression)
             # Read the first two lines in the output file. The first line is
             # expected to be '['. The second line is either ']' (for an empty
-            # archive) or contain the first row.
+            # archive) or it contains the first row.
             if self.fin.readline() != '[':
                 raise ValueError('invalid input file {}'.format(filename))
             self.next()
@@ -95,6 +95,7 @@ class ArchiveFileReader(ArchiveReader):
             # element.
             if line.endswith(','):
                 line = line[:-1]
+            # Decode and deserialize the archive row object.
             obj = json.loads(line, object_hook=self.decoder)
             self.buffer = self.serializer.deserialize_row(obj)
         # Return the previous buffer value as the result.

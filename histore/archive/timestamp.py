@@ -40,17 +40,8 @@ class TimeInterval(object):
         -------
         string
         """
-        return '[%i,%i]' % (self.start, self.end)
-
-    def __str__(self):
-        """Readable string representation of this time interval.
-
-        Returns
-        -------
-        string
-        """
         if self.start < self.end:
-            return '%i-%i' % (self.start, self.end)
+            return '{}-{}'.format(self.start, self.end)
         else:
             return str(self.start)
 
@@ -110,9 +101,8 @@ class TimeInterval(object):
         """
         if self.start <= interval.start:
             return self.end >= interval.start
-        elif self.start >= interval.start:
+        else:
             return interval.end >= self.start
-        return False
 
 
 class Timestamp(object):
