@@ -42,7 +42,10 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         return identifier in self.archives()
 
     @abstractmethod
-    def create(self, name=None, description=None, primary_key=None):
+    def create(
+        self, name=None, description=None, primary_key=None, encoder=None,
+        decoder=None
+    ):
         """Create a new archive object.
 
         Parameters
@@ -54,6 +57,12 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         primary_key: string or list, default=None
             Column(s) that are used to generate identifier for rows in the
             archive.
+        encoder: string, default=None
+            Full package path for the Json encoder class that is used by the
+            persistent archive.
+        decoder: string, default=None
+            Full package path for the Json decoder function that is used by the
+            persistent archive.
 
         Returns
         -------

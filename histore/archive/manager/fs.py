@@ -60,7 +60,10 @@ class PersistentArchiveManager(ArchiveManager):
         """
         return self._archives
 
-    def create(self, name=None, description=None, primary_key=None):
+    def create(
+        self, name=None, description=None, primary_key=None, encoder=None,
+        decoder=None
+    ):
         """Create a new archive object.
 
         Parameters
@@ -72,6 +75,11 @@ class PersistentArchiveManager(ArchiveManager):
         primary_key: string or list, default=None
             Column(s) that are used to generate identifier for rows in the
             archive.
+        encoder: string, default=None
+            Full package path for the Json encoder class that is used by the
+            persistent archive.
+        decoder: string, default=None
+            Full package path for the Json decoder function that is used by the
 
         Returns
         -------
@@ -81,7 +89,9 @@ class PersistentArchiveManager(ArchiveManager):
         descriptor = ArchiveDescriptor.create(
             name=name,
             description=description,
-            primary_key=primary_key
+            primary_key=primary_key,
+            encoder=encoder,
+            decoder=decoder
         )
         identifier = descriptor.identifier()
         primary_key = descriptor.primary_key()
@@ -122,8 +132,25 @@ class PersistentArchiveManager(ArchiveManager):
         ------
         ValueError
         """
-        if identifier not in self._archives:
+        desc = self._archives.get(identifier)
+        if desc is None:
             raise ValueError('unknown archive {}'.format(identifier))
         archdir = os.path.join(self.basedir, identifier)
-        primary_key = self._archives[identifier].primary_key()
-        return PersistentArchive(basedir=archdir, primary_key=primary_key)
+        primary_key = desc.primary_key()
+        # Load JSONEncoder class if encoder is contained in the descriptor.
+        if desc.encoder() is not None:
+            encoder = util.import_obj(desc.encoder())
+        else:
+            encoder = None
+        # Load the corresponding Json decoder function if a decoder is
+        # contained in the descriptor.
+        if desc.decoder() is not None:
+            decoder = util.import_obj(desc.decoder())
+        else:
+            decoder = None
+        return PersistentArchive(
+            basedir=archdir,
+            primary_key=primary_key,
+            encoder=encoder,
+            decoder=decoder
+        )

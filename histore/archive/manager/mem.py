@@ -32,7 +32,10 @@ class VolatileArchiveManager(ArchiveManager):
         """
         return self._descriptors
 
-    def create(self, name=None, description=None, primary_key=None):
+    def create(
+        self, name=None, description=None, primary_key=None, encoder=None,
+        decoder=None
+    ):
         """Create a new volatiole archive object.
 
         Parameters
@@ -44,6 +47,12 @@ class VolatileArchiveManager(ArchiveManager):
         primary_key: string or list, default=None
             Column(s) that are used to generate identifier for rows in the
             archive.
+        encoder: string, default=None
+            Ignored. Full package path for the Json encoder class that is used
+            by the persistent archive. Included for API completeness.
+        decoder: string, default=None
+            Ignored. Full package path for the Json decoder function that is
+            used by the persistent archive. Included for API completeness.
 
         Returns
         -------

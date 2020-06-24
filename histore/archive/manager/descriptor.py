@@ -25,7 +25,9 @@ DESCRIPTOR_SCHEMA = {
         'primaryKey': {
             'type': 'array',
             'items': {'type': 'string'}
-        }
+        },
+        'encoder': {'type': 'string'},
+        'decoder': {'type': 'string'}
     },
     'required': ['id']
 }
@@ -58,7 +60,10 @@ class ArchiveDescriptor(object):
             jsonschema.validate(instance=doc, schema=DESCRIPTOR_SCHEMA)
 
     @staticmethod
-    def create(name=None, description=None, primary_key=None):
+    def create(
+        name=None, description=None, primary_key=None, encoder=None,
+        decoder=None
+    ):
         """Create a new archive descriptor object.
 
         Parameters
@@ -70,6 +75,11 @@ class ArchiveDescriptor(object):
         primary_key: string or list, default=None
             Column(s) that are used to generate identifier for rows in the
             archive.
+        encoder: string, default=None
+            Full package path for the Json encoder class that is used by the
+            persistent archive.
+        decoder: string, default=None
+            Full package path for the Json decoder function that is used by the
 
         Returns
         -------
@@ -88,7 +98,20 @@ class ArchiveDescriptor(object):
             doc['description'] = description
         if primary_key is not None:
             doc['primaryKey'] = primary_key
+        if encoder is not None:
+            doc['encoder'] = encoder
+        if decoder is not None:
+            doc['decoder'] = decoder
         return ArchiveDescriptor(doc)
+
+    def decoder(self):
+        """Get package path for Json decoder used by persistent archives.
+
+        Returns
+        -------
+        string
+        """
+        return self.doc.get('decoder')
 
     def description(self):
         """Get archive description. If the value is not set in the descriptor
@@ -99,6 +122,15 @@ class ArchiveDescriptor(object):
         string
         """
         return self.doc.get('description', '')
+
+    def encoder(self):
+        """Get package path for Json encoder used by persistent archives.
+
+        Returns
+        -------
+        string
+        """
+        return self.doc.get('encoder')
 
     def identifier(self):
         """Get the unique archive identifier value.
