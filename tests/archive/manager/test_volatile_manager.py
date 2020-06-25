@@ -16,6 +16,7 @@ def test_volatile_archive_manager():
     """Test functionality of the volatile archive manager."""
     manager = VolatileArchiveManager()
     assert len(manager.archives()) == 0
+    # Create archive
     descriptor = manager.create(
         name='First archive',
         description='My first archive',
@@ -26,6 +27,10 @@ def test_volatile_archive_manager():
     assert descriptor.description() == 'My first archive'
     assert descriptor.primary_key() == ['SSN']
     assert len(manager.archives()) == 1
+    # Create archive with existing name.
+    with pytest.raises(ValueError):
+        manager.create(name='First archive')
+    # List archive(s)
     descriptor = manager.list()[0]
     assert descriptor.identifier() is not None
     assert descriptor.name() == 'First archive'
@@ -33,10 +38,23 @@ def test_volatile_archive_manager():
     assert descriptor.primary_key() == ['SSN']
     archive = manager.get(descriptor.identifier())
     assert archive is not None
+    # Rename the archive.
+    manager.rename(descriptor.identifier(), 'Some archive')
+    assert manager.get_by_name('My first archive') is None
+    assert manager.get_by_name('Some archive') is not None
+    # No error when archive name is identical to new name
+    manager.rename(descriptor.identifier(), 'Some archive')
+    # Error when renaming an unknown archive.
+    with pytest.raises(ValueError):
+        manager.rename('unknown', 'My archive')
+    # Error when renaming to an existing archive.
+    manager.create(name='First archive')
+    with pytest.raises(ValueError):
+        manager.rename(descriptor.identifier(), 'First archive')
     # Delete the archive
     manager.delete(descriptor.identifier())
-    assert len(manager.archives()) == 0
+    assert len(manager.archives()) == 1
     manager.delete(descriptor.identifier())
-    # Error cases
+    # Error when accessing non-existing archive
     with pytest.raises(ValueError):
         manager.get(descriptor.identifier())

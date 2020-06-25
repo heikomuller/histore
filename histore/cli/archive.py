@@ -10,6 +10,7 @@ file system.
 """
 
 import click
+import sys
 
 from histore.archive.manager.fs import PersistentArchiveManager
 
@@ -71,6 +72,7 @@ def create_archive(basedir, pk, comment, encoder, decoder, name):
         click.echo('Archive created!')
     except ValueError as ex:
         click.echo('{}'.format(ex))
+        sys.exit(-1)
 
 
 # -- Delete archive -----------------------------------------------------------
@@ -99,9 +101,10 @@ def delete_archive(basedir, force, name):
                 click.echo(msg.format(name))
                 click.confirm('Continue?', default=True, abort=True)
             manager.delete(archive.identifier())
-            click.echo("Archive '{}' removed!".format(name))
+            click.echo("Archive '{}' deleted!".format(name))
             return
     click.echo("Unknown archive '{}'.".format(name))
+    sys.exit(-1)
 
 
 # -- List archives ------------------------------------------------------------
@@ -124,7 +127,7 @@ def list_archives(basedir, bydate):
     manager = get_manager(basedir)
     archives = manager.list()
     if bydate:
-        archives = sorted(archives, key=lambda a: a.createdAt())
+        archives = sorted(archives, key=lambda a: a.created_at())
     else:
         archives = sorted(archives, key=lambda a: a.name())
     click.echo()
@@ -157,11 +160,12 @@ def rename_archive(basedir, oldname, newname):
     archive = manager.get_by_name(oldname)
     if archive is None:
         click.echo("Unknown archive '{}'".format(oldname))
-        return
+        sys.exit(-1)
     try:
         manager.rename(archive.identifier(), newname)
     except ValueError as ex:
         click.echo('{}'.format(ex))
+        sys.exit(-1)
 
 
 # -- Helper Functions ---------------------------------------------------------

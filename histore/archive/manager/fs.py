@@ -49,7 +49,9 @@ class PersistentArchiveManager(ArchiveManager):
         if exists:
             # Raise error if (i) the directory does not exists, or (ii) exists
             # but does not contain the descriptor file.
-            if not os.path.isdir(basedir) or not exists_descriptorfile:
+            if not os.path.isdir(basedir):
+                raise ValueError('archive manager does not exist')
+            elif os.listdir(basedir) and not exists_descriptorfile:
                 raise ValueError('archive manager does not exist')
         self.basedir = util.createdir(basedir)
         # Initialize the internal cache of archive descriptors

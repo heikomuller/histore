@@ -40,16 +40,17 @@ def init_manager(basedir):
     if os.path.isdir(basedir):
         if os.listdir(basedir):
             click.echo('Not an empty directory {}.'.format(basedir))
-            sys.exit(0)
+            sys.exit(-1)
     # Create instance of persistent archive manager to setup directories and
     # files.
     PersistentArchiveManager(basedir=basedir, exists=False)
+    click.echo("Initialized in {}.".format(os.path.abspath(basedir)))
 
 
 # -- Create command group -----------------------------------------------------
 
 @click.group()
-def cli():
+def cli():  # pragma: no cover
     """Command line interface for HISTORE archive manager."""
     pass
 

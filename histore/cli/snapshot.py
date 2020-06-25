@@ -12,14 +12,11 @@ file system.
 import csv
 import click
 import pandas as pd
+import sys
 
 from histore.cli.archive import get_manager
 
 import histore.util as util
-
-
-"""Datetime format string."""
-DTF = '%Y-%m-%d %H:%M:%S'
 
 
 # -- Create a new archive -----------------------------------------------------
@@ -70,7 +67,7 @@ def commit_snapshot(
     store = get_archive(basedir, archive)
     if store is None:
         click.echo("Unknown archive '{}'".format(archive))
-        return
+        sys.exit(-1)
     # Read the data frame.
     df = pd.read_csv(
         filename,
@@ -79,11 +76,8 @@ def commit_snapshot(
         quoting=csv.QUOTE_MINIMAL,
         compression='gzip' if gzip else None
     )
-    try:
-        s = store.commit(df, description=comment)
-        click.echo('Snapshot {} created.'.format(s.version))
-    except ValueError as ex:
-        click.echo('{}'.format(ex))
+    s = store.commit(df, description=comment)
+    click.echo('Snapshot {} created.'.format(s.version))
 
 
 # -- Checkout snapshot --------------------------------------------------------
@@ -134,20 +128,17 @@ def checkout_snapshot(
     store = get_archive(basedir, archive)
     if store is None:
         click.echo("Unknown archive '{}'".format(archive))
-        return
+        sys.exit(-1)
     # Read the snapshot data frame.
-    try:
-        df = store.checkout(version=version)
-        df.to_csv(
-            filename,
-            sep=get_delimiter(delimiter),
-            quotechar=quotechar if quotechar is not None else '"',
-            quoting=csv.QUOTE_MINIMAL,
-            compression='gzip' if gzip else None,
-            index=False
-        )
-    except ValueError as ex:
-        click.echo('{}'.format(ex))
+    df = store.checkout(version=version)
+    df.to_csv(
+        filename,
+        sep=get_delimiter(delimiter),
+        quotechar=quotechar if quotechar is not None else '"',
+        quoting=csv.QUOTE_MINIMAL,
+        compression='gzip' if gzip else None,
+        index=False
+    )
 
 
 # -- List snapshots -----------------------------------------------------------
@@ -168,7 +159,7 @@ def list_snapshots(basedir, archive):
     store = get_archive(basedir, archive)
     if store is None:
         click.echo("Unknown archive '{}'".format(archive))
-        return
+        sys.exit(-1)
     for s in store.snapshots():
         click.echo('{}\t{}\t{}'.format(
             s.version,

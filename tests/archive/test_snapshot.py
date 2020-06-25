@@ -24,6 +24,7 @@ def test_append_snapshots():
     assert snapshots.last_snapshot() is not None
     s = snapshots.last_snapshot()
     assert s.version == 0
+    assert str(s).startswith('<Snapshot')
     snapshots = snapshots.append(description='some text')
     s = snapshots.last_snapshot()
     assert s.version == 1
@@ -69,11 +70,14 @@ def test_snapshot_listing():
     assert s.version == 0
     s = listing.at_time(util.to_datetime('2020-05-10'))
     assert s.version == 2
-    # Error cases
+    # Empty listing returns None for any time
+    assert SnapshotListing().at_time(util.to_datetime('2020-04-01')) is None
+    # Error case for snapshots with invalid 'vaid_time' order
     with pytest.raises(ValueError):
         SnapshotListing(snapshots=[s1, s3, s2])
     s1 = Snapshot(version=0, valid_time=util.to_datetime('2020-05-01'))
     s2 = Snapshot(version=1, valid_time=util.to_datetime('2020-05-03'))
     s3 = Snapshot(version=2, valid_time=util.to_datetime('2020-05-02'))
+    # Error case for snapshots with invalid 'vaid_time'
     with pytest.raises(ValueError):
         SnapshotListing(snapshots=[s1, s2, s3])
