@@ -20,6 +20,7 @@ DESCRIPTOR_SCHEMA = {
     'type': 'object',
     'properties': {
         'id': {'type': 'string'},
+        'createdAt': {'type': 'string'},
         'name': {'type': 'string'},
         'description': {'type': 'string'},
         'primaryKey': {
@@ -29,7 +30,7 @@ DESCRIPTOR_SCHEMA = {
         'encoder': {'type': 'string'},
         'decoder': {'type': 'string'}
     },
-    'required': ['id']
+    'required': ['id', 'createdAt']
 }
 
 
@@ -91,7 +92,7 @@ class ArchiveDescriptor(object):
         # Create a unique identifier for the new archive.
         identifier = util.get_unique_identifier()
         # Create the archive descriptor.
-        doc = {'id': identifier}
+        doc = {'id': identifier, 'createdAt': util.utc_now().isoformat()}
         if name is not None:
             doc['name'] = name
         if description is not None:
@@ -103,6 +104,15 @@ class ArchiveDescriptor(object):
         if decoder is not None:
             doc['decoder'] = decoder
         return ArchiveDescriptor(doc)
+
+    def created_at(self):
+        """Get creating timestamp for the archive.
+
+        Returns
+        -------
+        datetime.datetime
+        """
+        return util.to_datetime(self.doc.get('createdAt'))
 
     def decoder(self):
         """Get package path for Json decoder used by persistent archives.
@@ -159,3 +169,13 @@ class ArchiveDescriptor(object):
         list(string)
         """
         return self.doc.get('primaryKey')
+
+    def rename(self, name):
+        """Update the name of the archive.
+
+        Parameters
+        ----------
+        name: string
+            New archive name.
+        """
+        self.doc['name'] = name

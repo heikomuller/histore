@@ -17,3 +17,4 @@
 * Proper handling of date/time objects by the default archive reader and writer
 * Optional arguments for Json encoder and decoder for persistent archives
 * Add encoder and decoder information to archive manager metadata
+* Simple command-line interface for persistent archive manager

@@ -101,5 +101,6 @@ ENV/
 # mypy
 .mypy_cache/
 
-# Example archive files
+# Ignore application and data files and folders
 data/nyc-open-data/y43c-5n92/archive/
+.histore/

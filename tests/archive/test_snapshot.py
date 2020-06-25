@@ -40,6 +40,7 @@ def test_create_snapshot_descriptor():
     assert s.version == 0
     assert s.valid_time == util.to_datetime('2020-05-01')
     assert s.transaction_time is not None
+    assert s.transaction_time == s.created_at
     assert s.description == ''
     s = Snapshot(
         version=0,

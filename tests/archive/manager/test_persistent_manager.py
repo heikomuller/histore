@@ -43,7 +43,7 @@ def test_persistent_archive_manager(tmpdir):
         manager.get('unknown')
     # Reload the archive manager.
     os.environ[config.ENV_HISTORE_BASEDIR] = str(tmpdir)
-    manager = PersistentArchiveManager()
+    manager = PersistentArchiveManager(exists=True)
     assert len(manager.archives()) == 1
     archive = manager.get(descriptor.identifier())
     assert archive is not None
@@ -56,6 +56,12 @@ def test_persistent_archive_manager(tmpdir):
         manager.get(descriptor.identifier())
     # Cleanup the environment
     del os.environ[config.ENV_HISTORE_BASEDIR]
+    # Error case when using the exist flag.
+    with pytest.raises(ValueError):
+        PersistentArchiveManager(
+            basedir=os.path.join(str(tmpdir), 'ABC'),
+            exists=True
+        )
 
 
 def test_default_json_encoder(tmpdir):
