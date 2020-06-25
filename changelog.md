@@ -12,7 +12,7 @@
 * Add managers for maintaining sets of archives
 
 
-### 0.1.2 - ???
+### 0.1.2 - 06-25-2020
 
 * Proper handling of date/time objects by the default archive reader and writer
 * Optional arguments for Json encoder and decoder for persistent archives
