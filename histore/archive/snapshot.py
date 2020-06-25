@@ -53,6 +53,16 @@ class Snapshot(object):
             str(util.to_localtime(self.transaction_time))
         )
 
+    @property
+    def created_at(self):
+        """Shortcut for transaction timestamp.
+
+        Returns
+        -------
+        datetime.datetime
+        """
+        return self.transaction_time
+
 
 class SnapshotListing(object):
     """Listing of snapshot descriptors for snapshots in an archive. Ensures

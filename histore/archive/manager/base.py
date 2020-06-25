@@ -23,7 +23,7 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
 
         Returns
         -------
-        dict
+        dict(string: histore.archive.manager.descriptor.ArchiveDescriptor)
         """
         raise NotImplementedError()
 
@@ -42,7 +42,10 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         return identifier in self.archives()
 
     @abstractmethod
-    def create(self, name=None, description=None, primary_key=None):
+    def create(
+        self, name=None, description=None, primary_key=None, encoder=None,
+        decoder=None
+    ):
         """Create a new archive object.
 
         Parameters
@@ -54,6 +57,12 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         primary_key: string or list, default=None
             Column(s) that are used to generate identifier for rows in the
             archive.
+        encoder: string, default=None
+            Full package path for the Json encoder class that is used by the
+            persistent archive.
+        decoder: string, default=None
+            Full package path for the Json decoder function that is used by the
+            persistent archive.
 
         Returns
         -------
@@ -84,13 +93,31 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
 
         Returns
         -------
-        histore.archive.vase.Archive
+        histore.archive.base.Archive
 
         Raises
         ------
         ValueError
         """
         raise NotImplementedError()
+
+    def get_by_name(self, name):
+        """Get descriptor for the archive with the given name. If no archive
+        with that name exists None is returned.
+
+        Parameters
+        ----------
+        name: string
+            Archive name
+
+        Returns
+        -------
+        histore.archive.manager.descriptor.ArchiveDescriptor
+        """
+        for archive in self.archives().values():
+            if archive.name() == name:
+                return archive
+        return None
 
     def list(self):
         """Get the list of descriptors for the maintained archives.
@@ -100,3 +127,21 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         list(histore.archive.manager.descriptor.ArchiveDescriptor)
         """
         return list(self.archives().values())
+
+    @abstractmethod
+    def rename(self, identifier, name):
+        """Rename the specified archive. Raises a ValueError if the identifier
+        is unknown or if an archive with the given name exist.
+
+        Parameters
+        ----------
+        identifier: string
+            Unique archive identifier
+        name: string
+            New archive name.
+
+        Raises
+        ------
+        ValueError
+        """
+        raise NotImplementedError()

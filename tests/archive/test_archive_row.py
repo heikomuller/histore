@@ -67,6 +67,14 @@ def test_extend_archive_row():
         cells=dict(),
         timestamp=ts
     )
+    assert str(row) == '\n'.join([
+        '<ArchiveRow (',
+        '\tid=0',
+        '\tkey=0',
+        '\ttimestamp=[1]',
+        '\tpos=(0 [1])',
+        '\tvalues={})>'
+    ])
     row = row.merge(pos=1, values={1: 'A', 2: 1, 3: 'a'}, version=2)
     row = row.merge(pos=1, values={1: 'B', 2: 1, 3: 'b'}, version=3)
     row = row.extend(version=4, origin=2)
@@ -74,8 +82,15 @@ def test_extend_archive_row():
     assert pos == 1
     assert values == ['A', 1, 'a']
     row = row.extend(version=5, origin=1)
+    # Error for unknown version.
     with pytest.raises(ValueError):
-        row.at_version(version=5, columns=[1, 2, 3])
+        row.at_version(version=5, columns=[1, 2])
+    # Error for unknown column.
+    with pytest.raises(ValueError):
+        row.at_version(version=4, columns=[1, 5], raise_error=True)
+    pos, values = row.at_version(version=4, columns=[1, 5], raise_error=False)
+    assert pos == 1
+    assert values == ['A', None]
     pos, values = row.at_version(
         version=5,
         columns=[1, 2, 3],
@@ -171,6 +186,7 @@ def test_row_provenance():
         }),
         timestamp=Timestamp(intervals=TimeInterval(1, 5))
     )
+    assert row.diff(0, 0) is None
     assert row.diff(0, 1).is_insert()
     assert row.diff(5, 6).is_delete()
     prov = row.diff(1, 2)

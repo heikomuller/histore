@@ -18,7 +18,8 @@ install_requires = [
     'jsonschema>=3.2.0',
     'python-dateutil',
     'pyyaml',
-    'psutil'
+    'psutil',
+    'Click>=7.0'
 ]
 
 
@@ -73,6 +74,11 @@ setup(
     extras_require=extras_require,
     tests_require=tests_require,
     install_requires=install_requires,
+    entry_points={
+        'console_scripts': [
+            'histore = histore.cli.base:cli',
+        ]
+    },
     classifiers=[
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',

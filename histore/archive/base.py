@@ -305,7 +305,7 @@ class PersistentArchive(Archive):
     """
     def __init__(
         self, basedir, replace=False, serializer=None, compression=None,
-        primary_key=None
+        primary_key=None, encoder=None, decoder=None
     ):
         """Initialize the associated archive store and the optional primary
         key columns that are used to generate row identifier. If no primary
@@ -328,13 +328,19 @@ class PersistentArchive(Archive):
             compressed. the metadata file is always storesd as plain text.
         primary_key: string or list
             Column(s) that are used to generate identifier for snapshot rows.
+        encoder: json.JSONEncoder, default=None
+            Encoder used when writing archive rows as JSON objects to file.
+        decoder: func, default=None
+            Custom decoder function when reading archive rows from file.
         """
         super(PersistentArchive, self).__init__(
             store=ArchiveFileStore(
                 basedir=basedir,
                 replace=replace,
                 serializer=serializer,
-                compression=compression
+                compression=compression,
+                encoder=encoder,
+                decoder=decoder
             ),
             primary_key=primary_key
         )

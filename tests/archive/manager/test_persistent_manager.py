@@ -8,7 +8,10 @@
 """Unit tests for the archive descriptor."""
 
 import os
+import pandas as pd
 import pytest
+
+from datetime import datetime
 
 from histore.archive.manager.fs import PersistentArchiveManager
 
@@ -40,7 +43,7 @@ def test_persistent_archive_manager(tmpdir):
         manager.get('unknown')
     # Reload the archive manager.
     os.environ[config.ENV_HISTORE_BASEDIR] = str(tmpdir)
-    manager = PersistentArchiveManager()
+    manager = PersistentArchiveManager(exists=True)
     assert len(manager.archives()) == 1
     archive = manager.get(descriptor.identifier())
     assert archive is not None
@@ -53,3 +56,42 @@ def test_persistent_archive_manager(tmpdir):
         manager.get(descriptor.identifier())
     # Cleanup the environment
     del os.environ[config.ENV_HISTORE_BASEDIR]
+    # Error case when using the exist flag.
+    with pytest.raises(ValueError):
+        PersistentArchiveManager(
+            basedir=os.path.join(str(tmpdir), 'ABC'),
+            exists=True
+        )
+
+
+def test_default_json_encoder(tmpdir):
+    """Test persistent archives with default Json encoder."""
+    # Use the default encoder and decoder.
+    manager = PersistentArchiveManager(basedir=str(tmpdir))
+    descriptor = manager.create(name='Archive')
+    archive = manager.get(descriptor.identifier())
+    dt = datetime.now()
+    archive.commit(pd.DataFrame(data=[[dt]]))
+    df = archive.checkout()
+    assert df.shape == (1, 1)
+    assert df.iloc[0][0] == dt
+    assert isinstance(df.iloc[0][0], datetime)
+
+
+def test_custom_json_encoder(tmpdir):
+    """Test persistent archives with custom Json encoder."""
+    # Use the default encoder and decoder.
+    manager = PersistentArchiveManager(basedir=str(tmpdir))
+    descriptor = manager.create(
+        name='Archive',
+        encoder='histore.tests.encode.TestEncoder',
+        decoder='histore.tests.encode.test_decoder'
+    )
+    manager = PersistentArchiveManager(basedir=str(tmpdir))
+    archive = manager.get(descriptor.identifier())
+    dt = datetime.now()
+    archive.commit(pd.DataFrame(data=[[dt, 'A']]))
+    df = archive.checkout()
+    assert df.shape == (1, 2)
+    assert df.iloc[0][0] == dt.isoformat()
+    assert isinstance(df.iloc[0][0], str)

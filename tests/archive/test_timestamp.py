@@ -35,6 +35,11 @@ def test_interval():
     assert i1.overlap(interval=TimeInterval(start=19, end=25))
     assert i1.overlap(interval=TimeInterval(start=20, end=25))
     assert not i1.overlap(interval=TimeInterval(start=21, end=25))
+    with pytest.raises(ValueError):
+        i1.contains()
+    # String representation
+    assert str(i1) == '10-20'
+    assert str(TimeInterval(start=10)) == '10'
     # Initialize
     with pytest.raises(ValueError):
         TimeInterval(start=10, end=9)
@@ -60,6 +65,8 @@ def test_timestamp_append():
     assert t4.contains(3)
     assert not t4.contains(4)
     assert t4.contains(5)
+    with pytest.raises(ValueError):
+        t4.append(1)
 
 
 def test_timestamp_contains():

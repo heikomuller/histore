@@ -22,6 +22,14 @@ from histore.archive.serialize.default import DefaultSerializer
 import histore.util as util
 
 
+def test_invalid_label():
+    """Test error when creating a serializer with an invalid label value."""
+    s = DefaultSerializer(timestamp='ts')
+    assert s.timestamp == 'ts'
+    with pytest.raises(ValueError):
+        DefaultSerializer(timestamp='$ts')
+
+
 def test_serialize_column():
     """Test (de-)serialization of archive schema columns."""
     serializer = DefaultSerializer()
@@ -80,6 +88,15 @@ def test_serialize_snapshot():
     assert s.valid_time == snapshot.valid_time
     assert s.transaction_time == snapshot.transaction_time
     assert s.description == snapshot.description
+    # For completeness, test deserializing a snapshot object without
+    # description element.
+    snapshot.description = None
+    obj = serializer.serialize_snapshot(snapshot)
+    s = serializer.deserialize_snapshot(obj)
+    assert s.version == snapshot.version
+    assert s.valid_time == snapshot.valid_time
+    assert s.transaction_time == snapshot.transaction_time
+    assert s.description == ''
     # -- Snapshot with description --------------------------------------------
     snapshot = Snapshot(0, valid_time=vt, description='First snapshot')
     obj = serializer.serialize_snapshot(snapshot)
@@ -124,6 +141,9 @@ def test_serialize_value():
     value = serializer.deserialize_value(obj=obj, ts=ts)
     assert value.timestamp.is_equal(Timestamp(version=1))
     assert value.value == 1
+    # Error case for invalid object
+    with pytest.raises(ValueError):
+        serializer.deserialize_value(obj='A', ts=ts)
     # -- Multi-version value --------------------------------------------------
     value = SingleVersionValue(value=1, timestamp=Timestamp(version=1))
     value = value.merge(value='A', version=2)

@@ -40,7 +40,8 @@ class ArchiveFileStore(ArchiveStore):
     faster access.
     """
     def __init__(
-        self, basedir, replace=False, serializer=None, compression=None
+        self, basedir, replace=False, serializer=None, compression=None,
+        encoder=None, decoder=None
     ):
         """Initialize the archive archive components.
 
@@ -58,10 +59,16 @@ class ArchiveFileStore(ArchiveStore):
         compression: string, default=None
             String representing the compression mode. Only te data file will be
             compressed. the metadata file is always storesd as plain text.
+        encoder: json.JSONEncoder, default=None
+            Encoder used when writing archive rows as JSON objects to file.
+        decoder: func, default=None
+            Custom decoder function when reading archive rows from file.
         """
         self.basedir = util.createdir(basedir)
         self.serializer = serializer if serializer else DefaultSerializer()
         self.compression = compression
+        self.encoder = encoder
+        self.decoder = decoder
         # Initialize the file names
         self.datafile = os.path.join(self.basedir, 'rows.dat')
         self.metafile = os.path.join(self.basedir, 'metadata.dat')
@@ -151,7 +158,8 @@ class ArchiveFileStore(ArchiveStore):
         return ArchiveFileReader(
             filename=self.datafile,
             serializer=self.serializer,
-            compression=self.compression
+            compression=self.compression,
+            decoder=self.decoder
         )
 
     def get_schema(self):
@@ -186,5 +194,6 @@ class ArchiveFileStore(ArchiveStore):
             filename=self.tmpdatafile,
             row_counter=self.row_counter,
             serializer=self.serializer,
-            compression=self.compression
+            compression=self.compression,
+            encoder=self.encoder
         )

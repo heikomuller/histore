@@ -12,6 +12,9 @@ file system.
 import json
 import os
 
+from datetime import datetime
+from dateutil.parser import isoparse
+
 from histore.archive.reader import ArchiveReader
 from histore.archive.serialize.default import DefaultSerializer
 
@@ -22,7 +25,9 @@ class ArchiveFileReader(ArchiveReader):
     """Reader for rows in a dataset archive. Reads rows in ascending order of
     their identifier.
     """
-    def __init__(self, filename, serializer=None, compression=None):
+    def __init__(
+        self, filename, serializer=None, compression=None, decoder=None
+    ):
         """
         Parameters
         ----------
@@ -33,16 +38,21 @@ class ArchiveFileReader(ArchiveReader):
             serialize rows that are written to file.
         compression: string, default=None
             String representing the compression mode for the output file.
+        decoder: func, default=None
+            Custom decoder function when reading archive rows from file. If not
+            given, the default decoder will be used.
         """
         self.serializer = serializer if serializer else DefaultSerializer()
+        # Use the default decoder if None is given.
+        self.decoder = decoder if decoder is not None else default_decoder
         # The archive is empty if the given file does not exists. In this case
-        # the buffer will remain empty,
+        # the buffer will remain empty.
         self.buffer = None
         if os.path.isfile(filename):
             self.fin = util.inputstream(filename, compression=compression)
             # Read the first two lines in the output file. The first line is
             # expected to be '['. The second line is either ']' (for an empty
-            # archive) or contain the first row.
+            # archive) or it contains the first row.
             if self.fin.readline() != '[':
                 raise ValueError('invalid input file {}'.format(filename))
             self.next()
@@ -85,6 +95,36 @@ class ArchiveFileReader(ArchiveReader):
             # element.
             if line.endswith(','):
                 line = line[:-1]
-            self.buffer = self.serializer.deserialize_row(json.loads(line))
+            # Decode and deserialize the archive row object.
+            obj = json.loads(line, object_hook=self.decoder)
+            self.buffer = self.serializer.deserialize_row(obj)
         # Return the previous buffer value as the result.
         return result
+
+
+# -- Helper Functions ---------------------------------------------------------
+
+def default_decoder(obj):
+    """Default Json obkject decoder. Accounts for date types that have been
+    encoded as dictionaries.
+
+    Parameters
+    ----------
+    obj: dict
+        Json object that is being encountered by the Json reader
+
+    Returns
+    -------
+    dict
+    """
+    if '$datetime' in obj:
+        return isoparse(obj['$datetime'])
+    elif '$date' in obj:
+        return isoparse(obj['$date']).date()
+    elif '$time' in obj:
+        val = obj['$time']
+        if '.' in val:
+            return datetime.strptime(val, '%H:%M:%S.%f').time()
+        else:
+            return datetime.strptime(val, '%H:%M:%S').time()
+    return obj

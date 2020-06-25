@@ -12,6 +12,8 @@ system.
 import json
 import numpy as np
 
+from datetime import datetime, date, time
+
 from histore.key.base import KeyValue
 from histore.archive.serialize.default import DefaultSerializer
 from histore.archive.writer import ArchiveWriter
@@ -26,7 +28,8 @@ class ArchiveFileWriter(ArchiveWriter):
     and close the array.
     """
     def __init__(
-        self, filename, row_counter=0, serializer=None, compression=None
+        self, filename, row_counter=0, serializer=None, compression=None,
+        encoder=None
     ):
         """Initialize the output file, row counter, and the serializer that is
         being used.
@@ -44,10 +47,14 @@ class ArchiveFileWriter(ArchiveWriter):
             serialize rows that are written to file.
         compression: string, default=None
             String representing the compression mode for the output file.
+        encoder: json.JSONEncoder, default=None
+            Encoder used when writing archive rows as JSON objects to file.
         """
         super(ArchiveFileWriter, self).__init__(row_counter)
         # Use the default serializer if no serializer was given
         self.serializer = serializer if serializer else DefaultSerializer()
+        # Use the default JSONEncoder if no encoder is given
+        self.encoder = encoder if encoder is not None else DefaultEncoder
         # Open output file for writing.
         self.fout = util.outputstream(filename, compression=compression)
         # Write buffer to keep track of the last row that is being written.
@@ -88,7 +95,7 @@ class ArchiveFileWriter(ArchiveWriter):
         # output that row or open the output array.
         if self.buffer is not None:
             text = self.serializer.serialize_row(self.buffer)
-            line = json.dumps(text, cls=NumpyEncoder)
+            line = json.dumps(text, cls=self.encoder)
             if row is not None:
                 line += ','
         else:
@@ -100,21 +107,39 @@ class ArchiveFileWriter(ArchiveWriter):
 
 # -- Helper classes -----------------------------------------------------------
 
-class NumpyEncoder(json.JSONEncoder):
-    """Json encoder that handles numpy data types from pandas data frames.
-
-    Based on https://stackoverflow.com/questions/50916422.
+class DefaultEncoder(json.JSONEncoder):
+    """Json encoder that handles numpy data types from pandas data frames and
+    datetime objects.
     """
     def default(self, obj):
-        """Convert numpy data types to default Python types."""
+        """Convert numpy data types to default Python types Date objects are
+        converted to dictionaries using the class an label (prefixed by the
+        special character '$') and the ISO format string representation as the
+        value.
+
+        Parameters
+        ----------
+        obj: any
+            Value that is being encoded.
+
+        Returns
+        -------
+        any
+        """
         if isinstance(obj, np.integer):
             return int(obj)
         elif isinstance(obj, np.floating):
             return float(obj)
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
+        elif isinstance(obj, datetime):
+            return {'$datetime': obj.isoformat()}
+        elif isinstance(obj, date):
+            return {'$date': obj.isoformat()}
+        elif isinstance(obj, time):
+            return {'$time': obj.isoformat()}
         elif isinstance(obj, KeyValue):
             assert not obj.is_new()
             return obj.value
         else:
-            return super(NumpyEncoder, self).default(obj)
+            return super(DefaultEncoder, self).default(obj)

@@ -11,6 +11,7 @@ from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from dateutil.parser import isoparse
 from dateutil.tz import UTC
+from importlib import import_module
 
 import errno
 import gzip
@@ -66,6 +67,28 @@ def utc_now():
     datetime.datetime
     """
     return datetime.now(UTC)
+
+
+# -- Dynamic import ----------------------------------------------------------
+
+def import_obj(import_path):
+    """Import an object (function or class) from a given package path.
+
+    Parameters
+    ----------
+    import_path: string
+        Full package target path for the imported object. Assumes that path
+        components are separated by '.'.
+
+    Returns
+    -------
+    any
+    """
+    pos = import_path.rfind('.')
+    module_name = import_path[:pos]
+    class_name = import_path[pos+1:]
+    module = import_module(module_name)
+    return getattr(module, class_name)
 
 
 # -- I/O ----------------------------------------------------------------------
