@@ -1,20 +1,25 @@
 # Data Frame History Store - Changelog
 
-### 0.1.0 - 05-06-2020
+### 0.1.0 - 2020-05-06
 
 * Initial version. Support for snapshot archives in main-memory and on file system.
 
 
-### 0.1.1 - 06-16-2020
+### 0.1.1 - 2020-06-16
 
 * Allow different types of input documents (e.g., CSV files or Json)
 * External merge-sort for large CSV files.
 * Add managers for maintaining sets of archives
 
 
-### 0.1.2 - 06-25-2020
+### 0.1.2 - 2020-06-25
 
 * Proper handling of date/time objects by the default archive reader and writer
 * Optional arguments for Json encoder and decoder for persistent archives
 * Add encoder and decoder information to archive manager metadata
 * Simple command-line interface for persistent archive manager
+
+
+### 0.1.3 - 2020-09-21
+
+* Add archive manager that maintains descriptors in a relational database (\#8)

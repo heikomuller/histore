@@ -5,62 +5,69 @@
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
 
-"""Factory pattern for archives that are maintained on disk."""
+"""Manager for archives that maintains all archive metadata in a relational
+database.
+"""
 
-import json
 import os
 import shutil
 
+from sqlalchemy.exc import SQLAlchemyError
 from typing import Dict, List, Optional, Union
 
 from histore.archive.base import PersistentArchive
 from histore.archive.manager.base import ArchiveManager
+from histore.archive.manager.db.database import DB
+from histore.archive.manager.db.model import Archive, ArchiveKey
 from histore.archive.manager.descriptor import ArchiveDescriptor
 
 import histore.config as config
 import histore.util as util
 
 
-class FileSystemArchiveManager(ArchiveManager):
-    """The persistent archive manager maintains a set of archives on disk. The
-    list of archive descriptors is also maintained on disk as a Json file.
+class DBArchiveManager(ArchiveManager):
+    """The database archive manager maintains a set of archives on disk. The
+    list of archive descriptors is maintained in a relational database.
     """
     def __init__(
-        self, basedir: Optional[str] = None, create: Optional[bool] = False
+        self, basedir: Optional[str] = None, db: Optional[DB] = None,
+        create: Optional[bool] = False
     ):
         """Initialize the base directory under which all archives are stored in
-        individual sub-folders. If the base directory is not given the value
-        will be read from the environment variable HISTORE_BASEDIR or the
-        default value $HOME/.histore.
+        individual sub-folders and the database connection object for archive
+        descriptors.
 
-        Read the Json file containing the archive descriptors (if it exist).
+        If the base directory is not given the value will be read from the
+        environment variable HISTORE_BASEDIR. If the database is not given
+        the connection string will be read from the environment variable
+        HISTORE_DBCONNECT.
 
         Parameters
         ----------
-        basedir: string
+        basedir: string, default=None
             Path to dorectory on disk where archives are maintained.
+        db: histore.archive.manager.db.database.DB, default=None
+            Database connection object.
         create: bool, default=False
-            Create a fresh instance of the archive manager if True. This will
-            delete all files in the base directory.
+            Create a fresh database and delete all files in the base directory
+            if True.
         """
+        # Initialize the base directory.
         if basedir is None:
             basedir = config.BASEDIR()
         self.basedir = basedir
-        # Initialize path to file that maintains archive descriptors.
+        # Initialize the database connector.
+        if db is None:
+            db = DB(connect_url=config.DBCONNECT())
+        self.db = db
         if create:
+            # Create a fresh database instance.
+            db.init()
             # Delete the base directory if it exists.
             if os.path.isdir(self.basedir):
                 shutil.rmtree(self.basedir)
-        util.createdir(self.basedir)
-        # Initialize the internal cache of archive descriptors
-        self.descriptorfile = os.path.join(basedir, 'archives.json')
-        self._archives = dict()
-        if os.path.isfile(self.descriptorfile):
-            with open(self.descriptorfile, 'r') as f:
-                doc = json.load(f)
-            for obj in doc:
-                descriptor = ArchiveDescriptor(obj)
-                self._archives[descriptor.identifier()] = descriptor
+        # Create the base directory (if it does not exist).
+        util.createdir(basedir)
 
     def archives(self) -> Dict[str, ArchiveDescriptor]:
         """Get dictionary of archive descriptors. The returned dictionary maps
@@ -70,10 +77,14 @@ class FileSystemArchiveManager(ArchiveManager):
         -------
         dict(string: histore.archive.manager.descriptor.ArchiveDescriptor)
         """
-        return self._archives
+        archives = dict()
+        with self.db.session() as session:
+            for arch in session.query(Archive).all():
+                archives[arch.archive_id] = arch.descriptor()
+        return archives
 
     def create(
-        self, name: Optional[str] = None, description: Optional[str] = None,
+        self, name: str = None, description: Optional[str] = None,
         primary_key: Optional[Union[List[str], str]] = None,
         encoder: Optional[str] = None, decoder: Optional[str] = None
     ) -> ArchiveDescriptor:
@@ -103,23 +114,25 @@ class FileSystemArchiveManager(ArchiveManager):
         ------
         ValueError
         """
-        # Ensure that the archive name is unique.
-        if self.get_by_name(name) is not None:
-            raise ValueError("archive '{}' already exists".format(name))
-        # Create the descriptor for the new archive.
-        descriptor = ArchiveDescriptor.create(
-            name=name,
-            description=description,
-            primary_key=primary_key,
-            encoder=encoder,
-            decoder=decoder
-        )
-        identifier = descriptor.identifier()
-        primary_key = descriptor.primary_key()
-        # Write list of archive descriptors.
-        self._archives[identifier] = descriptor
-        self.write()
-        return descriptor
+        try:
+            with self.db.session() as session:
+                archive = Archive(
+                    name=name,
+                    description=description,
+                    encoder=encoder,
+                    decoder=decoder
+                )
+                if primary_key is not None:
+                    if isinstance(primary_key, str):
+                        primary_key = [primary_key]
+                    for pos, colname in enumerate(primary_key):
+                        key = ArchiveKey(name=colname, pos=pos)
+                        archive.keyspec.append(key)
+                session.add(archive)
+                session.commit()
+                return archive.descriptor()
+        except SQLAlchemyError as ex:
+            raise ValueError(ex)
 
     def delete(self, identifier: str):
         """Delete the archive with the given identifier.
@@ -129,12 +142,19 @@ class FileSystemArchiveManager(ArchiveManager):
         identifier: string
             Unique archive identifier
         """
-        if self.contains(identifier):
+        with self.db.session() as session:
+            # Query database to ensure that the archive exists.
+            archive = session\
+                .query(Archive)\
+                .filter(Archive.archive_id == identifier)\
+                .one_or_none()
+            if archive is None:
+                return
+            # Remove the archive base directory and the entry in the database.
             archdir = os.path.join(self.basedir, identifier)
             if os.path.isdir(archdir):
                 shutil.rmtree(archdir)
-            del self._archives[identifier]
-            self.write()
+            session.delete(archive)
 
     def get(self, identifier: str) -> PersistentArchive:
         """Get the archive that is associated with the given identifier. Raises
@@ -153,9 +173,16 @@ class FileSystemArchiveManager(ArchiveManager):
         ------
         ValueError
         """
-        desc = self._archives.get(identifier)
-        if desc is None:
-            raise ValueError('unknown archive {}'.format(identifier))
+        with self.db.session() as session:
+            # Query database to ensure that the archive exists.
+            archive = session\
+                .query(Archive)\
+                .filter(Archive.archive_id == identifier)\
+                .one_or_none()
+            if archive is None:
+                raise ValueError('unknown archive {}'.format(identifier))
+            # Get the archive descriptor and close the database connection.
+            desc = archive.descriptor()
         archdir = os.path.join(self.basedir, identifier)
         primary_key = desc.primary_key()
         # Load JSONEncoder class if encoder is contained in the descriptor.
@@ -191,21 +218,16 @@ class FileSystemArchiveManager(ArchiveManager):
         ------
         ValueError
         """
-        archive = self._archives.get(identifier)
-        if archive is None:
-            raise ValueError("unknown archive '{}''".format(identifier))
-        if archive.name() == name:
-            # Do nothing if the archive name matches the new name.
-            return
-        # Raise an error if another archive with the new name exists.
-        # Ensure that the archive name is unique.
-        if self.get_by_name(name) is not None:
-            raise ValueError("archive '{}' already exists".format(name))
-        archive.rename(name)
-        # Write list of archive descriptors.
-        self.write()
-
-    def write(self):
-        """Write the current descriptor set to file."""
-        with open(self.descriptorfile, 'w') as f:
-            json.dump([d.doc for d in self._archives.values()], f)
+        try:
+            with self.db.session() as session:
+                # Query database to ensure that the archive exists.
+                archive = session\
+                    .query(Archive)\
+                    .filter(Archive.archive_id == identifier)\
+                    .one_or_none()
+                if archive is None:
+                    raise ValueError('unknown archive {}'.format(identifier))
+                # Update the archive name in the database.
+                archive.name = name
+        except SQLAlchemyError as ex:
+            raise ValueError(ex)

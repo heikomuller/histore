@@ -21,6 +21,16 @@ import uuid
 
 # -- Datetime -----------------------------------------------------------------
 
+def current_time() -> str:
+    """Get ISO format string for the current time.
+
+    Returns
+    -------
+    str
+    """
+    return utc_now().isoformat()
+
+
 def to_datetime(timestamp):
     """Converts a timestamp string in ISO format into a datatime object in
     UTC timezone.

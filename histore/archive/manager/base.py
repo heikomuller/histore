@@ -8,6 +8,10 @@
 """Abstract class for managers that maintain a set of archives."""
 
 from abc import ABCMeta, abstractmethod
+from typing import Dict, List, Optional, Union
+
+from histore.archive.base import Archive
+from histore.archive.manager.descriptor import ArchiveDescriptor
 
 
 class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
@@ -17,7 +21,7 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
     maintained in an archive descriptor.
     """
     @abstractmethod
-    def archives(self):
+    def archives(self) -> Dict[str, ArchiveDescriptor]:
         """Get dictionary of archive descriptors. The returned dictionary maps
         archive identifier to their descriptor.
 
@@ -27,7 +31,7 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         """
         raise NotImplementedError()
 
-    def contains(self, identifier):
+    def contains(self, identifier: str) -> bool:
         """Returns True if an archive with the given identifier exists.
 
         Parameters
@@ -43,9 +47,10 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
 
     @abstractmethod
     def create(
-        self, name=None, description=None, primary_key=None, encoder=None,
-        decoder=None
-    ):
+        self, name: Optional[str] = None, description: Optional[str] = None,
+        primary_key: Optional[Union[List[str], str]] = None,
+        encoder: Optional[str] = None, decoder: Optional[str] = None
+    ) -> ArchiveDescriptor:
         """Create a new archive object.
 
         Parameters
@@ -71,7 +76,7 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         raise NotImplementedError()
 
     @abstractmethod
-    def delete(self, identifier):
+    def delete(self, identifier: str):
         """Delete the archive with the given identifier.
 
         Parameters
@@ -82,7 +87,7 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         raise NotImplementedError()
 
     @abstractmethod
-    def get(self, identifier):
+    def get(self, identifier: str) -> Archive:
         """Get the archive that is associated with the given identifier. Raises
         a ValueError if the identifier is unknown.
 
@@ -101,7 +106,7 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         """
         raise NotImplementedError()
 
-    def get_by_name(self, name):
+    def get_by_name(self, name: str) -> ArchiveDescriptor:
         """Get descriptor for the archive with the given name. If no archive
         with that name exists None is returned.
 
@@ -119,7 +124,7 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
                 return archive
         return None
 
-    def list(self):
+    def list(self) -> List[ArchiveDescriptor]:
         """Get the list of descriptors for the maintained archives.
 
         Returns
@@ -129,7 +134,7 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         return list(self.archives().values())
 
     @abstractmethod
-    def rename(self, identifier, name):
+    def rename(self, identifier: str, name: str):
         """Rename the specified archive. Raises a ValueError if the identifier
         is unknown or if an archive with the given name exist.
 
