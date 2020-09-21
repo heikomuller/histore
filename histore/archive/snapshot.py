@@ -7,6 +7,10 @@
 
 """Classes to maintain information about dataset snapshots in an archive."""
 
+from __future__ import annotations
+from datetime import datetime
+from typing import List, Optional
+
 import histore.util as util
 
 
@@ -15,7 +19,9 @@ class Snapshot(object):
     single snapshot in a dataset archive.
     """
     def __init__(
-        self, version, valid_time, transaction_time=None, description=None
+        self, version: int, valid_time: datetime,
+        transaction_time: Optional[datetime] = None,
+        description: Optional[str] = None
     ):
         """Initialize the snapshot meta-data.
 
@@ -54,7 +60,7 @@ class Snapshot(object):
         )
 
     @property
-    def created_at(self):
+    def created_at(self) -> datetime:
         """Shortcut for transaction timestamp.
 
         Returns
@@ -69,14 +75,14 @@ class SnapshotListing(object):
     that the order of snapshots reflects the order of their version numbers
     and valid times.
     """
-    def __init__(self, snapshots=None):
+    def __init__(self, snapshots: Optional[List[Snapshot]] = None):
         """Initialize the list of snapshot descriptors. Raises a ValueError if
         the order of snapshots in the list does not reflect the order of their
         version numbers and valid times.
 
         Parameters
         ----------
-        snapshots: histore.archive.snapshot.Snapshot, default=None
+        snapshots: list of histore.archive.snapshot.Snapshot, default=None
             List of snapshots descriptors for snapshots in an archive.
 
         Raises
@@ -115,19 +121,25 @@ class SnapshotListing(object):
         """
         return len(self.snapshots)
 
-    def append(self, valid_time=None, description=None):
+    def append(
+        self, version: int, valid_time: Optional[datetime] = None,
+        description: Optional[str] = None
+    ) -> SnapshotListing:
         """Add a new version to the given listing. This will return a modified
         version listing with the new snapshot as the last element.
 
-        The snapshot version will be one greater that the last version. If the
-        snapshot list is empty the first version will be zero. If the valid
-        time is not given the transaction time is used as valid time.
+        Ensures that the version identifier matches the value that is returned
+        by the next_version method. If this is not the case a ValueError will
+        be raised. If the valid time is not given the transaction time is used
+        as valid time.
 
         Raises a valueError if the new snapshot violates the order of valid
         times in the list.
 
         Parameters
         ----------
+        version: int
+            Unique version identifier for the new snapshot.
         valid_time: datetime.datetime, default=None
             Timestamp when the snapshot was first valid. A snapshot is valid
             until the valid time of the next snapshot in the archive.
@@ -142,10 +154,8 @@ class SnapshotListing(object):
         ------
         ValueError
         """
-        if not self.snapshots:
-            version = 0
-        else:
-            version = self.snapshots[-1].version + 1
+        if version != self.next_version():
+            raise ValueError("invalid version '{}'".format(version))
         transaction_time = util.utc_now()
         valid_time = valid_time if valid_time is not None else transaction_time
         s = Snapshot(
@@ -156,7 +166,7 @@ class SnapshotListing(object):
         )
         return SnapshotListing(snapshots=self.snapshots + [s])
 
-    def at_time(self, ts):
+    def at_time(self, ts: datetime) -> Snapshot:
         """Get the snapshot that was valid at the given time. A snapshot is
         considered valid starting at its valit_time until the next timestamp.
         The last snapshot in the list is considered valid until infinity.
@@ -192,7 +202,7 @@ class SnapshotListing(object):
         # The last snapshot was valid at or before the given timestamp.
         return s1
 
-    def has_version(self, version):
+    def has_version(self, version: int) -> bool:
         """Check if the given version identifier references an existing
         snapshot in the listing.
 
@@ -210,7 +220,7 @@ class SnapshotListing(object):
                 return True
         return False
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         """Shortcut to test if the list of snapshots is empty.
 
         Returns
@@ -219,7 +229,7 @@ class SnapshotListing(object):
         """
         return not self.snapshots
 
-    def last_snapshot(self):
+    def last_snapshot(self) -> Snapshot:
         """Shortcut to get the last snapshot in the list. The result is None if
         the listing is empty.
 
@@ -230,3 +240,16 @@ class SnapshotListing(object):
         if not self.snapshots:
             return None
         return self.snapshots[-1]
+
+    def next_version(self) -> int:
+        """Get the unique version identifier for the next archive version. This
+        operation should not change the internal state. It is assumed that the
+        version is used to merge a new archive snapshot. A new snapshot with
+        the returned version identifier will be commited (via the append
+        method) only if the merge is successful.
+
+        Returns
+        -------
+        int
+        """
+        return 0 if not self.snapshots else self.snapshots[-1].version + 1

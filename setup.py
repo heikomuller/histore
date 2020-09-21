@@ -14,11 +14,13 @@ from setuptools import setup, find_packages
 
 
 install_requires = [
+    'future',
     'pandas>=1.0.0',
     'jsonschema>=3.2.0',
     'python-dateutil',
     'pyyaml',
     'psutil',
+    'SQLAlchemy>=1.3.18',
     'Click>=7.0'
 ]
 
