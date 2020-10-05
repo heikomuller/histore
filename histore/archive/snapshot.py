@@ -7,7 +7,6 @@
 
 """Classes to maintain information about dataset snapshots in an archive."""
 
-from __future__ import annotations
 from datetime import datetime
 from typing import List, Optional
 
@@ -124,7 +123,7 @@ class SnapshotListing(object):
     def append(
         self, version: int, valid_time: Optional[datetime] = None,
         description: Optional[str] = None
-    ) -> SnapshotListing:
+    ):
         """Add a new version to the given listing. This will return a modified
         version listing with the new snapshot as the last element.
 

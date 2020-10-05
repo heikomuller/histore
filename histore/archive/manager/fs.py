@@ -48,9 +48,9 @@ class FileSystemArchiveManager(ArchiveManager):
         self.basedir = basedir
         # Initialize path to file that maintains archive descriptors.
         if create:
-            # Delete the base directory if it exists.
+            # Clear all files in the base directory if it exists.
             if os.path.isdir(self.basedir):
-                shutil.rmtree(self.basedir)
+                util.cleardir(self.basedir)
         util.createdir(self.basedir)
         # Initialize the internal cache of archive descriptors
         self.descriptorfile = os.path.join(basedir, 'archives.json')

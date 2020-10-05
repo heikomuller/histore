@@ -51,7 +51,8 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         primary_key: Optional[Union[List[str], str]] = None,
         encoder: Optional[str] = None, decoder: Optional[str] = None
     ) -> ArchiveDescriptor:
-        """Create a new archive object.
+        """Create a new archive object. Raises a ValueError if an archive with
+        the given name exists.
 
         Parameters
         ----------
@@ -72,6 +73,10 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         Returns
         -------
         histore.archive.manager.descriptor.ArchiveDescriptor
+
+        Raises
+        ------
+        ValueError
         """
         raise NotImplementedError()
 

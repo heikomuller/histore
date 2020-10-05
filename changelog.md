@@ -20,6 +20,6 @@
 * Simple command-line interface for persistent archive manager
 
 
-### 0.1.3 - 2020-09-21
+### 0.1.3 - 2020-10-05
 
 * Add archive manager that maintains descriptors in a relational database (\#8)

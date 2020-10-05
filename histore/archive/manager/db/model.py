@@ -23,9 +23,7 @@ Base = declarative_base()
 
 
 class Archive(Base):
-    """A workflow group associates a set of users with a workflow template. It
-    allows to define a group-specific set of parameters for the template.
-    """
+    """ORM for maintaining archive descriptors in a relational database."""
     # -- Schema ---------------------------------------------------------------
     __tablename__ = 'archive'
 

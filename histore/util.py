@@ -16,6 +16,7 @@ from importlib import import_module
 import errno
 import gzip
 import os
+import shutil
 import uuid
 
 
@@ -102,6 +103,22 @@ def import_obj(import_path):
 
 
 # -- I/O ----------------------------------------------------------------------
+
+def cleardir(directory):
+    """Remove all files in the given directory.
+
+    Parameters
+    ----------
+    directory: string
+        Path to directory that is being created.
+    """
+    for filename in os.listdir(directory):
+        file = os.path.join(directory, filename)
+        if os.path.isfile(file) or os.path.islink(file):
+            os.unlink(file)
+        elif os.path.isdir(file):
+            shutil.rmtree(file)
+
 
 def createdir(directory, abs=False):
     """Safely create the given directory path if it does not exist.

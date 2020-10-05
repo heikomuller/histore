@@ -9,8 +9,6 @@
 by an archive manager.
 """
 
-from __future__ import annotations
-
 import jsonschema
 
 from datetime import datetime
@@ -71,7 +69,7 @@ class ArchiveDescriptor(object):
         description: Optional[str] = None,
         primary_key: Optional[Union[List[str], str]] = None,
         encoder: Optional[str] = None, decoder: Optional[str] = None
-    ) -> ArchiveDescriptor:
+    ):
         """Create a new archive descriptor object.
 
         Parameters
