@@ -18,6 +18,9 @@ import json
 import os
 import shutil
 
+from datetime import datetime
+from typing import Optional
+
 from histore.archive.schema import ArchiveSchema
 from histore.archive.serialize.default import DefaultSerializer
 from histore.archive.snapshot import SnapshotListing
@@ -101,9 +104,15 @@ class ArchiveFileStore(ArchiveStore):
                 if os.path.isfile(f):
                     os.remove(f)
 
-    def commit(self, schema, writer, snapshots):
+    def commit(
+        self, schema: ArchiveSchema, writer: ArchiveFileWriter, version: int,
+        valid_time: Optional[datetime] = None,
+        description: Optional[str] = None
+    ):
         """Commit a new version of the dataset archive. The modified components
         of the archive are given as the three arguments of this method.
+
+        Returns the handle for the newly created snapshot.
 
         Parameters
         ----------
@@ -112,10 +121,24 @@ class ArchiveFileStore(ArchiveStore):
         writer: histore.archive.writer.ArchiveWriter
             Instance of the archive writer class returned by this store that
             was used to output the rows of the new archive version.
-        snapshots: histore.archive.snapshot.SnapshotListing
-            Modified list of snapshots in the new archive. The new archive
-            version is the last entry in the list.
+        version: int
+            Unique version identifier for the new snapshot.
+        valid_time: datetime.datetime, default=None
+            Timestamp when the snapshot was first valid. A snapshot is valid
+            until the valid time of the next snapshot in the archive.
+        description: string, default=None
+            Optional user-provided description for the snapshot.
+
+        Returns
+        -------
+        histore.archive.snapshot.Snapshot
         """
+        # Get an updated shapshot listing.
+        snapshots = self.snapshots.append(
+            version=version,
+            valid_time=valid_time,
+            description=description
+        )
         # Write temporary metadata file to disk (to ensure that write does not
         # raise an error).
         encoder = self.serializer
@@ -138,8 +161,10 @@ class ArchiveFileStore(ArchiveStore):
         self.schema = schema
         self.snapshots = snapshots
         self.row_counter = writer.row_counter
+        # Return handle for the new snapshot.
+        return snapshots.last_snapshot()
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         """True if the archive does not contain any snapshots yet.
 
         Returns
@@ -148,7 +173,7 @@ class ArchiveFileStore(ArchiveStore):
         """
         return self.snapshots.is_empty()
 
-    def get_reader(self):
+    def get_reader(self) -> ArchiveFileReader:
         """Get the row reader for this archive.
 
         Returns
@@ -162,7 +187,7 @@ class ArchiveFileStore(ArchiveStore):
             decoder=self.decoder
         )
 
-    def get_schema(self):
+    def get_schema(self) -> ArchiveSchema:
         """Get the schema history for the archived dataset.
 
         Returns
@@ -171,7 +196,7 @@ class ArchiveFileStore(ArchiveStore):
         """
         return self.schema
 
-    def get_snapshots(self):
+    def get_snapshots(self) -> SnapshotListing:
         """Get listing of all snapshots in the archive.
 
         Returns
@@ -180,7 +205,7 @@ class ArchiveFileStore(ArchiveStore):
         """
         return self.snapshots
 
-    def get_writer(self):
+    def get_writer(self) -> ArchiveFileWriter:
         """Get a a new archive buffer to maintain rows for a new archive
         version.
 

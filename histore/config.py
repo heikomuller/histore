@@ -17,11 +17,13 @@ import os
 """Environment variables."""
 # Base directory for all files that are created by histore components.
 ENV_HISTORE_BASEDIR = 'HISTORE_BASEDIR'
+# Database connection URL for archive manager.
+ENV_HISTORE_DBCONNECT = 'HISTORE_DBCONNECT'
 # Size of the sort buffer for CSV files that are sorted using external memory.
 ENV_HISTORE_SORTBUFFER = 'HISTORE_SORTBUFFER'
 
 
-def BASEDIR():
+def BASEDIR() -> str:
     """Get value for environment variable HISTORE_BASEDIR. The default value
     if the variable is not set is $HOME/.histore.
 
@@ -36,7 +38,18 @@ def BASEDIR():
     return value
 
 
-def SORTBUFFER():
+def DBCONNECT() -> str:
+    """Get value for environment variable HISTORE_DBCONNECT. The default value
+    for the database connector is not defined (None).
+
+    Returns
+    -------
+    string
+    """
+    return os.environ.get(ENV_HISTORE_DBCONNECT)
+
+
+def SORTBUFFER() -> float:
     """Get value for environment variable HISTORE_SORTBUFFER. The default value
     if the variable is not set is 50% of the available main-memory.
 

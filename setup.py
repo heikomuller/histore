@@ -19,6 +19,7 @@ install_requires = [
     'python-dateutil',
     'pyyaml',
     'psutil',
+    'SQLAlchemy>=1.3.18',
     'Click>=7.0'
 ]
 

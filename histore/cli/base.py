@@ -13,7 +13,7 @@ import click
 import os
 import sys
 
-from histore.archive.manager.fs import PersistentArchiveManager
+from histore import PersistentArchiveManager
 from histore.cli.archive import (
     create_archive, delete_archive, list_archives, rename_archive
 )
@@ -33,7 +33,12 @@ import histore.config as config
     type=click.Path(file_okay=False, dir_okay=True),
     help='Base directory for archive files'
 )
-def init_manager(basedir):
+@click.option(
+    '-c', '--dbconnect',
+    required=False,
+    help='Connect URL for the database'
+)
+def init_manager(basedir, dbconnect):
     """Initialize the archive manager directory."""
     # Test if the base directory exists and is empty.
     basedir = basedir if basedir is not None else config.BASEDIR()
@@ -43,7 +48,11 @@ def init_manager(basedir):
             sys.exit(-1)
     # Create instance of persistent archive manager to setup directories and
     # files.
-    PersistentArchiveManager(basedir=basedir, exists=False)
+    PersistentArchiveManager(
+        basedir=basedir,
+        dbconnect=dbconnect,
+        create=True
+    )
     click.echo("Initialized in {}.".format(os.path.abspath(basedir)))
 
 

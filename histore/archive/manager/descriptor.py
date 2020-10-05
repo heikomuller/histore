@@ -11,6 +11,9 @@ by an archive manager.
 
 import jsonschema
 
+from datetime import datetime
+from typing import Dict, List, Optional, Union
+
 import histore.util as util
 
 
@@ -38,7 +41,7 @@ class ArchiveDescriptor(object):
     """Wrapper around an archive descriptor dictionary object. This class
     provides access to descriptor property values and their defaults.
     """
-    def __init__(self, doc, validate=True):
+    def __init__(self, doc: Dict, validate: Optional[bool] = True):
         """Initialize the dictionary containing the archive descriptor.
         Validates the document against the descriptor schema if the validate
         flag is True. Raises a ValidationError if validation fails.
@@ -62,13 +65,17 @@ class ArchiveDescriptor(object):
 
     @staticmethod
     def create(
-        name=None, description=None, primary_key=None, encoder=None,
-        decoder=None
+        identifier: Optional[str] = None, name: Optional[str] = None,
+        description: Optional[str] = None,
+        primary_key: Optional[Union[List[str], str]] = None,
+        encoder: Optional[str] = None, decoder: Optional[str] = None
     ):
         """Create a new archive descriptor object.
 
         Parameters
         ----------
+        identifier: string, default=None
+            Unique archive identifier.
         name: string, default=None
             Descriptive name that is associated with the archive.
         description: string, default=None
@@ -90,9 +97,10 @@ class ArchiveDescriptor(object):
         if primary_key is not None and not isinstance(primary_key, list):
             primary_key = [primary_key]
         # Create a unique identifier for the new archive.
-        identifier = util.get_unique_identifier()
+        if identifier is None:
+            identifier = util.get_unique_identifier()
         # Create the archive descriptor.
-        doc = {'id': identifier, 'createdAt': util.utc_now().isoformat()}
+        doc = {'id': identifier, 'createdAt': util.current_time()}
         if name is not None:
             doc['name'] = name
         if description is not None:
@@ -105,7 +113,7 @@ class ArchiveDescriptor(object):
             doc['decoder'] = decoder
         return ArchiveDescriptor(doc)
 
-    def created_at(self):
+    def created_at(self) -> datetime:
         """Get creating timestamp for the archive.
 
         Returns
@@ -114,7 +122,7 @@ class ArchiveDescriptor(object):
         """
         return util.to_datetime(self.doc.get('createdAt'))
 
-    def decoder(self):
+    def decoder(self) -> str:
         """Get package path for Json decoder used by persistent archives.
 
         Returns
@@ -123,7 +131,7 @@ class ArchiveDescriptor(object):
         """
         return self.doc.get('decoder')
 
-    def description(self):
+    def description(self) -> str:
         """Get archive description. If the value is not set in the descriptor
         an empty string is returned as default.
 
@@ -133,7 +141,7 @@ class ArchiveDescriptor(object):
         """
         return self.doc.get('description', '')
 
-    def encoder(self):
+    def encoder(self) -> str:
         """Get package path for Json encoder used by persistent archives.
 
         Returns
@@ -142,7 +150,7 @@ class ArchiveDescriptor(object):
         """
         return self.doc.get('encoder')
 
-    def identifier(self):
+    def identifier(self) -> str:
         """Get the unique archive identifier value.
 
         Returns
@@ -151,7 +159,7 @@ class ArchiveDescriptor(object):
         """
         return self.doc['id']
 
-    def name(self):
+    def name(self) -> str:
         """Get the archive name. If the value is not set in the descriptor the
         identifier is returned as default.
 
@@ -161,7 +169,7 @@ class ArchiveDescriptor(object):
         """
         return self.doc.get('name', self.identifier())
 
-    def primary_key(self):
+    def primary_key(self) -> List[str]:
         """Get list of primary key attributes.
 
         Returns
@@ -170,7 +178,7 @@ class ArchiveDescriptor(object):
         """
         return self.doc.get('primaryKey')
 
-    def rename(self, name):
+    def rename(self, name: str):
         """Update the name of the archive.
 
         Parameters

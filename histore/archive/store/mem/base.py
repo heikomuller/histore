@@ -9,6 +9,9 @@
 memory. Archive information is not persisted.
 """
 
+from datetime import datetime
+from typing import Optional
+
 from histore.archive.schema import ArchiveSchema
 from histore.archive.snapshot import SnapshotListing
 from histore.archive.store.base import ArchiveStore
@@ -27,9 +30,15 @@ class VolatileArchiveStore(ArchiveStore):
         self.snapshots = SnapshotListing()
         self.row_counter = 0
 
-    def commit(self, schema, writer, snapshots):
+    def commit(
+        self, schema: ArchiveSchema, writer: ArchiveBuffer, version: int,
+        valid_time: Optional[datetime] = None,
+        description: Optional[str] = None
+    ):
         """Commit a new version of the dataset archive. The modified components
         of the archive are given as the three arguments of this method.
+
+        Returns the handle for the newly created snapshot.
 
         Parameters
         ----------
@@ -38,14 +47,30 @@ class VolatileArchiveStore(ArchiveStore):
         writer: histore.archive.writer.ArchiveWriter
             Instance of the archive writer class returned by this store that
             was used to output the rows of the new archive version.
-        snapshots: histore.archive.snapshot.SnapshotListing
-            Modified list of snapshots in the new archive. The new archive
-            version is the last entry in the list.
+        version: int
+            Unique version identifier for the new snapshot.
+        valid_time: datetime.datetime, default=None
+            Timestamp when the snapshot was first valid. A snapshot is valid
+            until the valid time of the next snapshot in the archive.
+        description: string, default=None
+            Optional user-provided description for the snapshot.
+
+        Returns
+        -------
+        histore.archive.snapshot.Snapshot
         """
+        # Get an updated shapshot listing.
+        snapshots = self.snapshots.append(
+            version=version,
+            valid_time=valid_time,
+            description=description
+        )
         self.rows = writer.rows
         self.schema = schema
         self.snapshots = snapshots
         self.row_counter = writer.row_counter
+        # Return handle for the new snapshot.
+        return snapshots.last_snapshot()
 
     def is_empty(self):
         """True if the archive does not contain any snapshots yet.
@@ -56,7 +81,7 @@ class VolatileArchiveStore(ArchiveStore):
         """
         return self.snapshots.is_empty()
 
-    def get_reader(self):
+    def get_reader(self) -> BufferedReader:
         """Get the row reader for this archive.
 
         Returns
@@ -65,7 +90,7 @@ class VolatileArchiveStore(ArchiveStore):
         """
         return BufferedReader(rows=self.rows)
 
-    def get_schema(self):
+    def get_schema(self) -> ArchiveSchema:
         """Get the schema history for the archived dataset.
 
         Returns
@@ -74,7 +99,7 @@ class VolatileArchiveStore(ArchiveStore):
         """
         return self.schema
 
-    def get_snapshots(self):
+    def get_snapshots(self) -> SnapshotListing:
         """Get listing of all snapshots in the archive.
 
         Returns
@@ -83,7 +108,7 @@ class VolatileArchiveStore(ArchiveStore):
         """
         return self.snapshots
 
-    def get_writer(self):
+    def get_writer(self) -> ArchiveBuffer:
         """Get a a new archive buffer to maintain rows for a new archive
         version.
 

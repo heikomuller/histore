@@ -181,11 +181,7 @@ class Archive(object):
                     origin = last_snapshot.version
             # Get a modified snapshot list where the last entry represents the
             # new snapshot.
-            snapshots = self.snapshots().append(
-                valid_time=valid_time,
-                description=description
-            )
-            version = snapshots.last_snapshot().version
+            version = self.snapshots().next_version()
             # Merge the new snapshot schema with the current archive schema.
             schema, matched_columns, unchanged_columns = self.schema().merge(
                 columns=doc.columns,
@@ -220,9 +216,15 @@ class Archive(object):
             # for cleanup of temporary files.
             doc.close()
         # Commit all changes to the associated archive store.
-        self.store.commit(schema=schema, writer=writer, snapshots=snapshots)
+        snapshot = self.store.commit(
+            schema=schema,
+            writer=writer,
+            version=version,
+            valid_time=valid_time,
+            description=description
+        )
         # Return descriptor for the created snapshot.
-        return snapshots.last_snapshot()
+        return snapshot
 
     def diff(self, original_version, new_version):
         """Get provenance information representing the difference between two

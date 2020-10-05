@@ -12,7 +12,10 @@ file system.
 import click
 import sys
 
-from histore.archive.manager.fs import PersistentArchiveManager
+from typing import Optional
+
+from histore import PersistentArchiveManager
+from histore.archive.manager.base import ArchiveManager
 
 import histore.config as config
 import histore.util as util
@@ -32,13 +35,18 @@ DTF = '%Y-%m-%d %H:%M:%S'
     help='Base directory for archive files'
 )
 @click.option(
+    '-c', '--dbconnect',
+    required=False,
+    help='Connect URL for the database'
+)
+@click.option(
     '-k', '--pk',
     required=False,
     type=str,
     help='Comma-separate list of primary key columns'
 )
 @click.option(
-    '-c', '--comment',
+    '-t', '--comment',
     required=False,
     type=str,
     help='Optional archive description'
@@ -56,9 +64,9 @@ DTF = '%Y-%m-%d %H:%M:%S'
     help='JSON decoder function for the new archive'
 )
 @click.argument('name')
-def create_archive(basedir, pk, comment, encoder, decoder, name):
+def create_archive(basedir, dbconnect, pk, comment, encoder, decoder, name):
     """Create a new archive."""
-    manager = get_manager(basedir)
+    manager = get_manager(basedir, dbconnect=dbconnect)
     # Split primary key if it contains ','.
     primary_key = pk.split(',') if pk is not None else None
     try:
@@ -85,15 +93,20 @@ def create_archive(basedir, pk, comment, encoder, decoder, name):
     help='Base directory for archive files'
 )
 @click.option(
+    '-c', '--dbconnect',
+    required=False,
+    help='Connect URL for the database'
+)
+@click.option(
     '-f', '--force',
     is_flag=True,
     default=False,
     help='Delete without confirmation'
 )
 @click.argument('name')
-def delete_archive(basedir, force, name):
+def delete_archive(basedir, dbconnect, force, name):
     """Delete existing archive."""
-    manager = get_manager(basedir)
+    manager = get_manager(basedir, dbconnect=dbconnect)
     for archive in manager.list():
         if archive.name() == name:
             if not force:
@@ -117,14 +130,19 @@ def delete_archive(basedir, force, name):
     help='Base directory for archive files'
 )
 @click.option(
+    '-c', '--dbconnect',
+    required=False,
+    help='Connect URL for the database'
+)
+@click.option(
     '-d', '--bydate',
     is_flag=True,
     default=False,
     help='Sort by creation date'
 )
-def list_archives(basedir, bydate):
+def list_archives(basedir, dbconnect, bydate):
     """List names of existing archives."""
-    manager = get_manager(basedir)
+    manager = get_manager(basedir, dbconnect=dbconnect)
     archives = manager.list()
     if bydate:
         archives = sorted(archives, key=lambda a: a.created_at())
@@ -151,11 +169,16 @@ def list_archives(basedir, bydate):
     type=click.Path(file_okay=False, dir_okay=True),
     help='Base directory for archive files'
 )
+@click.option(
+    '-c', '--dbconnect',
+    required=False,
+    help='Connect URL for the database'
+)
 @click.argument('oldname')
 @click.argument('newname')
-def rename_archive(basedir, oldname, newname):
+def rename_archive(basedir, dbconnect, oldname, newname):
     """Rename existing archive."""
-    manager = get_manager(basedir)
+    manager = get_manager(basedir, dbconnect=dbconnect)
     # Get archive with the old name
     archive = manager.get_by_name(oldname)
     if archive is None:
@@ -170,7 +193,9 @@ def rename_archive(basedir, oldname, newname):
 
 # -- Helper Functions ---------------------------------------------------------
 
-def get_manager(basedir):
+def get_manager(
+    basedir: str, dbconnect: Optional[str] = None
+) -> ArchiveManager:
     """Create instance of persistent archive manager assuming that it has been
     initialized before.
 
@@ -178,10 +203,16 @@ def get_manager(basedir):
     ----------
     basedir: string
         Base directory for the archive manager.
+    dbconnect: string, default=None
+        Database connect string.
 
     Returns
     -------
-    histore.archive.manager.fs.PersistentArchiveManager
+    histore.archive.manager.base.ArchiveManager
     """
     basedir = basedir if basedir is not None else config.BASEDIR()
-    return PersistentArchiveManager(basedir=basedir, exists=True)
+    return PersistentArchiveManager(
+        basedir=basedir,
+        dbconnect=dbconnect,
+        create=False
+    )

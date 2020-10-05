@@ -33,7 +33,7 @@ def test_runner(tmpdir):
 
 
 def cleanup():
-    """Clear base dire environment variable."""
+    """Clear base directory environment variable."""
     del os.environ[config.ENV_HISTORE_BASEDIR]
 
 

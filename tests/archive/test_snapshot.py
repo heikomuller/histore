@@ -19,13 +19,16 @@ def test_append_snapshots():
     snapshots = SnapshotListing()
     assert snapshots.is_empty()
     assert snapshots.last_snapshot() is None
-    snapshots = snapshots.append()
+    snapshots = snapshots.append(snapshots.next_version())
     assert not snapshots.is_empty()
     assert snapshots.last_snapshot() is not None
     s = snapshots.last_snapshot()
     assert s.version == 0
     assert str(s).startswith('<Snapshot')
-    snapshots = snapshots.append(description='some text')
+    snapshots = snapshots.append(
+        version=snapshots.next_version(),
+        description='some text'
+    )
     s = snapshots.last_snapshot()
     assert s.version == 1
     assert s.description == 'some text'

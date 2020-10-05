@@ -7,6 +7,8 @@
 
 """Manager implementation for archives that are maintained in main memory."""
 
+from typing import Dict, List, Optional, Union
+
 from histore.archive.base import Archive
 from histore.archive.manager.base import ArchiveManager
 from histore.archive.manager.descriptor import ArchiveDescriptor
@@ -22,7 +24,7 @@ class VolatileArchiveManager(ArchiveManager):
         self._archives = dict()
         self._descriptors = dict()
 
-    def archives(self):
+    def archives(self) -> Dict[str, ArchiveDescriptor]:
         """Get dictionary of archive descriptors. The returned dictionary maps
         archive identifier to their descriptor.
 
@@ -33,9 +35,10 @@ class VolatileArchiveManager(ArchiveManager):
         return self._descriptors
 
     def create(
-        self, name=None, description=None, primary_key=None, encoder=None,
-        decoder=None
-    ):
+        self, name: Optional[str] = None, description: Optional[str] = None,
+        primary_key: Optional[Union[List[str], str]] = None,
+        encoder: Optional[str] = None, decoder: Optional[str] = None
+    ) -> ArchiveDescriptor:
         """Create a new volatile archive object. Raises a ValueError if an
         archive with the given name exists.
 
@@ -78,7 +81,7 @@ class VolatileArchiveManager(ArchiveManager):
         self._descriptors[identifier] = descriptor
         return descriptor
 
-    def delete(self, identifier):
+    def delete(self, identifier: str):
         """Delete the archive with the given identifier.
 
         Parameters
@@ -90,7 +93,7 @@ class VolatileArchiveManager(ArchiveManager):
             del self._archives[identifier]
             del self._descriptors[identifier]
 
-    def get(self, identifier):
+    def get(self, identifier: str) -> Archive:
         """Get the archive that is associated with the given identifier. Raises
         a ValueError if the identifier is unknown.
 
@@ -111,7 +114,7 @@ class VolatileArchiveManager(ArchiveManager):
             raise ValueError("unknown archive '{}''".format(identifier))
         return self._archives[identifier]
 
-    def rename(self, identifier, name):
+    def rename(self, identifier: str, name: str):
         """Rename the specified archive. Raises a ValueError if the identifier
         is unknown or if an archive with the given name exist.
 
