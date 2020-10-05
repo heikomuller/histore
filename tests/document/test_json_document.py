@@ -32,6 +32,13 @@ def test_json_document_without_key():
     doc = JsonDocument(
         doc={'columns': ['Name', 'Age'], 'data': [['Bob', 23], ['Alice', 24]]}
     )
+    # -- Test schema identifier and index -------------------------------------
+    columns = dict()
+    for col in doc.columns:
+        columns[col] = (col.colid, col.colidx)
+    assert columns['Name'] == (-1, 0)
+    assert columns['Age'] == (-1, 1)
+    # -- Test row values and positions ----------------------------------------
     reader = doc.reader(schema=[Column(0, 'Name'), Column(1, 'Age')])
     keys, positions, names = list(), list(), list()
     while reader.has_next():
@@ -46,13 +53,22 @@ def test_json_document_without_key():
 
 def test_json_document_with_pk():
     """Test creating an instance of the Json document with a primary key."""
-    SCHEMA = [{'id': 1, 'name': 'Name'}, {'id': 0, 'name': 'Age'}]
     doc = JsonDocument(
         doc={
-            'columns': SCHEMA,
+            'columns': [
+                {'id': 1, 'name': 'Name'},
+                {'id': 0, 'name': 'Age'}
+            ],
             'data': [['Bob', 23], ['Alice', 24]],
             'primaryKey': ['Name']}
     )
+    # -- Test schema identifier and index -------------------------------------
+    columns = dict()
+    for col in doc.columns:
+        columns[col] = (col.colid, col.colidx)
+    assert columns['Name'] == (1, 0)
+    assert columns['Age'] == (0, 1)
+    # -- Test row values and positions ----------------------------------------
     reader = doc.reader(schema=doc.columns)
     keys, positions, names = list(), list(), list()
     while reader.has_next():

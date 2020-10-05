@@ -10,16 +10,21 @@ The column class extends the Python String class to be able to be used as a
 column value in a Pandas data frame.
 """
 
+from typing import List, Optional, Union
+
+"""Type alias for column lists."""
+Columns = Union[str, int, List[Union[int, str]]]
+
 
 class Column(str):
-    """Columns in openclean data frames are subclasses of Python strings that
+    """Columns in histore data frames are subclasses of Python strings that
     contain a unique column identifier. This implementation is based on:
     https://bytes.com/topic/python/answers/32098-my-experiences-subclassing-string
 
     The order of creation is that the __new__ method is called which returns
     the object then __init__ is called.
     """
-    def __new__(cls, colid, name, *args, **keywargs):
+    def __new__(cls, colid: int, name: str, colidx: Optional[int] = None):
         """Initialize the String object with the given column name. Ignore the
         column identifier.
 
@@ -29,10 +34,12 @@ class Column(str):
             Unique column identifier
         name: string
             Column name
+        colidx: int, default=None
+            Index position of the column in a dataset schema.
         """
         return str.__new__(cls, str(name))
 
-    def __init__(self, colid, name):
+    def __init__(self, colid: int, name: str, colidx: Optional[int] = None):
         """Initialize the unique column identifier. The column name has already
         been initialized by the __new__ method that is called prior to the
         __init__ method.
@@ -43,14 +50,17 @@ class Column(str):
             Unique column identifier
         name: string
             Column name
+        colidx: int, default=None
+            Index position of the column in a dataset schema.
         """
         self.colid = colid
+        self.colidx = colidx
 
 
 # -- Helper methods -----------------------------------------------------------
 
 
-def column_index(schema, columns):
+def column_index(schema: List[str], columns: Columns):
     """Get the list of column index positions in a given schema (list of
     column names). Columns are either specified by name or by index position.
 
@@ -63,7 +73,7 @@ def column_index(schema, columns):
     ----------
     schema: list(string)
         List of column names.
-    columns: list(int or str)
+    columns: int, str, or list(int or str)
         List of column index positions or column names.
 
     Returns

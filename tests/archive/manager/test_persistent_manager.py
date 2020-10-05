@@ -17,6 +17,7 @@ from histore.archive.manager.db.base import DBArchiveManager
 from histore.archive.manager.db.database import DB, TEST_URL
 from histore.archive.manager.fs import FileSystemArchiveManager
 from histore.archive.manager.persist import PersistentArchiveManager
+from histore.document.schema import Column
 
 import histore.config as config
 
@@ -93,6 +94,11 @@ def test_encoder_default(ManagerCls, kwargs, tmpdir):
     assert df.shape == (1, 1)
     assert df.iloc[0][0] == dt
     assert isinstance(df.iloc[0][0], datetime)
+    # DataFrane schema
+    for col in df.columns:
+        assert isinstance(col, Column)
+        assert col.colid >= 0
+        assert col.colidx >= 0
 
 
 @pytest.mark.parametrize(

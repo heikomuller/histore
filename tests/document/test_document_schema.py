@@ -32,7 +32,15 @@ def test_column_index():
 
 def test_document_columns():
     """Test creating instances of document schema columns."""
+    # -- Column without index position ----------------------------------------
     col = Column(colid=1, name='my_col')
     assert col == 'my_col'
     assert isinstance(col, str)
     assert col.colid == 1
+    assert col.colidx is None
+    # -- Column with index position -------------------------------------------
+    col = Column(colid=1, name='my_col', colidx=10)
+    assert col == 'my_col'
+    assert isinstance(col, str)
+    assert col.colid == 1
+    assert col.colidx == 10
