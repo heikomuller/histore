@@ -87,9 +87,16 @@ class JsonDocument(InMemoryDocument):
         columns = list()
         for obj in doc['columns']:
             if isinstance(obj, dict):
-                columns.append(Column(colid=obj['id'], name=obj['name']))
+                col = Column(
+                    colid=obj['id'],
+                    name=obj['name'],
+                    colidx=len(columns)
+                )
             else:
-                columns.append(obj)
+                # Assumes that the object is a scalar value (string or number)
+                # representing the column name.
+                col = Column(colid=-1, name=obj, colidx=len(columns))
+            columns.append(col)
         # Get the document rows.
         rows = doc['data']
         # Create the keys for the document rows.

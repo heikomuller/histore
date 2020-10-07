@@ -23,3 +23,8 @@
 ### 0.1.3 - 2020-10-05
 
 * Add archive manager that maintains descriptors in a relational database (\#8)
+
+
+### 0.1.4 - 2020-10-07
+
+* Add index position information to column class (\#11)
