@@ -37,7 +37,7 @@ def test_create_archive(ManagerCls, kwargs, tmpdir):
     # -- Create empty manager instance ----------------------------------------
     manager = ManagerCls(**kwargs)
     assert len(manager.archives()) == 0
-    # -- Ad first archive -----------------------------------------------------
+    # -- Add irst archive -----------------------------------------------------
     descriptor = manager.create(
         name='First archive',
         description='My first archive',
