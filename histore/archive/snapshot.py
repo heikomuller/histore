@@ -119,10 +119,7 @@ class SnapshotListing(object):
         ------
         KeyError
         """
-        for s in self.snapshots:
-            if s.version == version:
-                return s
-        raise KeyError('unknown snapshot {}'.format(version))
+        return self.get(version)
 
     def __iter__(self):
         """Make the snapshot list iterable.
@@ -222,6 +219,28 @@ class SnapshotListing(object):
             s1 = s2
         # The last snapshot was valid at or before the given timestamp.
         return s1
+
+    def get(self, version: int) -> Snapshot:
+        """Get the snapshot for a given version number. Raises a KeyError if
+        no snapshot with the given version exists.
+
+        Parameters
+        ----------
+        version: int
+            Unique version identifier for the returned snapshot.
+
+        Returns
+        -------
+        histore.archive.snapshot.Snapshot
+
+        Raises
+        ------
+        KeyError
+        """
+        for s in self.snapshots:
+            if s.version == version:
+                return s
+        raise KeyError('unknown snapshot {}'.format(version))
 
     def has_version(self, version: int) -> bool:
         """Check if the given version identifier references an existing

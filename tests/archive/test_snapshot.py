@@ -66,6 +66,7 @@ def test_snapshot_listing():
     # Get snapshots by identifier.
     for version in range(2):
         assert listing[version].version == version
+        assert listing.get(version).version == version
     # Error when accessing snapshot with unknown identifier.
     with pytest.raises(KeyError):
         listing[4]

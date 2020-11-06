@@ -32,4 +32,4 @@
 
 ### 0.1.5 - 2020-11-06
 
-* Add __getitem__ method to `SnapshotListing`
+* Add __getitem__ and get() method to `SnapshotListing`
