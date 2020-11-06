@@ -102,6 +102,28 @@ class SnapshotListing(object):
                     raise ValueError(msg.format(prev.valid_time, s.valid_time))
                 prev = s
 
+    def __getitem__(self, version: int) -> Snapshot:
+        """Get the snapshot for a given version number. Raises a KeyError if
+        no snapshot with the given version exists.
+
+        Parameters
+        ----------
+        version: int
+            Unique version identifier for the returned snapshot.
+
+        Returns
+        -------
+        histore.archive.snapshot.Snapshot
+
+        Raises
+        ------
+        KeyError
+        """
+        for s in self.snapshots:
+            if s.version == version:
+                return s
+        raise KeyError('unknown snapshot {}'.format(version))
+
     def __iter__(self):
         """Make the snapshot list iterable.
 
