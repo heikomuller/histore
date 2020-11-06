@@ -63,6 +63,13 @@ def test_snapshot_listing():
     s2 = Snapshot(version=1, valid_time=util.to_datetime('2020-05-02'))
     s3 = Snapshot(version=2, valid_time=util.to_datetime('2020-05-03'))
     listing = SnapshotListing(snapshots=[s1, s2, s3])
+    # Get snapshots by identifier.
+    for version in range(2):
+        assert listing[version].version == version
+        assert listing.get(version).version == version
+    # Error when accessing snapshot with unknown identifier.
+    with pytest.raises(KeyError):
+        listing[4]
     versions = list()
     for s in listing:
         versions.append(s.version)

@@ -28,3 +28,8 @@
 ### 0.1.4 - 2020-10-07
 
 * Add index position information to column class (\#11)
+
+
+### 0.1.5 - 2020-11-06
+
+* Add __getitem__ and get() method to `SnapshotListing`
