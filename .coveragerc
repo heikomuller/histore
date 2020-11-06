@@ -1,8 +1,0 @@
-[run]
-branch = true
-parallel = true
-source = histore
-
-[report]
-show_missing = true
-precision = 2
