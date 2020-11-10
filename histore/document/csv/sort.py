@@ -14,14 +14,17 @@ can be sorted in main-memory directly instead of writing them to disk after
 sorting.
 """
 
+from tempfile import NamedTemporaryFile as TempFile
+from typing import List, Optional, Tuple
+
 import csv
 import heapq
 import os
 import sys
 
-from tempfile import NamedTemporaryFile as TempFile
 
 from histore.document.base import Document
+from histore.document.csv.base import CSVReader
 from histore.document.mem.base import InMemoryDocument
 from histore.document.reader import DocumentReader
 from histore.document.row import DocumentRow
@@ -298,7 +301,9 @@ def mergesort(buffer, filenames, sortkey):
     return filenames[0]
 
 
-def split(reader, sortkey, buffer_size=None):
+def split(
+    reader: CSVReader, sortkey: List[int], buffer_size: Optional[float] = None
+) -> Tuple[List, List[str]]:
     """Split a CSV file into blocks of maximum size. Individual blocks are
     written to temporary files on disk. Only the final buffer is maintained in
     memory. Returns the memory buffer and the list of names for temporary files
@@ -310,7 +315,7 @@ def split(reader, sortkey, buffer_size=None):
 
     Parameters
     ----------
-    reader: csv.reader
+    reader: histore.document.csv.base.CSVReader
         CSV file reader. It is assumed that any header row has been read, i.e,
         the next row in the reader is the first data row of the CSV file.
     sortkey: list
@@ -333,7 +338,7 @@ def split(reader, sortkey, buffer_size=None):
     buffer = list()
     current_size = 0
     tmp_filenames = list()
-    for row in reader:
+    for _, row in reader:
         buffer.append(row)
         current_size += sys.getsizeof(row)
         if current_size > max_size:

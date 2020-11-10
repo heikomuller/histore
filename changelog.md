@@ -33,3 +33,9 @@
 ### 0.1.5 - 2020-11-06
 
 * Add __getitem__ and get() method to `SnapshotListing`
+
+
+### 0.2.0 - 2020-11-??
+
+* Include wrapper for CSV files
+* Commit CSV files directly to a HISTORE archive

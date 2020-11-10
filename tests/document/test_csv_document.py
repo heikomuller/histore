@@ -10,7 +10,8 @@
 import os
 import pytest
 
-from histore.document.csv.base import read_csv
+from histore.document.csv.base import CSVFile
+from histore.document.csv.read import open_document
 from histore.document.schema import Column
 from histore.tests.base import ListReader
 
@@ -21,18 +22,10 @@ GZIP_FILE = os.path.join(DIR, '../.files/etnx-8aft.tsv.gz')
 INVALID_FILE = os.path.join(DIR, '../.files/invalid.tsv')
 
 
-def test_read_csv_error():
-    """Error cases for read_csv function."""
-    with pytest.raises(ValueError):
-        read_csv(filename=GZIP_FILE, has_header=False)
-    with pytest.raises(ValueError):
-        read_csv(filename=GZIP_FILE, has_header=False, columns=0)
-
-
 def test_read_unkeyed_file():
     """Read a csv file without primary key."""
     # Compressed file.
-    doc = read_csv(filename=GZIP_FILE, delimiter='\t', compression='gzip')
+    doc = open_document(CSVFile(filename=GZIP_FILE, delim='\t', compressed=True))
     assert doc.columns == [
         'Calendar Year',
         'Gender',
@@ -74,34 +67,34 @@ def test_read_unkeyed_file():
     doc.close()
     # Override column names.
     NAMES = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7']
-    doc = read_csv(
-        filename=GZIP_FILE,
-        delimiter='\t',
-        compression='gzip',
-        columns=NAMES
+    doc = open_document(
+        CSVFile(
+            filename=GZIP_FILE,
+            delim='\t',
+            compressed=True,
+            header=NAMES
+        ),
     )
     assert doc.columns == NAMES
     schema = [Column(colid=i, name=name) for i, name in enumerate(doc.columns)]
     reader = doc.reader(schema=schema)
-    assert len(list(reader)) == 10
+    assert len(list(reader)) == 11
     # Ignore header (considered as a data row).
-    doc = read_csv(
-        filename=GZIP_FILE,
-        delimiter='\t',
-        compression='gzip',
-        has_header=False,
-        columns=NAMES
+    doc = open_document(
+        CSVFile(
+            filename=GZIP_FILE,
+            delim='\t',
+            compressed=True,
+            header=NAMES
+        )
     )
     assert doc.columns == NAMES
     schema = [Column(colid=i, name=name) for i, name in enumerate(doc.columns)]
     reader = doc.reader(schema=schema)
     assert len(list(reader)) == 11
     # -- Error cases ----------------------------------------------------------
-    # 1) Invalid compression format.
-    with pytest.raises(ValueError):
-        read_csv(filename=GZIP_FILE, compression='unknown')
     # 2) Invalid file
-    doc = read_csv(filename=INVALID_FILE, delimiter='\t')
+    doc = open_document(CSVFile(filename=INVALID_FILE, delim='\t'))
     schema = [Column(colid=i, name=name) for i, name in enumerate(doc.columns)]
     assert len(schema) == 7
     reader = doc.reader(schema=schema)
@@ -111,10 +104,12 @@ def test_read_unkeyed_file():
 
 def test_read_keyed_external_document():
     """Read a csv file with primary key that is sorted on disk."""
-    doc = read_csv(
-        filename=GZIP_FILE,
-        delimiter='\t',
-        compression='gzip',
+    doc = open_document(
+        CSVFile(
+            filename=GZIP_FILE,
+            delim='\t',
+            compressed=True
+        ),
         primary_key=['Calendar Year', 'Gender'],
         max_size=300/(1024*1024)
     )
@@ -158,9 +153,11 @@ def test_read_keyed_external_document():
     assert positions == list(range(10))[::-1]
     doc.close()
     # Invalid document.
-    doc = read_csv(
-        filename=INVALID_FILE,
-        delimiter='\t',
+    doc = open_document(
+        CSVFile(
+            filename=INVALID_FILE,
+            delim='\t'
+        ),
         primary_key=['Calendar Year'],
         max_size=1/(1024*1024)
     )
@@ -182,10 +179,12 @@ def test_read_keyed_external_document():
 
 def test_read_keyed_mem_document():
     """Read a csv file with primary key that fits in main-memory."""
-    doc = read_csv(
-        filename=GZIP_FILE,
-        delimiter='\t',
-        compression='gzip',
+    doc = open_document(
+        CSVFile(
+            filename=GZIP_FILE,
+            delim='\t',
+            compressed='gzip'
+        ),
         primary_key=['Calendar Year', 'Gender']
     )
     assert doc.columns == [

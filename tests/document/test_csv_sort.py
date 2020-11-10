@@ -8,8 +8,9 @@
 """Unit test for sorting CSV documents."""
 
 import csv
-import gzip
 import os
+
+from histore.document.csv.base import CSVFile
 
 import histore.config as config
 import histore.document.csv.sort as sort
@@ -24,21 +25,17 @@ def test_split_file():
     """Test splitting a csv file into blocks."""
     # Document fits into main memory.
     PK = [0, 1]
-    with gzip.open(DATAFILE, 'rt') as f:
-        reader = csv.reader(f, delimiter='\t')
-        next(reader)
+    with CSVFile(DATAFILE).open() as reader:
         buffer, filenames = sort.split(reader, sortkey=PK, buffer_size=1)
-        assert len(buffer) == 10
-        assert len(filenames) == 0
+    assert len(buffer) == 10
+    assert len(filenames) == 0
     # Split the file into blocks of two rows each.
     os.environ[config.ENV_HISTORE_SORTBUFFER] = str(200/(1024*1024))
-    with gzip.open(DATAFILE, 'rt') as f:
-        reader = csv.reader(f, delimiter='\t')
-        next(reader)
+    with CSVFile(DATAFILE).open() as reader:
         buffer, filenames = sort.split(reader, sortkey=PK)
-        assert len(buffer) == 0
-        assert len(filenames) == 5
-        fout = sort.mergesort(buffer=buffer, filenames=filenames, sortkey=PK)
+    assert len(buffer) == 0
+    assert len(filenames) == 5
+    fout = sort.mergesort(buffer=buffer, filenames=filenames, sortkey=PK)
     validate_sorted(fout)
     # Cleanup
     for f in filenames:
@@ -48,17 +45,11 @@ def test_split_file():
             os.remove(f)
     del os.environ[config.ENV_HISTORE_SORTBUFFER]
     # Split into three files with one row in the buffer.
-    with gzip.open(DATAFILE, 'rt') as f:
-        reader = csv.reader(f, delimiter='\t')
-        next(reader)
-        buffer, filenames = sort.split(
-            reader,
-            sortkey=PK,
-            buffer_size=300/(1024*1024)
-        )
-        assert len(buffer) == 1
-        assert len(filenames) == 3
-        fout = sort.mergesort(buffer=buffer, filenames=filenames, sortkey=PK)
+    with CSVFile(DATAFILE).open() as reader:
+        buffer, filenames = sort.split(reader, sortkey=PK, buffer_size=300/(1024*1024))
+    assert len(buffer) == 1
+    assert len(filenames) == 3
+    fout = sort.mergesort(buffer=buffer, filenames=filenames, sortkey=PK)
     validate_sorted(fout)
     # Cleanup
     os.remove(fout)
