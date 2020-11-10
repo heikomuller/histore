@@ -15,7 +15,7 @@ from abc import ABCMeta, abstractmethod
 class ProvDescriptor(metaclass=ABCMeta):
     """Abstract provenance summary printer."""
     @abstractmethod
-    def describe(self, provenance):
+    def describe(self, provenance):  # pragma: no cover
         """Print summary of the maintained provenance information."""
         raise NotImplementedError()
 

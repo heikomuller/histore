@@ -109,6 +109,24 @@ def test_skip_lines():
     assert rows[0] == ['No Parking, Standing, Stopping', 'BROOKLYN', 'BROOKLYN', 'EBONY COURT']
 
 
+def test_write_file(tmpdir):
+    """Test writing CSV file."""
+    filename = os.path.join(tmpdir, 'myfile.csv')
+    file = CSVFile(filename, write=True)
+    writer = file.write(header=['A', 'B'])
+    writer.write([1, 2])
+    writer.close()
+    # Calling close a second time has no effect.
+    writer.close()
+    file = CSVFile(filename)
+    assert file.columns == ['A', 'B']
+    reader = file.open()
+    assert next(reader) == (0, ['1', '2'])
+    reader.close()
+    # Ensure that closing a reader multiple times has no effect.
+    reader.close()
+
+
 # -- Helper Funcitons ---------------------------------------------------------
 
 def read_file(file):

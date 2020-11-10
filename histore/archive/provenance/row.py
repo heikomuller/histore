@@ -54,7 +54,7 @@ class UpdateRow(prov.ProvOp):
         key: scalar or tuple
             Unique row key.
         cells: dict, default=None
-            Dictionaty mapping column identifier to changed cell values.
+            Dictionary mapping column identifier to changed cell values.
         position: histore.archive.provenance.value.UpdateValue, default=None
             Updated value representing the old and new position of the row in
             the dataset.
