@@ -9,9 +9,11 @@
 
 import os
 import pandas as pd
+import pytest
 
 from histore.archive.base import PersistentArchive
 from histore.archive.timestamp import Timestamp, TimeInterval
+from histore.document.csv.base import CSVFile
 
 
 DIR = os.path.dirname(os.path.realpath(__file__))
@@ -67,15 +69,22 @@ def test_persistent_archive(tmpdir):
     assert sorted([v.value for v in rows[0].cells[1].values]) == [32, 33]
 
 
-def test_watershed_archive(tmpdir):
+@pytest.mark.parametrize(
+    'doc',
+    [
+        pd.read_csv(WATERSHED_1, compression='gzip', delimiter='\t'),
+        CSVFile(WATERSHED_1),
+        WATERSHED_1
+    ]
+)
+def test_watershed_archive(doc, tmpdir):
     """Test merging snapshots of the NYC Watershed data into an archive."""
     archive = PersistentArchive(
         basedir=str(tmpdir),
         primary_key=['Site', 'Date'],
         replace=False
     )
-    df = pd.read_csv(WATERSHED_1, compression='gzip', delimiter='\t')
-    s = archive.commit(df)
+    s = archive.commit(doc)
     diff = archive.diff(s.version - 1, s.version)
     assert len(diff.schema().insert()) == 10
     assert len(diff.rows().insert()) == 1793
@@ -85,7 +94,7 @@ def test_watershed_archive(tmpdir):
         primary_key=['Site', 'Date'],
         replace=False
     )
-    s = archive.commit(df)
+    s = archive.commit(doc)
     diff = archive.diff(s.version - 1, s.version)
     assert len(diff.schema().insert()) == 0
     assert len(diff.rows().insert()) == 0

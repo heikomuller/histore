@@ -116,7 +116,7 @@ def cleardir(directory):
         file = os.path.join(directory, filename)
         if os.path.isfile(file) or os.path.islink(file):
             os.unlink(file)
-        elif os.path.isdir(file):
+        else:
             shutil.rmtree(file)
 
 
