@@ -33,9 +33,15 @@ def test_column_provenance():
         version=2,
         origin=1
     )
+    # Updated column provenance
     prov = schema.columns[0].diff(0, 1)
     assert prov.updated_name() is None
     assert prov.updated_position() is not None
     prov = schema.columns[1].diff(1, 2)
     assert prov.updated_name().values() == ('Age', 'Height')
     assert prov.updated_position().values() == (0, 1)
+    # Deleted column provenance
+    prov = schema.columns[2].diff(1, 2)
+    assert prov.is_delete()
+    assert prov.key == 2
+    assert schema.columns[2].diff(2, 3) is None
