@@ -6,4 +6,4 @@
 # file LICENSE for full license details.
 
 """Code version information for histore."""
-__version__ = '0.1.5'
+__version__ = '0.2.0'
