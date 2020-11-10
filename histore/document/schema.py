@@ -57,14 +57,13 @@ class Column(str):
 
 
 """Type alias for column lists."""
-Columns = Union[str, int, List[Union[int, str]]]
-# Column names are strings or column objects.
-ColumnName = Union[str, Column]
-# Reference to a column in a data frame schema. Columns can be referenced by
+# Reference to a column in a dataset schema. Columns can be referenced by
 # their name or index position in the dataset schema.
-ColumnRef = Union[int, str, Column]
+ColumnRef = Union[int, str]
+# Reference to one or more columns in a dataset schema.
+Columns = Union[ColumnRef, List[ColumnRef]]
 # The schema of a dataset is a list of column names.
-Schema = List[ColumnName]
+Schema = List[str]
 
 
 # -- Helper methods -----------------------------------------------------------
