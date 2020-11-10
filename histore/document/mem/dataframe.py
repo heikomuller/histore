@@ -96,5 +96,5 @@ def row_stream(df):
     -------
     pd.Series
     """
-    for _, values in df.iterrows():
-        yield values
+    for i in range(len(df.index)):
+        yield df.iloc[i]

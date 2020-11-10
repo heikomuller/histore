@@ -10,7 +10,68 @@ committed to an archive.
 """
 
 from abc import ABCMeta, abstractmethod
+from typing import Iterator, List, Tuple, Union
 
+from histore.document.schema import Schema
+
+
+"""Type aliases."""
+# Primary key of a dataset.
+PrimaryKey = Union[str, List[str]]
+
+
+# -- Input reader -------------------------------------------------------------
+
+class DataIterator(metaclass=ABCMeta):
+    """Abstract class for iterators over rows in a data frame. Data frame
+    iterators are also context managers and iterators. Therefore, in addition
+    to the header method, implementations are expected to implement (i) the
+    __enter__ and __exit__ methods for a context manager, and (ii) the __iter__
+    and __next__ method for Python iterators.
+    """
+    pass
+
+
+class DataReader(metaclass=ABCMeta):
+    """Reader for data streams. Provides the functionality to open the stream
+    for reading. Dataset reader should be able to read the same dataset
+    multiple times.
+    """
+    def __init__(self, columns: Schema):
+        """Initialize the schema for the rows in this data stream iterator.
+
+        Parameters
+        ----------
+        columns: list of string
+            Schema for data stream rows.
+        """
+        self.columns = columns
+
+    def iterrows(self) -> Iterator[Tuple[int, List]]:
+        """Simulate the iterrows() function of a pandas DataFrame as it is used
+        in openclean. Returns an iterator that yields pairs of row identifier
+        and value list for each row in the streamed data frame.
+
+        Returns
+        -------
+        iterator
+        """
+        with self.open() as f:
+            for rowid, row in f:
+                yield rowid, row
+
+    @abstractmethod
+    def open(self) -> DataIterator:
+        """Open the data stream to get a iterator for the rows in the dataset.
+
+        Returns
+        -------
+        openclean.data.stream.base.DatasetIterator
+        """
+        raise NotImplementedError()  # pragma: no cover
+
+
+# -- Input Documents ----------------------------------------------------------
 
 class Document(metaclass=ABCMeta):
     """The document interface provides access to a document reader. The reader
@@ -34,8 +95,8 @@ class Document(metaclass=ABCMeta):
 
     @abstractmethod
     def close(self):  # pragma: no cover
-        """Signal that the archive merge is done reading the document. Any
-        resources (e.g., temporary files) that were created for the document
+        """Signal that the archive merger is done with reading the document.
+        Any resources that were created by the document (e.g., temporary files)
         can be released.
         """
         raise NotImplementedError()

@@ -7,16 +7,28 @@
 
 """Archives are collections of snapshots of an evolving dataset."""
 
+from datetime import datetime
+from typing import Dict, Optional, Union
+
 import pandas as pd
 
 from histore.archive.provenance.archive import SnapshotDiff
-from histore.archive.reader import RowPositionReader
-from histore.archive.schema import MATCH_ID, MATCH_IDNAME
+from histore.archive.reader import ArchiveReader, RowPositionReader
+from histore.archive.schema import ArchiveSchema, MATCH_ID, MATCH_IDNAME
+from histore.archive.snapshot import SnapshotListing
+from histore.archive.store.base import ArchiveStore
 from histore.archive.store.fs.base import ArchiveFileStore
 from histore.archive.store.mem.base import VolatileArchiveStore
+from histore.document.base import Document, PrimaryKey
+from histore.document.csv.base import CSVFile
+from histore.document.csv.read import open_document
 from histore.document.mem.dataframe import DataFrameDocument
 
 import histore.archive.merge as nested_merge
+
+
+"""Type aliases for archive API methods."""
+InputDocument = Union[pd.DataFrame, CSVFile, str]
 
 
 class Archive(object):
@@ -28,7 +40,9 @@ class Archive(object):
     archive object does not have to deal with the different ways in which
     archives are managed by different systems.
     """
-    def __init__(self, store=None, primary_key=None):
+    def __init__(
+        self, store: Optional[ArchiveStore] = None, primary_key: Optional[PrimaryKey] = None
+    ):
         """Initialize the associated archive store and the optional primary
         key columns that are used to generate row identifier. If no primary
         key is specified the row index for committed document is used to
@@ -45,7 +59,7 @@ class Archive(object):
         self.primary_key = primary_key
         self.store = store if store is not None else VolatileArchiveStore()
 
-    def checkout(self, version=None):
+    def checkout(self, version: Optional[int] = None) -> pd.DataFrame:
         """Access a dataset snapshot in the archive. Retrieves the datset that
         was commited with the given version identifier. Raises an error if the
         version identifier is unknown. If no version identifier is given the
@@ -91,8 +105,10 @@ class Archive(object):
         return pd.DataFrame(data=data, index=rowindex, columns=columns)
 
     def commit(
-        self, doc, description=None, valid_time=None, matching=MATCH_IDNAME,
-        renamed=None, renamed_to=True, partial=False, origin=None
+        self, doc: InputDocument, description: Optional[str] = None,
+        valid_time: Optional[datetime] = None, matching: Optional[str] = MATCH_IDNAME,
+        renamed: Optional[Dict] = None, renamed_to: Optional[bool] = True,
+        partial: Optional[bool] = False, origin: Optional[int] = None
     ):
         """Commit a new snapshot to the dataset archive. The given document
         represents the dataset snapshot that is being merged into the archive.
@@ -116,9 +132,10 @@ class Archive(object):
 
         Parameters
         ----------
-        doc: histore.document.base.Document
-            Data frame representing the dataset snapshot that is being merged
-            into the archive.
+        doc: histore.document.base.Document, pd.DataFrame,
+                histore.document.csv.base.CSVFile, or string
+            Input document representing the dataset snapshot that is being
+            merged into the archive.
         description: string, default=None
             Optional user-provided description for the snapshot.
         valid_time: datetime.datetime
@@ -167,11 +184,9 @@ class Archive(object):
         # Ensure that partial is not set for an empty archive.
         if partial and self.is_empty():
             raise ValueError('merge partial snapshot into empty archive')
-        # If the given document is a pandas DataFrame we need to wrap it in
-        # the appropriate document class. The document type depends on how row
-        # keys are generated.
-        if isinstance(doc, pd.DataFrame):
-            doc = DataFrameDocument(df=doc, primary_key=self.primary_key)
+        # Documents may optionally be specified as data frames or CSV files.
+        # Ensure that we have an instance of the Document class.
+        doc = to_document(doc=doc, primary_key=self.primary_key)
         try:
             # Use the last commited version as origin if matching columns by
             # name or if a partial document is commited and origin is None.
@@ -226,7 +241,7 @@ class Archive(object):
         # Return descriptor for the created snapshot.
         return snapshot
 
-    def diff(self, original_version, new_version):
+    def diff(self, original_version: int, new_version: int) -> SnapshotDiff:
         """Get provenance information representing the difference between two
         dataset snapshots.
 
@@ -261,7 +276,7 @@ class Archive(object):
             row_count += 1
         return prov
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         """True if the archive does not contain any snapshots yet.
 
         Returns
@@ -270,7 +285,7 @@ class Archive(object):
         """
         return self.store.is_empty()
 
-    def reader(self):
+    def reader(self) -> ArchiveReader:
         """Get the row reader for this archive.
 
         Returns
@@ -279,7 +294,7 @@ class Archive(object):
         """
         return self.store.get_reader()
 
-    def schema(self):
+    def schema(self) -> ArchiveSchema:
         """Get the schema history for the archived dataset.
 
         Returns
@@ -288,7 +303,7 @@ class Archive(object):
         """
         return self.store.get_schema()
 
-    def snapshots(self):
+    def snapshots(self) -> SnapshotListing:
         """Get listing of all snapshots in the archive.
 
         Returns
@@ -346,3 +361,33 @@ class PersistentArchive(Archive):
             ),
             primary_key=primary_key
         )
+
+
+# -- Helper Functions ---------------------------------------------------------
+
+def to_document(doc: InputDocument, primary_key: Optional[PrimaryKey] = None) -> Document:
+    """Ensure that a given document object is an instance of class Document.
+    Inputs may alternatively be specified as pandas data frames or CSV files.
+
+    Parameters
+    ----------
+    doc: histore.document.base.Document, pd.DataFrame,
+            histore.document.csv.base.CSVFile, or string
+        Input document representing a dataset snapshot.
+    primary_key: string or list, default=None
+        Optional primary key columns for the document.
+
+    Returns
+    -------
+    histore.document.base.Document
+    """
+    if isinstance(doc, pd.DataFrame):
+        # If the given document is a pandas DataFrame we need to wrap it in
+        # the appropriate document class. The document type depends on how row
+        # keys are generated.
+        return DataFrameDocument(df=doc, primary_key=primary_key)
+    elif isinstance(doc, CSVFile):
+        return open_document(file=doc, primary_key=primary_key)
+    elif isinstance(doc, str):
+        return open_document(file=CSVFile(doc), primary_key=primary_key)
+    return doc
