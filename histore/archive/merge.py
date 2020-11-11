@@ -86,6 +86,6 @@ def merge_rows(
         arch_row = arch_reader.next()
     # Add remaining document rows to the new archive version.
     while doc_row is not None:
-        # Outout an archive row created from the document row.
+        # Output an archive row created from the document row.
         writer.write_document_row(row=doc_row, version=version)
         doc_row = doc_reader.next()

@@ -39,3 +39,8 @@
 
 * Include wrapper for CSV files
 * Commit CSV files directly to a HISTORE archive
+
+
+### 0.2.1 - 2020-11-11
+
+* Fix bug when adding snapshot from file without primary key (\#19)
