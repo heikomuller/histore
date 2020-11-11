@@ -69,6 +69,20 @@ def test_persistent_archive(tmpdir):
     assert sorted([v.value for v in rows[0].cells[1].values]) == [32, 33]
 
 
+def test_merge_file_without_pk(tmpdir):
+    """Test merging snapshots of the NYC Watershed data into an archive without
+    using a primary key (issue #19).
+    """
+    archive = PersistentArchive(
+        basedir=str(tmpdir),
+        replace=True
+    )
+    s = archive.commit(WATERSHED_1)
+    diff = archive.diff(s.version - 1, s.version)
+    assert len(diff.schema().insert()) == 10
+    assert len(diff.rows().insert()) == 1793
+
+
 @pytest.mark.parametrize(
     'doc',
     [
@@ -77,12 +91,13 @@ def test_persistent_archive(tmpdir):
         WATERSHED_1
     ]
 )
-def test_watershed_archive(doc, tmpdir):
+@pytest.mark.parametrize('replace', [True, False])
+def test_watershed_archive(doc, replace, tmpdir):
     """Test merging snapshots of the NYC Watershed data into an archive."""
     archive = PersistentArchive(
         basedir=str(tmpdir),
         primary_key=['Site', 'Date'],
-        replace=False
+        replace=replace
     )
     s = archive.commit(doc)
     diff = archive.diff(s.version - 1, s.version)

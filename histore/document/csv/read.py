@@ -133,6 +133,10 @@ class SimpleCSVDocumentReader(DocumentReader):
         -------
         histore.document.row.DocumentRow
         """
+        # Return None if the reader is not set (i.e., because the end of the
+        # file has been reached).
+        if self.reader is None:
+            return None
         result = self._next_row
         try:
             rowid, row = next(self.reader)
@@ -151,9 +155,11 @@ class SimpleCSVDocumentReader(DocumentReader):
                 values=values
             )
         except StopIteration:
-            # Close the file if the file is reached.
+            # Close the file if the end is reached. Set the reader to None in
+            # order to return None when next is called again.
             self._next_row = None
             self.reader.close()
+            self.reader = None
         # Return the buffered result
         return result
 
