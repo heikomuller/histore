@@ -195,7 +195,6 @@ def open_document(
     ------
     ValueError
     """
-    # with self.open() as reader:
     # Create document instance depending on whether a primary key was given
     # or not.
     if primary_key is not None:
