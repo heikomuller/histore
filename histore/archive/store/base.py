@@ -11,7 +11,7 @@ object and the way in which archives are managed and maintained.
 
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
-from typing import Optional
+from typing import Dict, Optional
 
 from histore.archive.reader import ArchiveReader
 from histore.archive.schema import ArchiveSchema
@@ -26,8 +26,8 @@ class ArchiveStore(metaclass=ABCMeta):
     @abstractmethod
     def commit(
         self, schema: ArchiveSchema, writer: ArchiveWriter, version: int,
-        valid_time: Optional[datetime] = None,
-        description: Optional[str] = None
+        valid_time: Optional[datetime] = None, description: Optional[str] = None,
+        action: Optional[Dict] = None
     ) -> Snapshot:  # pragma: no cover
         """Commit a new version of the dataset archive. The modified components
         of the archive are given as the three arguments of this method.
@@ -48,6 +48,8 @@ class ArchiveStore(metaclass=ABCMeta):
             until the valid time of the next snapshot in the archive.
         description: string, default=None
             Optional user-provided description for the snapshot.
+        action: dict, default=None
+            Optional metadata defining the action that created the snapshot.
 
         Returns
         -------

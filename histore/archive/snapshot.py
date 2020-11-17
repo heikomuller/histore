@@ -8,7 +8,7 @@
 """Classes to maintain information about dataset snapshots in an archive."""
 
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import histore.util as util
 
@@ -20,7 +20,7 @@ class Snapshot(object):
     def __init__(
         self, version: int, valid_time: datetime,
         transaction_time: Optional[datetime] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None, action: Optional[Dict] = None
     ):
         """Initialize the snapshot meta-data.
 
@@ -36,6 +36,8 @@ class Snapshot(object):
             timestamp is not given the current time is used.
         description: string, default=None
             Optional user-provided description for the snapshot.
+        action: dict, default=None
+            Optional metadata defining the action that created the snapshot.
         """
         self.version = version
         self.valid_time = valid_time
@@ -43,6 +45,7 @@ class Snapshot(object):
             transaction_time = util.utc_now()
         self.transaction_time = transaction_time
         self.description = description if description is not None else ''
+        self.action = action
 
     def __repr__(self):
         """Unambiguous string representation of the archive snapshot
@@ -141,7 +144,7 @@ class SnapshotListing(object):
 
     def append(
         self, version: int, valid_time: Optional[datetime] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None, action: Optional[Dict] = None
     ):
         """Add a new version to the given listing. This will return a modified
         version listing with the new snapshot as the last element.
@@ -163,6 +166,8 @@ class SnapshotListing(object):
             until the valid time of the next snapshot in the archive.
         description: string, default=None
             Optional user-provided description for the snapshot.
+        action: dict, default=None
+            Optional metadata defining the action that created the snapshot.
 
         Returns
         -------
@@ -180,7 +185,8 @@ class SnapshotListing(object):
             version=version,
             valid_time=valid_time,
             transaction_time=transaction_time,
-            description=description
+            description=description,
+            action=action
         )
         return SnapshotListing(snapshots=self.snapshots + [s])
 

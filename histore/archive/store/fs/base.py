@@ -19,14 +19,14 @@ import os
 import shutil
 
 from datetime import datetime
-from typing import Optional
+from typing import Dict, Optional
 
 from histore.archive.schema import ArchiveSchema
 from histore.archive.serialize.default import DefaultSerializer
 from histore.archive.snapshot import SnapshotListing
 from histore.archive.store.base import ArchiveStore
-from histore.archive.store.fs.reader import ArchiveFileReader
-from histore.archive.store.fs.writer import ArchiveFileWriter
+from histore.archive.store.fs.reader import ArchiveFileReader, default_decoder
+from histore.archive.store.fs.writer import ArchiveFileWriter, DefaultEncoder
 
 import histore.util as util
 
@@ -70,8 +70,8 @@ class ArchiveFileStore(ArchiveStore):
         self.basedir = util.createdir(basedir)
         self.serializer = serializer if serializer else DefaultSerializer()
         self.compression = compression
-        self.encoder = encoder
-        self.decoder = decoder
+        self.encoder = encoder if encoder is not None else DefaultEncoder
+        self.decoder = decoder if decoder is not None else default_decoder
         # Initialize the file names
         self.datafile = os.path.join(self.basedir, 'rows.dat')
         self.metafile = os.path.join(self.basedir, 'metadata.dat')
@@ -81,7 +81,7 @@ class ArchiveFileStore(ArchiveStore):
             # Read schema and snapshot information from disk if the metadata
             # file exists.
             with open(self.metafile, 'r') as f:
-                doc = json.load(f)
+                doc = json.load(f, object_hook=self.decoder)
             # Deserialize schema columns.
             columns = list()
             for c in doc[META_SCHEMA]:
@@ -106,8 +106,8 @@ class ArchiveFileStore(ArchiveStore):
 
     def commit(
         self, schema: ArchiveSchema, writer: ArchiveFileWriter, version: int,
-        valid_time: Optional[datetime] = None,
-        description: Optional[str] = None
+        valid_time: Optional[datetime] = None, description: Optional[str] = None,
+        action: Optional[Dict] = None
     ):
         """Commit a new version of the dataset archive. The modified components
         of the archive are given as the three arguments of this method.
@@ -128,6 +128,8 @@ class ArchiveFileStore(ArchiveStore):
             until the valid time of the next snapshot in the archive.
         description: string, default=None
             Optional user-provided description for the snapshot.
+        action: dict, default=None
+            Optional metadata defining the action that created the snapshot.
 
         Returns
         -------
@@ -137,7 +139,8 @@ class ArchiveFileStore(ArchiveStore):
         snapshots = self.snapshots.append(
             version=version,
             valid_time=valid_time,
-            description=description
+            description=description,
+            action=action
         )
         # Write temporary metadata file to disk (to ensure that write does not
         # raise an error).
@@ -148,7 +151,7 @@ class ArchiveFileStore(ArchiveStore):
             META_ROWCOUNT: writer.row_counter
         }
         with open(self.tmpmetafile, 'w') as f:
-            json.dump(doc, f)
+            json.dump(doc, f, cls=self.encoder)
         # Close the archive writer.
         writer.close()
         # Replace existing files with temporary files for new archive version.

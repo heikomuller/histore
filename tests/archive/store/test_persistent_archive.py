@@ -27,12 +27,14 @@ def test_persistent_archive(tmpdir):
         replace=True,
         primary_key='Name'
     )
+    assert archive.is_empty()
     # First snapshot
     df = pd.DataFrame(
         data=[['Alice', 32], ['Bob', 45], ['Claire', 27], ['Dave', 23]],
         columns=['Name', 'Age']
     )
     archive.commit(df)
+    assert not archive.is_empty()
     # Second snapshot
     df = pd.DataFrame(
         data=[['Alice', 33], ['Bob', 44], ['Claire', 27], ['Dave', 23]],

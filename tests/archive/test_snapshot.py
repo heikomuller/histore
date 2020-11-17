@@ -27,11 +27,13 @@ def test_append_snapshots():
     assert str(s).startswith('<Snapshot')
     snapshots = snapshots.append(
         version=snapshots.next_version(),
-        description='some text'
+        description='some text',
+        action={'command': 'X'}
     )
     s = snapshots.last_snapshot()
     assert s.version == 1
     assert s.description == 'some text'
+    assert s.action == {'command': 'X'}
     assert len(snapshots) == 2
     assert snapshots.has_version(0)
     assert snapshots.has_version(1)
@@ -46,6 +48,7 @@ def test_create_snapshot_descriptor():
     assert s.transaction_time is not None
     assert s.transaction_time == s.created_at
     assert s.description == ''
+    assert s.action is None
     s = Snapshot(
         version=0,
         valid_time=util.to_datetime('2020-05-01'),
@@ -67,9 +70,6 @@ def test_snapshot_listing():
     for version in range(2):
         assert listing[version].version == version
         assert listing.get(version).version == version
-    # Error when accessing snapshot with unknown identifier.
-    with pytest.raises(KeyError):
-        listing[4]
     versions = list()
     for s in listing:
         versions.append(s.version)
@@ -80,6 +80,12 @@ def test_snapshot_listing():
     assert s.version == 0
     s = listing.at_time(util.to_datetime('2020-05-10'))
     assert s.version == 2
+    # Error when accessing snapshot with unknown identifier.
+    with pytest.raises(KeyError):
+        listing[4]
+    # Error when adding snapshot with invalid version number.
+    with pytest.raises(ValueError):
+        listing.append(version=100)
     # Empty listing returns None for any time
     assert SnapshotListing().at_time(util.to_datetime('2020-04-01')) is None
     # Error case for snapshots with invalid 'vaid_time' order
