@@ -105,10 +105,11 @@ class Archive(object):
         return pd.DataFrame(data=data, index=rowindex, columns=columns)
 
     def commit(
-        self, doc: InputDocument, description: Optional[str] = None,
-        valid_time: Optional[datetime] = None, matching: Optional[str] = MATCH_IDNAME,
-        renamed: Optional[Dict] = None, renamed_to: Optional[bool] = True,
-        partial: Optional[bool] = False, origin: Optional[int] = None
+        self, doc: InputDocument, valid_time: Optional[datetime] = None,
+        description: Optional[str] = None, action: Optional[Dict] = None,
+        matching: Optional[str] = MATCH_IDNAME, renamed: Optional[Dict] = None,
+        renamed_to: Optional[bool] = True, partial: Optional[bool] = False,
+        origin: Optional[int] = None
     ):
         """Commit a new snapshot to the dataset archive. The given document
         represents the dataset snapshot that is being merged into the archive.
@@ -136,11 +137,13 @@ class Archive(object):
                 histore.document.csv.base.CSVFile, or string
             Input document representing the dataset snapshot that is being
             merged into the archive.
-        description: string, default=None
-            Optional user-provided description for the snapshot.
         valid_time: datetime.datetime
             Timestamp when the snapshot was first valid. A snapshot is valid
             until the valid time of the next snapshot in the archive.
+        description: string, default=None
+            Optional user-provided description for the snapshot.
+        action: dict, default=None
+            Optional metadata defining the action that created the snapshot.
         matching: string, default='idname'
             Match mode for columns. Expects one of three modes:
             - idonly: The columns in the schema of the comitted document are
@@ -236,7 +239,8 @@ class Archive(object):
             writer=writer,
             version=version,
             valid_time=valid_time,
-            description=description
+            description=description,
+            action=action
         )
         # Return descriptor for the created snapshot.
         return snapshot
@@ -359,6 +363,24 @@ class PersistentArchive(Archive):
                 encoder=encoder,
                 decoder=decoder
             ),
+            primary_key=primary_key
+        )
+
+
+class VolatileArchive(Archive):
+    """Archive that maintains all dataset snapshots in main memory. This is
+    a shortcut for the default archive constructor.
+    """
+    def __init__(self, primary_key=None):
+        """Initialize the associated optional primary key for the archive.
+
+        Parameters
+        ----------
+        primary_key: string or list
+            Column(s) that are used to generate identifier for snapshot rows.
+        """
+        super(VolatileArchive, self).__init__(
+            store=VolatileArchiveStore(),
             primary_key=primary_key
         )
 

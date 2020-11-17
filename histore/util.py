@@ -46,6 +46,8 @@ def to_datetime(timestamp):
     datetime.datetime
         Datetime object
     """
+    if isinstance(timestamp, datetime):
+        return timestamp
     try:
         dt = isoparse(timestamp)
         if not dt.tzinfo == UTC:

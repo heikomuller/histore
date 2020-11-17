@@ -44,3 +44,9 @@
 ### 0.2.1 - 2020-11-11
 
 * Fix bug when adding snapshot from file without primary key (\#19)
+
+
+### 0.2.2 - 2020-11-17
+
+* Add default Json encoder and decoder for `ArchiveFileStore`.
+* Add optional operation descriptor to snapshots (\#21).

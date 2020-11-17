@@ -32,7 +32,7 @@ class DefaultSerializer(ArchiveSerializer):
     def __init__(
         self, timestamp='t', pos='p', name='n', cells='c', value='v',
         key='k', rowid='r', colid='c', version='v', valid_time='vt',
-        transaction_time='tt', description='d'
+        transaction_time='tt', description='d', action='a'
     ):
         """Initialize the labels for elements used in the serialized objects.
         By default short labels are used to reduce storage overhead.
@@ -66,6 +66,8 @@ class DefaultSerializer(ArchiveSerializer):
             Element label for snapshot transaction time.
         description: string, default='d'
             Element label for snapshot descriptions.
+        action: string, default='a'
+            Element label for snapshot actions.
 
         Raises
         ------
@@ -83,6 +85,7 @@ class DefaultSerializer(ArchiveSerializer):
         self.valid_time = validate_label(valid_time)
         self.transaction_time = validate_label(transaction_time)
         self.description = validate_label(description)
+        self.action = validate_label(action)
 
     def deserialize_column(self, obj):
         """Get archive schema column instance from a serialized object.
@@ -194,15 +197,12 @@ class DefaultSerializer(ArchiveSerializer):
         -------
         histore.archive.snapshot.Snapshot
         """
-        if self.description in obj:
-            description = obj[self.description]
-        else:
-            description = None
         return Snapshot(
             version=obj[self.version],
             valid_time=util.to_datetime(obj[self.valid_time]),
             transaction_time=util.to_datetime(obj[self.transaction_time]),
-            description=description
+            description=obj.get(self.description),
+            action=obj.get(self.action)
         )
 
     def serialize_snapshot(self, snapshot):
@@ -219,11 +219,13 @@ class DefaultSerializer(ArchiveSerializer):
         """
         obj = {
             self.version: snapshot.version,
-            self.valid_time: snapshot.valid_time.isoformat(),
-            self.transaction_time: snapshot.transaction_time.isoformat()
+            self.valid_time: snapshot.valid_time,
+            self.transaction_time: snapshot.transaction_time
         }
         if snapshot.description is not None:
             obj[self.description] = snapshot.description
+        if snapshot.action is not None:
+            obj[self.action] = snapshot.action
         return obj
 
     def deserialize_timestamp(self, obj):

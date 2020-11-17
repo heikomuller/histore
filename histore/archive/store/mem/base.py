@@ -10,7 +10,7 @@ memory. Archive information is not persisted.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Dict, Optional
 
 from histore.archive.schema import ArchiveSchema
 from histore.archive.snapshot import SnapshotListing
@@ -32,8 +32,8 @@ class VolatileArchiveStore(ArchiveStore):
 
     def commit(
         self, schema: ArchiveSchema, writer: ArchiveBuffer, version: int,
-        valid_time: Optional[datetime] = None,
-        description: Optional[str] = None
+        valid_time: Optional[datetime] = None, description: Optional[str] = None,
+        action: Optional[Dict] = None
     ):
         """Commit a new version of the dataset archive. The modified components
         of the archive are given as the three arguments of this method.
@@ -54,6 +54,8 @@ class VolatileArchiveStore(ArchiveStore):
             until the valid time of the next snapshot in the archive.
         description: string, default=None
             Optional user-provided description for the snapshot.
+        action: dict, default=None
+            Optional metadata defining the action that created the snapshot.
 
         Returns
         -------
@@ -63,7 +65,8 @@ class VolatileArchiveStore(ArchiveStore):
         snapshots = self.snapshots.append(
             version=version,
             valid_time=valid_time,
-            description=description
+            description=description,
+            action=action
         )
         self.rows = writer.rows
         self.schema = schema
