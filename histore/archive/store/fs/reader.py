@@ -105,7 +105,7 @@ class ArchiveFileReader(ArchiveReader):
 # -- Helper Functions ---------------------------------------------------------
 
 def default_decoder(obj):
-    """Default Json obkject decoder. Accounts for date types that have been
+    """Default Json object decoder. Accounts for date types that have been
     encoded as dictionaries.
 
     Parameters
