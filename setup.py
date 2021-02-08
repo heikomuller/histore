@@ -14,6 +14,7 @@ from setuptools import setup, find_packages
 
 
 install_requires = [
+    'future',
     'pandas>=1.0.0',
     'jsonschema>=3.2.0',
     'python-dateutil',

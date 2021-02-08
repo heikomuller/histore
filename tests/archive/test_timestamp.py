@@ -155,6 +155,24 @@ def test_timestamp_is_equal():
     assert not t.is_equal(t4)
 
 
+@pytest.mark.parametrize(
+    'version,result',
+    [
+        (1, []),
+        (2, [(2, 2)]),
+        (4, [(2, 3)]),
+        (5, [(2, 3), (5, 5)]),
+        (7, [(2, 3), (5, 7)]),
+        (12, [(2, 3), (5, 7), (9, 11)])
+    ]
+)
+def test_timestamp_rollback(version, result):
+    """Test removing versions from a timestamp."""
+    ts = Timestamp(intervals=[TimeInterval(2, 3), TimeInterval(5, 7), TimeInterval(9, 11)])
+    intervals = [TimeInterval(start=s, end=e) for s, e in result]
+    assert ts.rollback(version).is_equal(Timestamp(intervals=intervals))
+
+
 def test_timestamp_tostring():
     """Test timestamp string representation."""
     t = Timestamp([
