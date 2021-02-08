@@ -13,10 +13,7 @@ from histore.archive.schema import ArchiveSchema
 def test_schema_to_string_repr():
     """Test string representations for archive schemas."""
     schema = ArchiveSchema()
-    schema, _, _ = schema.merge(
-        columns=['Name', 'Age', 'Salary'],
-        version=0
-    )
+    schema, _, _ = schema.merge(columns=['Name', 'Age', 'Salary'], version=0)
     schema_str = str(schema)
     assert schema_str.startswith('<ArchiveColumn (')
     assert 'name=(Name [0])' in schema_str

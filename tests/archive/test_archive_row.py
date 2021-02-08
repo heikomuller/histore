@@ -12,9 +12,7 @@ import pytest
 from histore.key.base import NumberKey, StringKey
 from histore.archive.row import ArchiveRow
 from histore.archive.timestamp import Timestamp, TimeInterval
-from histore.archive.value import (
-    MultiVersionValue, SingleVersionValue
-)
+from histore.archive.value import MultiVersionValue, SingleVersionValue
 
 
 def test_compare_row_keys():
