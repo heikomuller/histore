@@ -50,3 +50,8 @@
 
 * Add default Json encoder and decoder for `ArchiveFileStore`.
 * Add optional operation descriptor to snapshots (\#21).
+
+
+### 0.2.2 - 2021-02-08
+
+* Add support for archive rollback.
