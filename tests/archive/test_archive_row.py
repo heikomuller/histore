@@ -205,3 +205,47 @@ def test_row_provenance():
     upd_cells[1].new_value is None
     upd_cells[2].old_value == 'X'
     upd_cells[1].new_value == 'Y'
+
+
+def test_row_rollback():
+    """Test rollback for an archive row."""
+    row = ArchiveRow(
+        rowid=0,
+        key=NumberKey(0),
+        pos=MultiVersionValue(
+            values=[
+                SingleVersionValue(
+                    value=1,
+                    timestamp=Timestamp(intervals=TimeInterval(1, 3))
+                ),
+                SingleVersionValue(
+                    value=2,
+                    timestamp=Timestamp(intervals=TimeInterval(4, 5))
+                )
+            ]
+        ),
+        cells=dict({
+            1: SingleVersionValue(
+                value='A',
+                timestamp=Timestamp(intervals=TimeInterval(3, 4))
+            ),
+            2: MultiVersionValue(
+                values=[
+                    SingleVersionValue(
+                        value='X',
+                        timestamp=Timestamp(intervals=TimeInterval(1, 3))
+                    ),
+                    SingleVersionValue(
+                        value='Y',
+                        timestamp=Timestamp(intervals=TimeInterval(4, 5))
+                    )
+                ]
+            )
+        }),
+        timestamp=Timestamp(intervals=TimeInterval(1, 5))
+    )
+    row = row.rollback(version=4)
+    assert len(row.cells) == 2
+    row = row.rollback(version=2)
+    assert len(row.cells) == 1
+    assert row.rollback(version=0) is None

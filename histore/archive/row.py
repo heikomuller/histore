@@ -10,9 +10,13 @@ of the row in the history of the dataset, and the cell values in the row
 history.
 """
 
+from __future__ import annotations
+from typing import Dict, List, Optional, Set, Tuple, Union
+
 from histore.key.base import KeyValue
+from histore.archive.provenance.base import ProvOp
 from histore.archive.provenance.row import DeleteRow, InsertRow, UpdateRow
-from histore.archive.value import SingleVersionValue
+from histore.archive.value import ArchiveValue, SingleVersionValue
 from histore.archive.timestamp import Timestamp
 
 
@@ -21,7 +25,10 @@ class ArchiveRow(object):
     maintains the history of index positions that it had, and the history of
     all cell values.
     """
-    def __init__(self, rowid, key, pos, cells, timestamp):
+    def __init__(
+        self, rowid: int, key: KeyValue, pos: ArchiveValue,
+        cells: Dict[int, ArchiveValue], timestamp: Timestamp
+    ):
         """Initialize the row identifier and the objects that maintain history
         information about the row index positions and cell values.
 
@@ -73,7 +80,9 @@ class ArchiveRow(object):
             self.cells
         )
 
-    def at_version(self, version, columns, raise_error=True):
+    def at_version(
+        self, version: int, columns: List[int], raise_error: Optional[bool] = True
+    ):
         """Get cell values and the index position for the row in the given
         version of the dataset. Returns the index position of the row and a
         list of cell values for all columns in the given list. The order of
@@ -108,7 +117,7 @@ class ArchiveRow(object):
             values.append(value)
         return self.pos.at_version(version, raise_error=raise_error), values
 
-    def comp(self, key):
+    def comp(self, key: Union[KeyValue, Tuple[KeyValue, ...]]):
         """Compare the identifier of the archive row to the given row key. The
         result is:
 
@@ -133,7 +142,7 @@ class ArchiveRow(object):
         else:
             return 0
 
-    def diff(self, original_version, new_version):
+    def diff(self, original_version: int, new_version: int) -> ProvOp:
         """Get provenance information representing the difference for this
         row between the original version and a new version.
 
@@ -186,7 +195,7 @@ class ArchiveRow(object):
         # Row has not changed
         return None
 
-    def extend(self, version, origin):
+    def extend(self, version: int, origin: int) -> ArchiveRow:
         """Extend the timestamp of the row and all cell values and the index
         position that were valid at the given version of origin.
 
@@ -219,7 +228,10 @@ class ArchiveRow(object):
             timestamp=self.timestamp.append(version)
         )
 
-    def merge(self, values, pos, version, unchanged_cells=None, origin=None):
+    def merge(
+        self, values: Dict, pos: int, version: int,
+        unchanged_cells: Optional[Set] = None, origin: Optional[int] = None
+    ) -> ArchiveRow:
         """Create a new version of the dataset row for a given set of cell
         values and a specified index position. The set of extend cells
         identifies those columns that are not present in the value dictionary
@@ -287,4 +299,41 @@ class ArchiveRow(object):
             pos=self.pos.merge(value=pos, version=version),
             cells=history,
             timestamp=self.timestamp.append(version)
+        )
+
+    def rollback(self, version: int) -> ArchiveRow:
+        """Rollback the timestamps of the row.
+
+        Truncates the timestamp of all cell values and the row positions.
+        Returns a new row or None if the row did not exist prior or at the
+        given rollback version.
+
+        Parameters
+        ----------
+        version: int
+            Unique identifier of the rollback version.
+
+        Returns
+        -------
+        histore.archive.row.ArchiveRow
+        """
+        # Rollback the row timestamp first. If the result is empty we return
+        # None.
+        ts = self.timestamp.rollback(version=version)
+        if ts.is_empty():
+            return None
+        # Return a modified row with rolled back row position and cell values.
+        # Ignore cell values that did not exists at or prior to the rollback
+        # version.
+        cells = dict()
+        for colid, value in self.cells.items():
+            value = value.rollback(version=version)
+            if value is not None:
+                cells[colid] = value
+        return ArchiveRow(
+            rowid=self.rowid,
+            key=self.key,
+            pos=self.pos.rollback(version=version),
+            cells=cells,
+            timestamp=ts
         )
