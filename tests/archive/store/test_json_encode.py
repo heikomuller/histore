@@ -33,7 +33,7 @@ def test_datetime_objects():
 
 def test_numpy_objects():
     """Test encoding numpy objects."""
-    doc = {'a': 'X', 'b': np.int(1), 'c': np.float(1.2), 'd': np.array([1, 2])}
+    doc = {'a': 'X', 'b': np.int64(1), 'c': np.float64(1.2), 'd': np.array([1, 2])}
     doc = json.loads(json.dumps(doc, cls=DefaultEncoder))
     assert doc['a'] == 'X'
     assert doc['b'] == 1

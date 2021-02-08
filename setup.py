@@ -27,9 +27,11 @@ install_requires = [
 tests_require = [
     'coverage>=4.0',
     'pytest',
-    'pytest-cov',
-    'tox'
+    'pytest-cov'
 ]
+
+
+dev_require = ['flake8', 'python-language-server'] + tests_require
 
 
 extras_require = {
@@ -38,6 +40,7 @@ extras_require = {
         'sphinx-rtd-theme'
     ],
     'tests': tests_require,
+    'dev': dev_require
 }
 
 
