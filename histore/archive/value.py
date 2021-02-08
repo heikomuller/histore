@@ -12,7 +12,9 @@ in a row cell over the history of the data set, or there is only one single
 value, e.g., if the cell never changed over the history of the dataset.
 """
 
+from __future__ import annotations
 from abc import ABCMeta, abstractmethod
+from typing import Any, List, Optional
 
 from histore.archive.provenance.value import UpdateValue
 from histore.archive.timestamp import Timestamp
@@ -22,7 +24,7 @@ class ArchiveValue(metaclass=ABCMeta):
     """The archive value represents the history of a cell in a tabular dataset.
     """
     @abstractmethod
-    def at_version(self, version, raise_error=True):  # pragma: no cover
+    def at_version(self, version: int, raise_error: Optional[bool] = True):
         """Get cell value for the given version. Raises ValueError if the cell
         does not have a value for the given version and the raise error flag is
         set tot True. If the flag is false None is returned instead.
@@ -44,9 +46,9 @@ class ArchiveValue(metaclass=ABCMeta):
         ------
         ValueError
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
-    def diff(self, original_version, new_version):
+    def diff(self, original_version: int, new_version: int) -> UpdateValue:
         """Get provenance information representing the difference for this
         value between the original version and a new version. If the value
         was the same for both versions the result is None.
@@ -71,7 +73,7 @@ class ArchiveValue(metaclass=ABCMeta):
         return None
 
     @abstractmethod
-    def extend(self, version, origin):  # pragma: no cover
+    def extend(self, version: int, origin: int) -> ArchiveValue:
         """Extend the timestamp of the value that was valid at the given source
         version with the new version identifier. If no value was valid at the
         given version of origin the value is returned unchanged.
@@ -87,14 +89,10 @@ class ArchiveValue(metaclass=ABCMeta):
         Returns
         -------
         histore.archive.value.ArchiveValue
-
-        Raises
-        ------
-        ValueError
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
-    def is_multi_version(self):
+    def is_multi_version(self) -> bool:
         """Helper method to get the type of an archive value. Values can either
         be single version values or multi-version values.
 
@@ -105,7 +103,7 @@ class ArchiveValue(metaclass=ABCMeta):
         return not self.is_single_version()
 
     @abstractmethod
-    def is_single_version(self):  # pragma: no cover
+    def is_single_version(self) -> bool:
         """Helper method to get the type of an archive value. Values can either
         be single version values or multi-version values.
 
@@ -113,10 +111,10 @@ class ArchiveValue(metaclass=ABCMeta):
         -------
         bool
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def merge(self, value, version):  # pragma: no cover
+    def merge(self, value, version) -> ArchiveValue:
         """Add value for the given version into the cell history. Returns a
         modified copy of the value.
 
@@ -131,14 +129,37 @@ class ArchiveValue(metaclass=ABCMeta):
         -------
         hisotre.archive.value.ArchiveValue
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
+
+    @abstractmethod
+    def rollback(self, version: int) -> ArchiveValue:
+        """Rollback the timestamps of all value(s) that were valid at or before
+        the given version.
+
+        The operation is used when rolling back an archive to a given version.
+        This will remove all value versions from the value history that only
+        existsed after the given version.
+
+        Returns a new value. The result is None if the value did not exists at
+        all at or before the given version.
+
+        Parameters
+        ----------
+        version: int
+            Unique identifier of the rollback version.
+
+        Returns
+        -------
+        histore.archive.value.ArchiveValue
+        """
+        raise NotImplementedError()  # pragma: no cover
 
 
 class SingleVersionValue(ArchiveValue):
     """Single archive value that has never changed over to history of the
     dataset that contains it.
     """
-    def __init__(self, value, timestamp):
+    def __init__(self, value: Any, timestamp: Timestamp):
         """Initialize the archived value and the timestamp.
 
         Parameters
@@ -193,14 +214,14 @@ class SingleVersionValue(ArchiveValue):
             # Return None as default value for the given version.
             return None
 
-    def extend(self, version, origin):
+    def extend(self, version: int, origin: Optional[int] = None):
         """Extend the timestamp of the value with the given version identifier.
 
         Parameters
         ----------
         version: int
             Unique identifier of the new version.
-        origin: int
+        origin: int, default=None
             Unique identifier of the version for which the valid values
             timestamp is being extended.
 
@@ -214,7 +235,7 @@ class SingleVersionValue(ArchiveValue):
         """
         # Return the object unchanged if the version of origin is not contained
         # in the current timestamp.
-        if not self.timestamp.contains(origin):
+        if origin is not None and not self.timestamp.contains(origin):
             return self
         # Return a modified value that extends the validity of the timestamp
         # for the given version.
@@ -257,21 +278,39 @@ class SingleVersionValue(ArchiveValue):
             )
         # Return a multi-valued object.
         return MultiVersionValue(values=[
-            TimestampedValue(value=self.value, timestamp=self.timestamp),
-            TimestampedValue(value=value, timestamp=Timestamp(version=version))
+            SingleVersionValue(value=self.value, timestamp=self.timestamp),
+            SingleVersionValue(value=value, timestamp=Timestamp(version=version))
         ])
+
+    def rollback(self, version: int) -> ArchiveValue:
+        """Truncate the timestamp of this value to the given version.
+
+        Returns a modified value or None if the value did not exist at or prior
+        to the given version (i.e., the truncated timestamp is empty).
+
+        Parameters
+        ----------
+        version: int
+            Unique identifier of the rollback version.
+
+        Returns
+        -------
+        histore.archive.value.ArchiveValue
+        """
+        ts = self.timestamp.rollback(version)
+        return SingleVersionValue(value=self.value, timestamp=ts) if not ts.is_empty() else None
 
 
 class MultiVersionValue(ArchiveValue):
     """A multi-versiond archive value has multiple different values over the
     history of the dataset. Each value is associated with its own timestamp.
     """
-    def __init__(self, values):
+    def __init__(self, values: List[SingleVersionValue]):
         """Initialize the list of timestamped values in the value history.
 
         Parameters
         ----------
-        values: list(histore.archive.value.TimestampedValue)
+        values: list(histore.archive.value.SingleVersionValue)
             Values in the cell history.
         """
         self.values = values
@@ -341,7 +380,7 @@ class MultiVersionValue(ArchiveValue):
             if val.timestamp.contains(origin):
                 # Found the value that was valid at the source version. Modify
                 # the associated timestamp and return immediately.
-                modified_values[i] = val.append(version)
+                modified_values[i] = val.extend(version=version)
                 return MultiVersionValue(values=modified_values)
         # No value for the source version. Return the value unchanged.
         return self
@@ -378,57 +417,42 @@ class MultiVersionValue(ArchiveValue):
         for val in self.values:
             if val.value == value:
                 existed = True
-                val = val.append(version)
+                val = val.extend(version=version)
             cell_history.append(val)
         # If the value did not exist in any prior version we need to add it to
         # the cell history.
         if not existed:
             ts = Timestamp(version=version)
-            cell_history.append(TimestampedValue(value=value, timestamp=ts))
+            cell_history.append(SingleVersionValue(value=value, timestamp=ts))
         return MultiVersionValue(values=cell_history)
 
+    def rollback(self, version: int) -> ArchiveValue:
+        """Truncate the timestamps of all value(s) that were valid at or before
+        the given version.
 
-class TimestampedValue:
-    """The timestamped value is a wrapper around a scalar cell value and the
-    associated timestamp.
-    """
-    def __init__(self, value, timestamp):
-        """Initialize the object properties.
-
-        Parameters
-        ----------
-        value: scalar
-            Scalar cell value.
-        timestamp: histore.archive.timestamp.Timestamp
-            Sequence of version numbers when the value was present in a dataset
-            row cell.
-        """
-        self.value = value
-        self.timestamp = timestamp
-
-    def __repr__(self):
-        """Unambiguous string representation of the timestamped value.
-
-        Returns
-        -------
-        string
-        """
-        return '{} [{}]'.format(self.value, str(self.timestamp))
-
-    def append(self, version):
-        """Return a modified copy if the timestamped value where the given
-        version has been appended to to timestamp.
+        Returns a new value or None if none of the value versions existed at or
+        before the rollback version.
 
         Parameters
         ----------
         version: int
-            Unique version identifier.
+            Unique identifier of the rollback version.
 
         Returns
         -------
-        histore.archive.value.TimestampedValue
+        histore.archive.value.ArchiveValue
         """
-        return TimestampedValue(
-            value=self.value,
-            timestamp=self.timestamp.append(version)
-        )
+        values = list()
+        for val in self.values:
+            val = val.rollback(version=version)
+            if val:
+                values.append(val)
+        # The result type depends on whether the list of values is empty,
+        # contains a single value or multiple value versions.
+        if not values:
+            return None
+        elif len(values) == 1:
+            # Return a single value version.
+            return values[0]
+        else:
+            return MultiVersionValue(values=values)

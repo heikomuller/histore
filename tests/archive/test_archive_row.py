@@ -13,7 +13,7 @@ from histore.key.base import NumberKey, StringKey
 from histore.archive.row import ArchiveRow
 from histore.archive.timestamp import Timestamp, TimeInterval
 from histore.archive.value import (
-    MultiVersionValue, SingleVersionValue, TimestampedValue
+    MultiVersionValue, SingleVersionValue
 )
 
 
@@ -156,11 +156,11 @@ def test_row_provenance():
         key=NumberKey(0),
         pos=MultiVersionValue(
             values=[
-                TimestampedValue(
+                SingleVersionValue(
                     value=1,
                     timestamp=Timestamp(intervals=TimeInterval(1, 3))
                 ),
-                TimestampedValue(
+                SingleVersionValue(
                     value=2,
                     timestamp=Timestamp(intervals=TimeInterval(4, 5))
                 )
@@ -173,11 +173,11 @@ def test_row_provenance():
             ),
             2: MultiVersionValue(
                 values=[
-                    TimestampedValue(
+                    SingleVersionValue(
                         value='X',
                         timestamp=Timestamp(intervals=TimeInterval(1, 3))
                     ),
-                    TimestampedValue(
+                    SingleVersionValue(
                         value='Y',
                         timestamp=Timestamp(intervals=TimeInterval(4, 5))
                     )

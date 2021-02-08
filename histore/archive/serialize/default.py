@@ -11,9 +11,7 @@ from histore.archive.row import ArchiveRow
 from histore.archive.schema import ArchiveColumn
 from histore.archive.snapshot import Snapshot
 from histore.archive.timestamp import TimeInterval, Timestamp
-from histore.archive.value import (
-    MultiVersionValue, SingleVersionValue, TimestampedValue
-)
+from histore.archive.value import MultiVersionValue, SingleVersionValue
 from histore.archive.serialize.base import ArchiveSerializer
 
 import histore.key.base as anno
@@ -285,7 +283,7 @@ class DefaultSerializer(ArchiveSerializer):
             values = []
             for v in obj:
                 values.append(
-                    TimestampedValue(
+                    SingleVersionValue(
                         value=v[self.value],
                         timestamp=self.deserialize_timestamp(v[self.timestamp])
                     )

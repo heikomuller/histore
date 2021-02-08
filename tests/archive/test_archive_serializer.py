@@ -14,7 +14,7 @@ from histore.archive.row import ArchiveRow
 from histore.archive.schema import ArchiveColumn
 from histore.archive.snapshot import Snapshot
 from histore.archive.value import (
-    MultiVersionValue, SingleVersionValue, TimestampedValue
+    MultiVersionValue, SingleVersionValue
 )
 from histore.archive.timestamp import Timestamp, TimeInterval
 from histore.archive.serialize.default import DefaultSerializer
@@ -57,11 +57,11 @@ def test_serialize_row():
     cells = {
         0: SingleVersionValue(value=0, timestamp=ts),
         1: MultiVersionValue(values=[
-            TimestampedValue(
+            SingleVersionValue(
                 value='A',
                 timestamp=Timestamp(intervals=TimeInterval(start=1, end=3))
             ),
-            TimestampedValue(
+            SingleVersionValue(
                 value='B',
                 timestamp=Timestamp(intervals=TimeInterval(start=4, end=5))
             )
