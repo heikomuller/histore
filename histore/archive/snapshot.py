@@ -7,6 +7,7 @@
 
 """Classes to maintain information about dataset snapshots in an archive."""
 
+from __future__ import annotations
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -299,3 +300,20 @@ class SnapshotListing(object):
         int
         """
         return 0 if not self.snapshots else self.snapshots[-1].version + 1
+
+    def rollback(self, version: int) -> SnapshotListing:
+        """Remove all snapshots that come after the given version.
+
+        Returns a modified snapshot listing.
+
+        Parameters
+        ----------
+        version: int
+            Unique identifier for the rollback version.
+
+        Returns
+        -------
+        histore.archive.snapshot.SnapshotListing
+        """
+        snapshots = [s for s in self.snapshots if s.version <= version]
+        return SnapshotListing(snapshots=snapshots)
