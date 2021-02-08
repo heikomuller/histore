@@ -142,25 +142,9 @@ class ArchiveFileStore(ArchiveStore):
             description=description,
             action=action
         )
-        # Write temporary metadata file to disk (to ensure that write does not
-        # raise an error).
-        encoder = self.serializer
-        doc = {
-            META_SCHEMA: [encoder.serialize_column(c) for c in schema],
-            META_SNAPSHOTS: [encoder.serialize_snapshot(s) for s in snapshots],
-            META_ROWCOUNT: writer.row_counter
-        }
-        with open(self.tmpmetafile, 'w') as f:
-            json.dump(doc, f, cls=self.encoder)
-        # Close the archive writer.
-        writer.close()
-        # Replace existing files with temporary files for new archive version.
-        # This is the point of no return.
-        # TODO: Instead of moving files we could delete (or keep) previous
-        # files as backup.
-        shutil.move(src=self.tmpmetafile, dst=self.metafile)
-        shutil.move(src=self.tmpdatafile, dst=self.datafile)
-        # Udate the cached objects
+        # Materialize the modified archive.
+        self._write(schema=schema, writer=writer, snapshots=snapshots)
+        # Update the cached objects
         self.schema = schema
         self.snapshots = snapshots
         self.row_counter = writer.row_counter
@@ -225,3 +209,58 @@ class ArchiveFileStore(ArchiveStore):
             compression=self.compression,
             encoder=self.encoder
         )
+
+    def rollback(self, schema: ArchiveSchema, writer: ArchiveFileWriter, version: int):
+        """Store the archive after it has been rolled back to a previous
+        version.
+
+        The archive schema and archive writer contain the modified schema and
+        rows after the rollback.
+
+        Parameters
+        ----------
+        schema: histore.archive.schema.ArchiveSchema
+            Schema history for the previous archive version.
+        writer: histore.archive.store.fs.writer.ArchiveFileWriter
+            Instance of the archive writer class returned by this store that
+            was used to output the rows of the previous archive version.
+        version: int
+            Unique version identifier for the rollback snapshot.
+        """
+        # Get an updated shapshot listing.
+        snapshots = self.snapshots.rollback(version=version)
+        # Materialize the modified archive.
+        self._write(schema=schema, writer=writer, snapshots=snapshots)
+        # Update the cached objects
+        self.schema = schema
+        self.snapshots = snapshots
+
+    def _write(self, schema, writer, snapshots):
+        """Materialize the modified archive.
+
+        Parameters
+        ----------
+        schema: histore.archive.schema.ArchiveSchema
+            Schema history for the previous archive version.
+        writer: histore.archive.store.fs.writer.ArchiveFileWriter
+            Instance of the archive writer class returned by this store that
+            was used to output the rows of the previous archive version.
+        snapshots: histore.archive.snapshot.SnapshotListing
+            Modified snapshot listing.
+        """
+        encoder = self.serializer
+        doc = {
+            META_SCHEMA: [encoder.serialize_column(c) for c in schema],
+            META_SNAPSHOTS: [encoder.serialize_snapshot(s) for s in snapshots],
+            META_ROWCOUNT: writer.row_counter
+        }
+        with open(self.tmpmetafile, 'w') as f:
+            json.dump(doc, f, cls=self.encoder)
+        # Close the archive writer.
+        writer.close()
+        # Replace existing files with temporary files for new archive version.
+        # This is the point of no return.
+        # TODO: Instead of moving files we could delete (or keep) previous
+        # files as backup.
+        shutil.move(src=self.tmpmetafile, dst=self.metafile)
+        shutil.move(src=self.tmpdatafile, dst=self.datafile)

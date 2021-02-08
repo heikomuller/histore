@@ -298,6 +298,38 @@ class Archive(object):
         """
         return self.store.get_reader()
 
+    def rollback(self, version: int):
+        """Rollback the archive history to the snapshot with the given version
+        identifier.
+
+        Raises a ValueError if the given version identifier is invalid.
+
+        Parameters
+        ----------
+        version: int
+            Unique version identifier for the last version in the archive after
+            rollback.
+
+        Raises
+        ------
+        ValueError
+        """
+        # Ensure that the given version identifier is valid.
+        if not self.snapshots().has_version(version=version):
+            raise ValueError("unknown version '{}'".format(version))
+        # Rollback archive rows.
+        writer = self.store.get_writer()
+        for row in self.reader():
+            row = row.rollback(version)
+            if row is not None:
+                writer.write_archive_row(row)
+        # Commit the rolledback archive to the associated archive store.
+        self.store.rollback(
+            schema=self.schema().rollback(version=version),
+            writer=writer,
+            version=version
+        )
+
     def schema(self) -> ArchiveSchema:
         """Get the schema history for the archived dataset.
 
