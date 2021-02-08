@@ -52,6 +52,6 @@
 * Add optional operation descriptor to snapshots (\#21).
 
 
-### 0.2.2 - 2021-02-08
+### 0.3.0 - 2021-02-08
 
 * Add support for archive rollback.
