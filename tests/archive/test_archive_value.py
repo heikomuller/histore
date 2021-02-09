@@ -1,6 +1,6 @@
 # This file is part of the History Store (histore).
 #
-# Copyright (C) 2018-2020 New York University.
+# Copyright (C) 2018-2021 New York University.
 #
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
@@ -9,8 +9,8 @@
 
 import pytest
 
-from histore.archive.value import SingleVersionValue
-from histore.archive.timestamp import Timestamp
+from histore.archive.value import MultiVersionValue, SingleVersionValue
+from histore.archive.timestamp import Timestamp, TimeInterval
 
 
 def test_cell_history():
@@ -77,3 +77,39 @@ def test_extend_cell_value_timestamp():
     assert cell.at_version(6) == '1'
     with pytest.raises(ValueError):
         cell.at_version(0)
+
+
+def test_rollback_multi_value():
+    """Test rollback for single version values."""
+    value = MultiVersionValue([
+        SingleVersionValue(
+            value=1,
+            timestamp=Timestamp(intervals=[TimeInterval(start=1, end=3)])
+        ),
+        SingleVersionValue(
+            value=2,
+            timestamp=Timestamp(intervals=[TimeInterval(start=4, end=5)])
+        )
+    ])
+    value = value.rollback(4)
+    assert isinstance(value, MultiVersionValue)
+    assert len(value.values) == 2
+    assert value.at_version(3) == 1
+    assert value.at_version(4) == 2
+    value = value.rollback(2)
+    assert isinstance(value, SingleVersionValue)
+    assert value.value == 1
+
+
+def test_rollback_single_value():
+    """Test rollback for single version values."""
+    value = SingleVersionValue(
+        value=1,
+        timestamp=Timestamp(intervals=[TimeInterval(start=1, end=3)])
+    )
+    value = value.rollback(2)
+    assert value.value == 1
+    assert value.timestamp.contains(1)
+    assert value.timestamp.contains(2)
+    assert not value.timestamp.contains(3)
+    assert value.rollback(0) is None

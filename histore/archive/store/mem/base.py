@@ -1,6 +1,6 @@
 # This file is part of the History Store (histore).
 #
-# Copyright (C) 2018-2020 New York University.
+# Copyright (C) 2018-2021 New York University.
 #
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
@@ -120,3 +120,25 @@ class VolatileArchiveStore(ArchiveStore):
         histore.archive.store.mem.ArchiveBuffer
         """
         return ArchiveBuffer(row_counter=self.row_counter)
+
+    def rollback(self, schema: ArchiveSchema, writer: ArchiveBuffer, version: int):
+        """Store the archive after it has been rolled back to a previous
+        version.
+
+        The archive schema and archive writer contain the modified schema and
+        rows after the rollback.
+
+        Parameters
+        ----------
+        schema: histore.archive.schema.ArchiveSchema
+            Schema history for the previous archive version.
+        writer: histore.archive.store.mem.writer.ArchiveBuffer
+            Instance of the archive writer class returned by this store that
+            was used to output the rows of the previous archive version.
+        version: int
+            Unique version identifier for the rollback snapshot.
+        """
+        snapshots = self.snapshots.rollback(version=version)
+        self.rows = writer.rows
+        self.schema = schema
+        self.snapshots = snapshots

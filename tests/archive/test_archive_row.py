@@ -1,6 +1,6 @@
 # This file is part of the History Store (histore).
 #
-# Copyright (C) 2018-2020 New York University.
+# Copyright (C) 2018-2021 New York University.
 #
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
@@ -12,9 +12,7 @@ import pytest
 from histore.key.base import NumberKey, StringKey
 from histore.archive.row import ArchiveRow
 from histore.archive.timestamp import Timestamp, TimeInterval
-from histore.archive.value import (
-    MultiVersionValue, SingleVersionValue, TimestampedValue
-)
+from histore.archive.value import MultiVersionValue, SingleVersionValue
 
 
 def test_compare_row_keys():
@@ -156,11 +154,11 @@ def test_row_provenance():
         key=NumberKey(0),
         pos=MultiVersionValue(
             values=[
-                TimestampedValue(
+                SingleVersionValue(
                     value=1,
                     timestamp=Timestamp(intervals=TimeInterval(1, 3))
                 ),
-                TimestampedValue(
+                SingleVersionValue(
                     value=2,
                     timestamp=Timestamp(intervals=TimeInterval(4, 5))
                 )
@@ -173,11 +171,11 @@ def test_row_provenance():
             ),
             2: MultiVersionValue(
                 values=[
-                    TimestampedValue(
+                    SingleVersionValue(
                         value='X',
                         timestamp=Timestamp(intervals=TimeInterval(1, 3))
                     ),
-                    TimestampedValue(
+                    SingleVersionValue(
                         value='Y',
                         timestamp=Timestamp(intervals=TimeInterval(4, 5))
                     )
@@ -205,3 +203,47 @@ def test_row_provenance():
     upd_cells[1].new_value is None
     upd_cells[2].old_value == 'X'
     upd_cells[1].new_value == 'Y'
+
+
+def test_row_rollback():
+    """Test rollback for an archive row."""
+    row = ArchiveRow(
+        rowid=0,
+        key=NumberKey(0),
+        pos=MultiVersionValue(
+            values=[
+                SingleVersionValue(
+                    value=1,
+                    timestamp=Timestamp(intervals=TimeInterval(1, 3))
+                ),
+                SingleVersionValue(
+                    value=2,
+                    timestamp=Timestamp(intervals=TimeInterval(4, 5))
+                )
+            ]
+        ),
+        cells=dict({
+            1: SingleVersionValue(
+                value='A',
+                timestamp=Timestamp(intervals=TimeInterval(3, 4))
+            ),
+            2: MultiVersionValue(
+                values=[
+                    SingleVersionValue(
+                        value='X',
+                        timestamp=Timestamp(intervals=TimeInterval(1, 3))
+                    ),
+                    SingleVersionValue(
+                        value='Y',
+                        timestamp=Timestamp(intervals=TimeInterval(4, 5))
+                    )
+                ]
+            )
+        }),
+        timestamp=Timestamp(intervals=TimeInterval(1, 5))
+    )
+    row = row.rollback(version=4)
+    assert len(row.cells) == 2
+    row = row.rollback(version=2)
+    assert len(row.cells) == 1
+    assert row.rollback(version=0) is None

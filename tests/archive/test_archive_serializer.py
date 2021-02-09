@@ -1,6 +1,6 @@
 # This file is part of the History Store (histore).
 #
-# Copyright (C) 2018-2020 New York University.
+# Copyright (C) 2018-2021 New York University.
 #
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
@@ -14,7 +14,7 @@ from histore.archive.row import ArchiveRow
 from histore.archive.schema import ArchiveColumn
 from histore.archive.snapshot import Snapshot
 from histore.archive.value import (
-    MultiVersionValue, SingleVersionValue, TimestampedValue
+    MultiVersionValue, SingleVersionValue
 )
 from histore.archive.timestamp import Timestamp, TimeInterval
 from histore.archive.serialize.default import DefaultSerializer
@@ -57,11 +57,11 @@ def test_serialize_row():
     cells = {
         0: SingleVersionValue(value=0, timestamp=ts),
         1: MultiVersionValue(values=[
-            TimestampedValue(
+            SingleVersionValue(
                 value='A',
                 timestamp=Timestamp(intervals=TimeInterval(start=1, end=3))
             ),
-            TimestampedValue(
+            SingleVersionValue(
                 value='B',
                 timestamp=Timestamp(intervals=TimeInterval(start=4, end=5))
             )

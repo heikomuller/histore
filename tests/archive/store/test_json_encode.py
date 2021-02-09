@@ -1,6 +1,6 @@
 # This file is part of the History Store (histore).
 #
-# Copyright (C) 2018-2020 New York University.
+# Copyright (C) 2018-2021 New York University.
 #
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
@@ -33,7 +33,7 @@ def test_datetime_objects():
 
 def test_numpy_objects():
     """Test encoding numpy objects."""
-    doc = {'a': 'X', 'b': np.int(1), 'c': np.float(1.2), 'd': np.array([1, 2])}
+    doc = {'a': 'X', 'b': np.int64(1), 'c': np.float64(1.2), 'd': np.array([1, 2])}
     doc = json.loads(json.dumps(doc, cls=DefaultEncoder))
     assert doc['a'] == 'X'
     assert doc['b'] == 1

@@ -1,6 +1,6 @@
 # This file is part of the History Store (histore).
 #
-# Copyright (C) 2018-2020 New York University.
+# Copyright (C) 2018-2021 New York University.
 #
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
@@ -8,10 +8,11 @@
 """Columns in an archive schema all have unique identifier together with
 timestamped names and positions.
 """
+from __future__ import annotations
+from typing import Dict, List, Optional, Tuple
 
-from histore.archive.provenance.column import (
-    DeleteColumn, InsertColumn, UpdateColumn
-)
+from histore.archive.provenance.base import ProvOp
+from histore.archive.provenance.column import DeleteColumn, InsertColumn, UpdateColumn
 from histore.archive.timestamp import Timestamp
 from histore.archive.value import SingleVersionValue
 from histore.document.schema import Column
@@ -27,7 +28,7 @@ class ArchiveColumn(object):
     """Archive columns have a unique identifier together with a timestamped
     name and schema position.
     """
-    def __init__(self, identifier, name, pos, timestamp):
+    def __init__(self, identifier: int, name: str, pos: int, timestamp: Timestamp):
         """initialize the object properties.
 
         Parameters
@@ -67,7 +68,7 @@ class ArchiveColumn(object):
             str(self.timestamp)
         )
 
-    def at_version(self, version):
+    def at_version(self, version: int) -> Tuple[str, int]:
         """Get the name and schema position for the column in the given
         version of a dataset. Returns a tuple of (name, pos).
 
@@ -82,7 +83,7 @@ class ArchiveColumn(object):
         """
         return self.name.at_version(version), self.pos.at_version(version)
 
-    def diff(self, original_version, new_version):
+    def diff(self, original_version: int, new_version: int) -> ProvOp:
         """Get provenance information representing the difference for this
         column between the original version and a new version.
 
@@ -109,7 +110,7 @@ class ArchiveColumn(object):
 
         Returns
         -------
-        histore.archive.provenance.column.ColumnOp
+        histore.archive.provenance.base.ProvOp
         """
         exists_in_orig = self.timestamp.contains(original_version)
         exists_in_new = self.timestamp.contains(new_version)
@@ -132,7 +133,7 @@ class ArchiveColumn(object):
         # Column has not changed
         return None
 
-    def merge(self, name, pos, version):
+    def merge(self, name: str, pos: int, version: int) -> ArchiveColumn:
         """Create a modified version of the column for the given version. Adds
         the name and index position to the respective history of the column.
         Returns a modified copy of the column.
@@ -155,13 +156,39 @@ class ArchiveColumn(object):
             timestamp=self.timestamp.append(version)
         )
 
+    def rollback(self, version: int) -> ArchiveColumn:
+        """Rollback the versions of the column.
+
+        Truncates the timestamps of the column to the given rollback version.
+        Returns a new archive column object or None if the column did not exist
+        at or prior to the rollback version.
+
+        Parameters
+        ----------
+        version: int
+            Unique identifier of the rollback version.
+
+        Returns
+        -------
+        histore.archive.schema.ArchiveColumn
+        """
+        ts = self.timestamp.rollback(version=version)
+        if ts.is_empty():
+            return None
+        return ArchiveColumn(
+            identifier=self.identifier,
+            name=self.name.rollback(version=version),
+            pos=self.pos.rollback(version=version),
+            timestamp=ts
+        )
+
 
 class ArchiveSchema(object):
     """The archive schema maintains an index of columns in the history of a
     dataset. Each column has a unique identifier together with timestamped
     names and positions.
     """
-    def __init__(self, columns=None):
+    def __init__(self, columns: List[ArchiveColumn] = None):
         """Initialize the index of columns in the schema. Raises a ValueError
         if the identifier of columns are not unique.
 
@@ -200,7 +227,7 @@ class ArchiveSchema(object):
         """
         return '\n'.join(str(c) for c in self.columns.values())
 
-    def at_version(self, version):
+    def at_version(self, version: int) -> List[Column]:
         """Get the schema for the snapshot at the given version of a dataset.
         Returns a list of snapshot columns in their original order.
 
@@ -228,9 +255,10 @@ class ArchiveSchema(object):
         ]
 
     def merge(
-        self, columns, version, matching=MATCH_IDNAME, renamed=None,
-        renamed_to=True, partial=False, origin=None
-    ):
+        self, columns: List[str], version: int, matching: Optional[str] = MATCH_IDNAME,
+        renamed: Optional[Dict] = None, renamed_to: Optional[bool] = True,
+        partial: Optional[bool] = False, origin: Optional[int] = None
+    ) -> Tuple[ArchiveSchema, List[Column], List[Column]]:
         """Add the given snapshot columns to the schema history for a dataset.
         Expects a list of strings or identifiable column objects. If column
         objects are given their identifier must match an existing identifier
@@ -402,10 +430,33 @@ class ArchiveSchema(object):
         schema = ArchiveSchema(columns=arch_columns)
         return schema, matched_columns, unmatched_columns
 
+    def rollback(self, version: int) -> ArchiveSchema:
+        """Rollback timestamps of the archive schema.
+
+        Truncates the timestamp of all columns. Returns a new schema containing
+        only those columns that existed prior or at the given rollback version.
+        the result may be an empty schema but never None.
+
+        Parameters
+        ----------
+        version: int
+            Unique identifier of the rollback version.
+
+        Returns
+        -------
+        histore.archive.schema.ArchiveSchema
+        """
+        columns = dict()
+        for colid, col in self.columns.items():
+            col = col.rollback(version=version)
+            if col is not None:
+                columns[colid] = col
+        return ArchiveSchema(columns=columns)
+
 
 # -- Helper Methods -----------------------------------------------------------
 
-def columnid_match(df_cols, archive_cols):
+def columnid_match(df_cols: List[str], archive_cols: Dict[int, ArchiveColumn]) -> List:
     """Match columns in the given data frame schema against columns in the
     archive schema by their identifier. Returns a list of tuples where each
     tuple contains the data frame column and the matched archive schema column.
@@ -437,7 +488,10 @@ def columnid_match(df_cols, archive_cols):
     return alignment
 
 
-def match_columns(columns, schema_index, renamed=None, renamed_to=True):
+def match_columns(
+    columns: List[Tuple[str, ArchiveColumn]], schema_index: Dict[str, ArchiveColumn],
+    renamed: Optional[Dict[str, str]] = None, renamed_to: Optional[bool] = True
+) -> List[Column]:
     """Compute matching of given list of 'id-aligned' columns to columns in the
     given snapshot schema. Columns are matched by name. If either list contains
     duplicate column names an error is raised.
@@ -512,7 +566,9 @@ def match_columns(columns, schema_index, renamed=None, renamed_to=True):
     return matches
 
 
-def column_index(archive_schema, orig_schema):
+def column_index(
+    archive_schema: Dict[int, ArchiveColumn], orig_schema: List[Column]
+) -> Tuple[Dict[str, ArchiveColumn], Dict[int, Tuple[Column, int]]]:
     """Create a mapping of names for the snapshot schema to their respective
     column in the archive schema. In addition, a mapping of identifier for
     columns in the snapshot schema to the column object at its schema position

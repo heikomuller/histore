@@ -1,6 +1,6 @@
 # This file is part of the History Store (histore).
 #
-# Copyright (C) 2018-2020 New York University.
+# Copyright (C) 2018-2021 New York University.
 #
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
@@ -97,3 +97,16 @@ def test_snapshot_listing():
     # Error case for snapshots with invalid 'vaid_time'
     with pytest.raises(ValueError):
         SnapshotListing(snapshots=[s1, s2, s3])
+
+
+def test_snapshot_rollback():
+    """Test rollback for a snapshot listing."""
+    snapshots = SnapshotListing()
+    snapshots = snapshots.append(snapshots.next_version())
+    snapshots = snapshots.append(snapshots.next_version())
+    snapshots = snapshots.append(snapshots.next_version())
+    assert len(snapshots) == 3
+    snapshots = snapshots.rollback(1)
+    assert len(snapshots) == 2
+    snapshots = snapshots.rollback(0)
+    assert len(snapshots) == 1

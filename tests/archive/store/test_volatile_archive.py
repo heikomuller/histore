@@ -5,28 +5,23 @@
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
 
-"""Unit tests for the persistent archive."""
+"""Unit tests for the volatile archive."""
 
 import os
 import pandas as pd
 import pytest
 
-from histore.archive.base import PersistentArchive
+from histore.archive.base import VolatileArchive
 from histore.archive.timestamp import Timestamp, TimeInterval
-from histore.document.csv.base import CSVFile
 
 
 DIR = os.path.dirname(os.path.realpath(__file__))
 WATERSHED_1 = os.path.join(DIR, '../../.files/y43c-5n92.tsv.gz')
 
 
-def test_persistent_archive(tmpdir):
-    """Test merging snapshots into a persistent archive."""
-    archive = PersistentArchive(
-        basedir=os.path.join(str(tmpdir), 'archive'),
-        replace=True,
-        primary_key='Name'
-    )
+def test_archive_commit_and_rollback(tmpdir):
+    """Test merging snapshots into a volatile archive and rolling back."""
+    archive = VolatileArchive(primary_key='Name')
     assert archive.is_empty()
     # First snapshot
     df = pd.DataFrame(
@@ -78,49 +73,6 @@ def test_persistent_archive(tmpdir):
         rows[row.rowid] = row
     assert len(rows) == 4
     keys = ['Alice', 'Bob', 'Claire', 'Dave']
-
-
-def test_merge_file_without_pk(tmpdir):
-    """Test merging snapshots of the NYC Watershed data into an archive without
-    using a primary key (issue #19).
-    """
-    archive = PersistentArchive(
-        basedir=str(tmpdir),
-        replace=True
-    )
-    s = archive.commit(WATERSHED_1)
-    diff = archive.diff(s.version - 1, s.version)
-    assert len(diff.schema().insert()) == 10
-    assert len(diff.rows().insert()) == 1793
-
-
-@pytest.mark.parametrize(
-    'doc',
-    [
-        pd.read_csv(WATERSHED_1, compression='gzip', delimiter='\t'),
-        CSVFile(WATERSHED_1),
-        WATERSHED_1
-    ]
-)
-@pytest.mark.parametrize('replace', [True, False])
-def test_watershed_archive(doc, replace, tmpdir):
-    """Test merging snapshots of the NYC Watershed data into an archive."""
-    archive = PersistentArchive(
-        basedir=str(tmpdir),
-        primary_key=['Site', 'Date'],
-        replace=replace
-    )
-    s = archive.commit(doc)
-    diff = archive.diff(s.version - 1, s.version)
-    assert len(diff.schema().insert()) == 10
-    assert len(diff.rows().insert()) == 1793
-    # -- Recreate the archive instance.
-    archive = PersistentArchive(
-        basedir=str(tmpdir),
-        primary_key=['Site', 'Date'],
-        replace=False
-    )
-    s = archive.commit(doc)
-    diff = archive.diff(s.version - 1, s.version)
-    assert len(diff.schema().insert()) == 0
-    assert len(diff.rows().insert()) == 0
+    # Invalid rollback.
+    with pytest.raises(ValueError):
+        archive.rollback(-1)

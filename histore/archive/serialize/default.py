@@ -1,6 +1,6 @@
 # This file is part of the History Store (histore).
 #
-# Copyright (C) 2018-2020 New York University.
+# Copyright (C) 2018-2021 New York University.
 #
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
@@ -11,9 +11,7 @@ from histore.archive.row import ArchiveRow
 from histore.archive.schema import ArchiveColumn
 from histore.archive.snapshot import Snapshot
 from histore.archive.timestamp import TimeInterval, Timestamp
-from histore.archive.value import (
-    MultiVersionValue, SingleVersionValue, TimestampedValue
-)
+from histore.archive.value import MultiVersionValue, SingleVersionValue
 from histore.archive.serialize.base import ArchiveSerializer
 
 import histore.key.base as anno
@@ -285,7 +283,7 @@ class DefaultSerializer(ArchiveSerializer):
             values = []
             for v in obj:
                 values.append(
-                    TimestampedValue(
+                    SingleVersionValue(
                         value=v[self.value],
                         timestamp=self.deserialize_timestamp(v[self.timestamp])
                     )

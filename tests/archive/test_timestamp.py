@@ -1,6 +1,6 @@
 # This file is part of the History Store (histore).
 #
-# Copyright (C) 2018-2020 New York University.
+# Copyright (C) 2018-2021 New York University.
 #
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
@@ -153,6 +153,24 @@ def test_timestamp_is_equal():
     assert not t.is_equal(t2)
     assert not t.is_equal(t3)
     assert not t.is_equal(t4)
+
+
+@pytest.mark.parametrize(
+    'version,result',
+    [
+        (1, []),
+        (2, [(2, 2)]),
+        (4, [(2, 3)]),
+        (5, [(2, 3), (5, 5)]),
+        (7, [(2, 3), (5, 7)]),
+        (12, [(2, 3), (5, 7), (9, 11)])
+    ]
+)
+def test_timestamp_rollback(version, result):
+    """Test removing versions from a timestamp."""
+    ts = Timestamp(intervals=[TimeInterval(2, 3), TimeInterval(5, 7), TimeInterval(9, 11)])
+    intervals = [TimeInterval(start=s, end=e) for s, e in result]
+    assert ts.rollback(version).is_equal(Timestamp(intervals=intervals))
 
 
 def test_timestamp_tostring():

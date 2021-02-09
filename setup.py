@@ -1,6 +1,6 @@
 # This file is part of the History Store (histore).
 #
-# Copyright (C) 2018-2020 New York University.
+# Copyright (C) 2018-2021 New York University.
 #
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
@@ -14,6 +14,7 @@ from setuptools import setup, find_packages
 
 
 install_requires = [
+    'future',
     'pandas>=1.0.0',
     'jsonschema>=3.2.0',
     'python-dateutil',
@@ -27,9 +28,11 @@ install_requires = [
 tests_require = [
     'coverage>=4.0',
     'pytest',
-    'pytest-cov',
-    'tox'
+    'pytest-cov'
 ]
+
+
+dev_require = ['flake8', 'python-language-server'] + tests_require
 
 
 extras_require = {
@@ -38,6 +41,7 @@ extras_require = {
         'sphinx-rtd-theme'
     ],
     'tests': tests_require,
+    'dev': dev_require
 }
 
 
@@ -84,9 +88,9 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python'
     ]
 )

@@ -1,12 +1,13 @@
 # This file is part of the History Store (histore).
 #
-# Copyright (C) 2018-2020 New York University.
+# Copyright (C) 2018-2021 New York University.
 #
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
 
 """Classes to maintain information about dataset snapshots in an archive."""
 
+from __future__ import annotations
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -299,3 +300,20 @@ class SnapshotListing(object):
         int
         """
         return 0 if not self.snapshots else self.snapshots[-1].version + 1
+
+    def rollback(self, version: int) -> SnapshotListing:
+        """Remove all snapshots that come after the given version.
+
+        Returns a modified snapshot listing.
+
+        Parameters
+        ----------
+        version: int
+            Unique identifier for the rollback version.
+
+        Returns
+        -------
+        histore.archive.snapshot.SnapshotListing
+        """
+        snapshots = [s for s in self.snapshots if s.version <= version]
+        return SnapshotListing(snapshots=snapshots)
