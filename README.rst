@@ -43,7 +43,7 @@ Examples
 Example using Volatile Archive
 ------------------------------
 
-Start by creating a new archive. At creating time, a primary key (list of column names) can be specified. If a promary key is given, the values in the key attributes are used as row keys when data set snapshots are merged into the archive. If no primary key is specified the row index of the data frame is used to match rows during the merge phase.
+Start by creating a new archive. For each archive, a optional primary key (list of column names) can be specified. If a primary key is given, the values in the key attributes are used as row keys when data set snapshots are merged into the archive. If no primary key is specified the row index of the data frame is used to match rows during the merge phase.
 
 .. code-block:: python
 
