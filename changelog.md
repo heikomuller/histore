@@ -55,3 +55,8 @@
 ### 0.3.0 - 2021-02-08
 
 * Add support for archive rollback.
+
+
+### 0.3.1 - 2021-02-22
+
+* Disable type inference when checking out dataset snapshot as data frame (\#24).

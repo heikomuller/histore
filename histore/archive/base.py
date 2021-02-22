@@ -102,7 +102,7 @@ class Archive(object):
         for rowid, _, vals in rows:
             data.append(vals)
             rowindex.append(rowid)
-        return pd.DataFrame(data=data, index=rowindex, columns=columns)
+        return pd.DataFrame(data=data, index=rowindex, columns=columns, dtype=object)
 
     def commit(
         self, doc: InputDocument, valid_time: Optional[datetime] = None,
