@@ -240,7 +240,7 @@ class CSVFile(DataReader):
         return reader, csvfile
 
     def read_df(self) -> pd.DataFrame:
-        """Read CSV fiel as pandas DataFrame.
+        """Read CSV file as pandas DataFrame.
 
         Returns
         -------
@@ -251,7 +251,7 @@ class CSVFile(DataReader):
             for rowid, row in reader:
                 index.append(rowid)
                 data.append(row)
-        return pd.DataFrame(data=data, index=index, columns=self.columns)
+        return pd.DataFrame(data=data, index=index, columns=self.columns, dtype=object)
 
     def write(
         self, header: Optional[Schema] = None, none_as: Optional[str] = None
