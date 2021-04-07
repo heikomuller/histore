@@ -7,11 +7,13 @@
 
 """Default object serializer for dataset archives."""
 
+from typing import Dict, List, Optional, Union
+
 from histore.archive.row import ArchiveRow
 from histore.archive.schema import ArchiveColumn
 from histore.archive.snapshot import Snapshot
 from histore.archive.timestamp import TimeInterval, Timestamp
-from histore.archive.value import MultiVersionValue, SingleVersionValue
+from histore.archive.value import ArchiveValue, MultiVersionValue, SingleVersionValue
 from histore.archive.serialize.base import ArchiveSerializer
 
 import histore.key.base as anno
@@ -28,9 +30,13 @@ class DefaultSerializer(ArchiveSerializer):
     cannot be serialized by the default JSON encoder.
     """
     def __init__(
-        self, timestamp='t', pos='p', name='n', cells='c', value='v',
-        key='k', rowid='r', colid='c', version='v', valid_time='vt',
-        transaction_time='tt', description='d', action='a'
+        self, timestamp: Optional[str] = 't', pos: Optional[str] = 'p',
+        name: Optional[str] = 'n', cells: Optional[str] = 'c',
+        value: Optional[str] = 'v', key: Optional[str] = 'k',
+        rowid: Optional[str] = 'r', colid: Optional[str] = 'c',
+        version: Optional[str] = 'v', valid_time: Optional[str] = 'vt',
+        transaction_time: Optional[str] = 'tt', description: Optional[str] = 'd',
+        action: Optional[str] = 'a'
     ):
         """Initialize the labels for elements used in the serialized objects.
         By default short labels are used to reduce storage overhead.
@@ -85,7 +91,7 @@ class DefaultSerializer(ArchiveSerializer):
         self.description = validate_label(description)
         self.action = validate_label(action)
 
-    def deserialize_column(self, obj):
+    def deserialize_column(self, obj: Dict) -> ArchiveColumn:
         """Get archive schema column instance from a serialized object.
 
         Parameters
@@ -105,7 +111,7 @@ class DefaultSerializer(ArchiveSerializer):
             timestamp=ts
         )
 
-    def serialize_column(self, column):
+    def serialize_column(self, column: ArchiveColumn) -> Dict:
         """Get serialization for an archive schema column. Creates a dictionary
         with elements for the column identifier, name, the index position, and
         the column timestamp.
@@ -127,7 +133,7 @@ class DefaultSerializer(ArchiveSerializer):
             self.timestamp: self.serialize_timestamp(ts)
         }
 
-    def deserialize_row(self, obj):
+    def deserialize_row(self, obj: Dict) -> ArchiveRow:
         """Get archive row instance from a serialized object. Expects a
         dictionary as created by the serialize_row method.
 
@@ -159,7 +165,7 @@ class DefaultSerializer(ArchiveSerializer):
             timestamp=ts
         )
 
-    def serialize_row(self, row):
+    def serialize_row(self, row: ArchiveRow) -> Dict:
         """Get serialization for an archive row object.
 
         Parameters
@@ -183,7 +189,7 @@ class DefaultSerializer(ArchiveSerializer):
             self.cells: cells
         }
 
-    def deserialize_snapshot(self, obj):
+    def deserialize_snapshot(self, obj: Dict) -> Snapshot:
         """Get snapshot descriptor instance from a serialized object.
 
         Parameters
@@ -203,7 +209,7 @@ class DefaultSerializer(ArchiveSerializer):
             action=obj.get(self.action)
         )
 
-    def serialize_snapshot(self, snapshot):
+    def serialize_snapshot(self, snapshot: Snapshot) -> Dict:
         """Get serialization for an archive snapshot descriptor.
 
         Parameters
@@ -226,7 +232,7 @@ class DefaultSerializer(ArchiveSerializer):
             obj[self.action] = snapshot.action
         return obj
 
-    def deserialize_timestamp(self, obj):
+    def deserialize_timestamp(self, obj: List) -> Timestamp:
         """Get timestamp instance from serialization.
 
         Parameters
@@ -242,7 +248,7 @@ class DefaultSerializer(ArchiveSerializer):
         intervals = [TimeInterval(start=i[0], end=i[1]) for i in obj]
         return Timestamp(intervals=intervals)
 
-    def serialize_timestamp(self, ts):
+    def serialize_timestamp(self, ts: Timestamp) -> List:
         """Get serialization for atimestamp object. A timestamp is serialized
         as a list of 2-dimensional lists that contain the start and end version
         of the time interval.
@@ -258,7 +264,7 @@ class DefaultSerializer(ArchiveSerializer):
         """
         return [[interval.start, interval.end] for interval in ts.intervals]
 
-    def deserialize_value(self, obj, ts):
+    def deserialize_value(self, obj: Union[Dict, List], ts: Timestamp) -> ArchiveValue:
         """Get timestamped value object from a serialization object. Expects a
         dictionary for single version values or a list of dictionaries for
         multi-version values.
@@ -290,7 +296,7 @@ class DefaultSerializer(ArchiveSerializer):
                 )
             return MultiVersionValue(values=values)
 
-    def serialize_value(self, value, ts):
+    def serialize_value(self, value: ArchiveValue, ts: Timestamp) -> Union[Dict, List]:
         """Get serialization for a timestamp value. Depending on whether the
         value is a single version value or a multi-version value either a
         dictionary (single version) or a list of dictionaries (multi-version)
@@ -327,7 +333,7 @@ class DefaultSerializer(ArchiveSerializer):
 
 # -- Helper Functions ---------------------------------------------------------
 
-def validate_label(label):
+def validate_label(label: str) -> str:
     """Ensure that the given label does not start with the reserved '$'
     character.
 

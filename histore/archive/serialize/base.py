@@ -15,7 +15,7 @@ class ArchiveSerializer(metaclass=ABCMeta):
     dataset archives. All serializations are either lists or dictionaries.
     """
     @abstractmethod
-    def deserialize_column(self, obj):  # pragma: no cover
+    def deserialize_column(self, obj):
         """Get archive schema column instance from a serialized object. The
         type of the object depends on the serializer implementation. It is
         assumed that the object has been serialized using the respective method
@@ -30,10 +30,10 @@ class ArchiveSerializer(metaclass=ABCMeta):
         -------
         histore.archive.schema.ArchiveColumn
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def serialize_column(self, column):  # pragma: no cover
+    def serialize_column(self, column):
         """Get serialization for an archive schema column.
 
         Parameters
@@ -45,10 +45,10 @@ class ArchiveSerializer(metaclass=ABCMeta):
         -------
         string, list, or dict
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def deserialize_row(self, obj):  # pragma: no cover
+    def deserialize_row(self, obj):
         """Get archive row instance from a serialized object. The type of the
         object depends on the serializer implementation. It is assumed that
         the object has been serialized using the respective method from
@@ -63,10 +63,10 @@ class ArchiveSerializer(metaclass=ABCMeta):
         -------
         histore.archive.row.ArchiveRow
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def serialize_row(self, row):  # pragma: no cover
+    def serialize_row(self, row):
         """Get serialization for an archive row object.
 
         Parameters
@@ -78,10 +78,10 @@ class ArchiveSerializer(metaclass=ABCMeta):
         -------
         string, list, or dict
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def deserialize_snapshot(self, obj):  # pragma: no cover
+    def deserialize_snapshot(self, obj):
         """Get snapshot descriptor instance from a serialized object. The type
         of the object depends on the serializer implementation. It is assumed
         that the object has been serialized using the respective method from
@@ -96,10 +96,10 @@ class ArchiveSerializer(metaclass=ABCMeta):
         -------
         histore.archive.snapshot.Snapshot
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def serialize_snapshot(self, snapshot):  # pragma: no cover
+    def serialize_snapshot(self, snapshot):
         """Get serialization for an archive snapshot descriptor.
 
         Parameters
@@ -111,10 +111,10 @@ class ArchiveSerializer(metaclass=ABCMeta):
         -------
         string, list, or dict
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def deserialize_timestamp(self, obj):  # pragma: no cover
+    def deserialize_timestamp(self, obj):
         """Get timestamp instance from serialized object. The type of the
         object depends on the serializer implementation. It is assumed that
         the object has been serialized using the respective method from
@@ -129,10 +129,10 @@ class ArchiveSerializer(metaclass=ABCMeta):
         -------
         histore.archive.timestamp.Timestamp
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def serialize_timestamp(self, ts):  # pragma: no cover
+    def serialize_timestamp(self, ts):
         """Get serialization for a timestamp object.
 
         Parameters
@@ -144,10 +144,10 @@ class ArchiveSerializer(metaclass=ABCMeta):
         -------
         string, list, or dict
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def deserialize_value(self, obj, ts):  # pragma: no cover
+    def deserialize_value(self, obj, ts):
         """Get timestamped value object from a serialization object. The type
         of the object depends on the serializer implementation. It is assumed
         that the object has been serialized using the respective method from
@@ -160,12 +160,12 @@ class ArchiveSerializer(metaclass=ABCMeta):
 
         Returns
         -------
-        histore.archive.value.ArchiveValue
+        string, list, or dict
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def serialize_value(self, value, ts):  # pragma: no cover
+    def serialize_value(self, value, ts):
         """Get serialization for a timestamp value.
 
         Parameters
@@ -179,4 +179,4 @@ class ArchiveSerializer(metaclass=ABCMeta):
         -------
         string, list, or dict
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover

@@ -13,7 +13,7 @@ Warning: This serializer CANNOT be used for datasets that have cell values that
 are dictionaries.
 """
 
-from typing import Any, List
+from typing import Any, List, Optional
 
 from histore.archive.timestamp import TimeInterval, Timestamp
 from histore.archive.value import ArchiveValue, MultiVersionValue, SingleVersionValue
@@ -37,9 +37,13 @@ class CompactSerializer(DefaultSerializer):
     dictionaries as otherwise the deserialization will fail.
     """
     def __init__(
-        self, timestamp='t', pos='p', name='n', cells='c', value='v',
-        key='k', rowid='r', colid='c', version='v', valid_time='vt',
-        transaction_time='tt', description='d', action='a'
+        self, timestamp: Optional[str] = 't', pos: Optional[str] = 'p',
+        name: Optional[str] = 'n', cells: Optional[str] = 'c',
+        value: Optional[str] = 'v', key: Optional[str] = 'k',
+        rowid: Optional[str] = 'r', colid: Optional[str] = 'c',
+        version: Optional[str] = 'v', valid_time: Optional[str] = 'vt',
+        transaction_time: Optional[str] = 'tt', description: Optional[str] = 'd',
+        action: Optional[str] = 'a'
     ):
         """Initialize the labels for elements used in the serialized objects.
         By default short labels are used to reduce storage overhead.
