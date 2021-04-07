@@ -17,6 +17,7 @@ from histore.archive.value import (
     MultiVersionValue, SingleVersionValue
 )
 from histore.archive.timestamp import Timestamp, TimeInterval
+from histore.archive.serialize.compact import CompactSerializer
 from histore.archive.serialize.default import DefaultSerializer
 
 import histore.util as util
@@ -107,16 +108,18 @@ def test_serialize_snapshot():
     assert s.description == snapshot.description
 
 
-def test_serialize_timestamp():
+@pytest.mark.parametrize('serializer_cls', [DefaultSerializer, CompactSerializer])
+def test_serialize_timestamp(serializer_cls):
     """Test (de-)serialization of timestamp objects."""
-    serializer = DefaultSerializer()
+    serializer = serializer_cls()
     ts = serializer.deserialize_timestamp([[1, 2], [4, 6], [8, 8]])
     for v in [1, 2, 4, 5, 6, 8]:
         assert ts.contains(v)
     for v in [0, 3, 7, 9]:
         assert not ts.contains(v)
     obj = serializer.serialize_timestamp(ts)
-    assert obj == [[1, 2], [4, 6], [8, 8]]
+    ts = serializer.deserialize_timestamp(obj)
+    assert ts.is_equal(Timestamp([TimeInterval(start=1, end=2), TimeInterval(start=4, end=6), TimeInterval(8)]))
     ts = serializer.deserialize_timestamp(obj)
     for v in [1, 2, 4, 5, 6, 8]:
         assert ts.contains(v)
@@ -126,9 +129,10 @@ def test_serialize_timestamp():
         serializer.deserialize_timestamp([[1, 2], [3, 6], [8, 8]])
 
 
-def test_serialize_value():
+@pytest.mark.parametrize('serializer_cls', [DefaultSerializer, CompactSerializer])
+def test_serialize_value(serializer_cls):
     """Test (de-)serialization of timestamped values."""
-    serializer = DefaultSerializer()
+    serializer = serializer_cls()
     # -- Single version value -------------------------------------------------
     ts = Timestamp(version=1)
     value = SingleVersionValue(value=1, timestamp=ts)
@@ -141,9 +145,6 @@ def test_serialize_value():
     value = serializer.deserialize_value(obj=obj, ts=ts)
     assert value.timestamp.is_equal(Timestamp(version=1))
     assert value.value == 1
-    # Error case for invalid object
-    with pytest.raises(ValueError):
-        serializer.deserialize_value(obj='A', ts=ts)
     # -- Multi-version value --------------------------------------------------
     value = SingleVersionValue(value=1, timestamp=Timestamp(version=1))
     value = value.merge(value='A', version=2)

@@ -273,13 +273,13 @@ class DefaultSerializer(ArchiveSerializer):
 
         Returns
         -------
-        string, list, or dict
+        histore.archive.value.ArchiveValue
         """
         if isinstance(obj, dict):
             if self.timestamp in obj:
                 ts = self.deserialize_timestamp(obj[self.timestamp])
             return SingleVersionValue(value=obj[self.value], timestamp=ts)
-        elif isinstance(obj, list):
+        else:
             values = []
             for v in obj:
                 values.append(
@@ -289,7 +289,6 @@ class DefaultSerializer(ArchiveSerializer):
                     )
                 )
             return MultiVersionValue(values=values)
-        raise ValueError('invalid serialization object')
 
     def serialize_value(self, value, ts):
         """Get serialization for a timestamp value. Depending on whether the

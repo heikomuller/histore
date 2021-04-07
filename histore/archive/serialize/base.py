@@ -160,7 +160,7 @@ class ArchiveSerializer(metaclass=ABCMeta):
 
         Returns
         -------
-        string, list, or dict
+        histore.archive.value.ArchiveValue
         """
         raise NotImplementedError()
 
