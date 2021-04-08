@@ -7,7 +7,7 @@
 
 """Manager implementation for archives that are maintained in main memory."""
 
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 from histore.archive.base import Archive
 from histore.archive.manager.base import ArchiveManager
@@ -37,7 +37,8 @@ class VolatileArchiveManager(ArchiveManager):
     def create(
         self, name: Optional[str] = None, description: Optional[str] = None,
         primary_key: Optional[Union[List[str], str]] = None,
-        encoder: Optional[str] = None, decoder: Optional[str] = None
+        encoder: Optional[str] = None, decoder: Optional[str] = None,
+        serializer: Union[Dict, Callable] = None
     ) -> ArchiveDescriptor:
         """Create a new volatile archive object. Raises a ValueError if an
         archive with the given name exists.
@@ -57,6 +58,15 @@ class VolatileArchiveManager(ArchiveManager):
         decoder: string, default=None
             Ignored. Full package path for the Json decoder function that is
             used by the persistent archive. Included for API completeness.
+        serializer: dict or callable, default=None
+            Dictionary or callable that returns a dictionary that contains the
+            specification for the serializer. The serializer specification is
+            a dictionary with the following elements:
+            - ``clspath``: Full package target path for the serializer class
+                           that is instantiated.
+            - ``kwargs`` : Additional arguments that are passed to the
+                           constructor of the created serializer instance.
+            Ignored. Included for API completeness.
 
         Returns
         -------

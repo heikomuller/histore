@@ -13,10 +13,9 @@ from histore.key.base import NumberKey, StringKey
 from histore.archive.row import ArchiveRow
 from histore.archive.schema import ArchiveColumn
 from histore.archive.snapshot import Snapshot
-from histore.archive.value import (
-    MultiVersionValue, SingleVersionValue
-)
+from histore.archive.value import MultiVersionValue, SingleVersionValue
 from histore.archive.timestamp import Timestamp, TimeInterval
+from histore.archive.serialize.base import SERIALIZER
 from histore.archive.serialize.compact import CompactSerializer
 from histore.archive.serialize.default import DefaultSerializer
 
@@ -157,3 +156,8 @@ def test_serialize_value(serializer_cls):
         else:
             assert v.timestamp.contains(2)
             assert v.value == 'A'
+
+
+def test_serializer_specification():
+    """Test helper functions to generate serializer specifications."""
+    assert SERIALIZER(clspath='x') == {'clspath': 'x'}

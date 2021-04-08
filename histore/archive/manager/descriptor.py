@@ -9,10 +9,13 @@
 by an archive manager.
 """
 
+import json
 import jsonschema
 
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
+
+from histore.archive.serialize.base import ArchiveSerializer
 
 import histore.util as util
 
@@ -31,7 +34,15 @@ DESCRIPTOR_SCHEMA = {
             'items': {'type': 'string'}
         },
         'encoder': {'type': 'string'},
-        'decoder': {'type': 'string'}
+        'decoder': {'type': 'string'},
+        'serializer': {
+            'type': 'object',
+            'properties': {
+                'clspath': {'type': 'string'},
+                'kwargs': {'type': 'object'}
+            },
+            'required': ['clspath']
+        }
     },
     'required': ['id', 'createdAt']
 }
@@ -68,7 +79,8 @@ class ArchiveDescriptor(object):
         identifier: Optional[str] = None, name: Optional[str] = None,
         description: Optional[str] = None,
         primary_key: Optional[Union[List[str], str]] = None,
-        encoder: Optional[str] = None, decoder: Optional[str] = None
+        encoder: Optional[str] = None, decoder: Optional[str] = None,
+        serializer: Union[Dict, Callable] = None
     ):
         """Create a new archive descriptor object.
 
@@ -88,6 +100,15 @@ class ArchiveDescriptor(object):
             persistent archive.
         decoder: string, default=None
             Full package path for the Json decoder function that is used by the
+        serializer: dict or callable, default=None
+            Dictionary or callable that returns a dictionary that contains the
+            specification for the serializer. The serializer specification is
+            a dictionary with the following elements:
+            - ``clspath``: Full package target path for the serializer class
+                           that is instantiated.
+            - ``kwargs`` : Additional arguments that are passed to the
+                           constructor of the created serializer instance.
+            Only ``clspath`` is required.
 
         Returns
         -------
@@ -111,6 +132,8 @@ class ArchiveDescriptor(object):
             doc['encoder'] = encoder
         if decoder is not None:
             doc['decoder'] = decoder
+        if serializer is not None:
+            doc['serializer'] = serializer if isinstance(serializer, dict) else serializer()
         return ArchiveDescriptor(doc)
 
     def created_at(self) -> datetime:
@@ -122,14 +145,14 @@ class ArchiveDescriptor(object):
         """
         return util.to_datetime(self.doc.get('createdAt'))
 
-    def decoder(self) -> str:
-        """Get package path for Json decoder used by persistent archives.
+    def decoder(self) -> Callable:
+        """Get Json decoder function used by persistent archives.
 
         Returns
         -------
-        string
+        callable
         """
-        return self.doc.get('decoder')
+        return util.import_obj(self.doc['decoder']) if 'decoder' in self.doc else None
 
     def description(self) -> str:
         """Get archive description. If the value is not set in the descriptor
@@ -141,14 +164,14 @@ class ArchiveDescriptor(object):
         """
         return self.doc.get('description', '')
 
-    def encoder(self) -> str:
-        """Get package path for Json encoder used by persistent archives.
+    def encoder(self) -> json.JSONEncoder:
+        """Get Json encoder used by persistent archives.
 
         Returns
         -------
-        string
+        json.JSONEncoder
         """
-        return self.doc.get('encoder')
+        return util.import_obj(self.doc['encoder']) if 'encoder' in self.doc else None
 
     def identifier(self) -> str:
         """Get the unique archive identifier value.
@@ -187,3 +210,14 @@ class ArchiveDescriptor(object):
             New archive name.
         """
         self.doc['name'] = name
+
+    def serializer(self) -> ArchiveSerializer:
+        """Get an instance of the serializer that is used for the archive.
+
+        Returns
+        -------
+        histore.archive.serialize.base.ArchiveSerializer
+        """
+        if 'serializer' in self.doc:
+            serializer = self.doc['serializer']
+            return util.import_obj(serializer['clspath'])(**serializer.get('kwargs', {}))

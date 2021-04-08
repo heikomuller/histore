@@ -11,7 +11,7 @@ import json
 import os
 import shutil
 
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
 from histore.archive.base import PersistentArchive
 from histore.archive.manager.base import ArchiveManager
@@ -75,7 +75,8 @@ class FileSystemArchiveManager(ArchiveManager):
     def create(
         self, name: Optional[str] = None, description: Optional[str] = None,
         primary_key: Optional[Union[List[str], str]] = None,
-        encoder: Optional[str] = None, decoder: Optional[str] = None
+        encoder: Optional[str] = None, decoder: Optional[str] = None,
+        serializer: Union[Dict, Callable] = None
     ) -> ArchiveDescriptor:
         """Create a new archive object. Raises a ValueError if an archive with
         the given name exists.
@@ -94,6 +95,15 @@ class FileSystemArchiveManager(ArchiveManager):
             persistent archive.
         decoder: string, default=None
             Full package path for the Json decoder function that is used by the
+        serializer: dict or callable, default=None
+            Dictionary or callable that returns a dictionary that contains the
+            specification for the serializer. The serializer specification is
+            a dictionary with the following elements:
+            - ``clspath``: Full package target path for the serializer class
+                           that is instantiated.
+            - ``kwargs`` : Additional arguments that are passed to the
+                           constructor of the created serializer instance.
+            Only ``clspath`` is required.
 
         Returns
         -------
@@ -112,7 +122,8 @@ class FileSystemArchiveManager(ArchiveManager):
             description=description,
             primary_key=primary_key,
             encoder=encoder,
-            decoder=decoder
+            decoder=decoder,
+            serializer=serializer
         )
         identifier = descriptor.identifier()
         primary_key = descriptor.primary_key()
@@ -156,24 +167,12 @@ class FileSystemArchiveManager(ArchiveManager):
         desc = self._archives.get(identifier)
         if desc is None:
             raise ValueError('unknown archive {}'.format(identifier))
-        archdir = os.path.join(self.basedir, identifier)
-        primary_key = desc.primary_key()
-        # Load JSONEncoder class if encoder is contained in the descriptor.
-        if desc.encoder() is not None:
-            encoder = util.import_obj(desc.encoder())
-        else:
-            encoder = None
-        # Load the corresponding Json decoder function if a decoder is
-        # contained in the descriptor.
-        if desc.decoder() is not None:
-            decoder = util.import_obj(desc.decoder())
-        else:
-            decoder = None
         return PersistentArchive(
-            basedir=archdir,
-            primary_key=primary_key,
-            encoder=encoder,
-            decoder=decoder
+            basedir=os.path.join(self.basedir, identifier),
+            primary_key=desc.primary_key(),
+            serializer=desc.serializer(),
+            encoder=desc.encoder(),
+            decoder=desc.decoder()
         )
 
     def rename(self, identifier: str, name: str):

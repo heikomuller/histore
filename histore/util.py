@@ -99,7 +99,7 @@ def import_obj(import_path):
     """
     pos = import_path.rfind('.')
     module_name = import_path[:pos]
-    class_name = import_path[pos+1:]
+    class_name = import_path[pos + 1:]
     module = import_module(module_name)
     return getattr(module, class_name)
 

@@ -17,6 +17,7 @@ from histore.archive.manager.db.base import DBArchiveManager
 from histore.archive.manager.db.database import DB, TEST_URL
 from histore.archive.manager.fs import FileSystemArchiveManager
 from histore.archive.manager.persist import PersistentArchiveManager
+from histore.archive.serialize.base import DEFAULT
 from histore.document.schema import Column
 
 import histore.config as config
@@ -37,11 +38,14 @@ def test_create_archive(ManagerCls, kwargs, tmpdir):
     # -- Create empty manager instance ----------------------------------------
     manager = ManagerCls(**kwargs)
     assert len(manager.archives()) == 0
-    # -- Add irst archive -----------------------------------------------------
+    # -- Add first archive ----------------------------------------------------
     descriptor = manager.create(
         name='First archive',
         description='My first archive',
-        primary_key='SSN'
+        primary_key='SSN',
+        encoder='histore.tests.encode.TestEncoder',
+        decoder='histore.tests.encode.test_decoder',
+        serializer=DEFAULT
     )
     assert descriptor.identifier() is not None
     assert descriptor.name() == 'First archive'
