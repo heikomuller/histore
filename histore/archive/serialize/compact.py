@@ -195,7 +195,7 @@ class CompactSerializer(DefaultSerializer):
             # A single version value is either serialized as a dictionary
             # containing the value and its timestamp (if it different from the
             # parent timestamp) or as the versioned value itself.
-            if not value.timestamp.is_equal(ts):
+            if value.has_timestamp and not value.timestamp.is_equal(ts):
                 obj = dict()
                 obj[self.timestamp] = self.serialize_timestamp(value.timestamp)
                 obj[self.value] = value.value

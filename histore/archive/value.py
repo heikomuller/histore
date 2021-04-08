@@ -159,7 +159,7 @@ class SingleVersionValue(ArchiveValue):
     """Single archive value that has never changed over to history of the
     dataset that contains it.
     """
-    def __init__(self, value: Any, timestamp: Timestamp):
+    def __init__(self, value: Any, timestamp: Timestamp, has_timestamp: Optional[bool] = True):
         """Initialize the archived value and the timestamp.
 
         Parameters
@@ -168,9 +168,13 @@ class SingleVersionValue(ArchiveValue):
             Scalar value.
         timestamp: histore.archive.timestamp.Timestamp
             Timestamp of the archived value.
+        has_timestamp: bool, default=True
+            If False it can be assumed that the value timestamp is the same as
+            the timestamp for he parent.
         """
         self.value = value
         self.timestamp = timestamp
+        self.has_timestamp = has_timestamp
 
     def __repr__(self):
         """Unambiguous string representation of the single version value.
