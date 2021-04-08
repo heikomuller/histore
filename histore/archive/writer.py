@@ -14,10 +14,10 @@ from histore.archive.row import ArchiveRow
 from histore.archive.timestamp import Timestamp
 from histore.archive.value import SingleVersionValue
 from histore.document.row import DocumentRow
-from histore.document.stream import StreamConsumer
+from histore.document.stream import DocumentConsumer
 
 
-class ArchiveWriter(StreamConsumer, metaclass=ABCMeta):
+class ArchiveWriter(DocumentConsumer, metaclass=ABCMeta):
     """The abstract archive writer class defines the methods for adding rows
     to an output archive. The writer maintains an internal counter to assign
     unique identifier to document rows.

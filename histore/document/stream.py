@@ -16,7 +16,7 @@ from histore.document.row import DocumentRow
 from histore.document.schema import Column, Schema
 
 
-class StreamConsumer(metaclass=ABCMeta):
+class DocumentConsumer(metaclass=ABCMeta):
     """Mixin class for stream consumer that are used to write document rows to
     a archive store.
     """
@@ -51,7 +51,7 @@ class InputStream(metaclass=ABCMeta):
         self.columns = columns
 
     @abstractmethod
-    def stream_to_archive(self, schema: List[Column], version: int, consumer: StreamConsumer):
+    def stream_to_archive(self, schema: List[Column], version: int, consumer: DocumentConsumer):
         """Write rows in a stream to a consumer.
 
         Parameters

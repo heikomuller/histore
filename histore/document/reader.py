@@ -15,7 +15,7 @@ from typing import Iterable, List
 
 from histore.document.row import DocumentRow
 from histore.document.schema import Column, Schema
-from histore.document.stream import InputStream, StreamConsumer
+from histore.document.stream import InputStream, DocumentConsumer
 
 
 class DocumentReader(metaclass=ABCMeta):
@@ -84,7 +84,7 @@ class DocumentStream(InputStream):
         super(DocumentStream, self).__init__(columns=columns)
         self.doc = doc
 
-    def stream_to_archive(self, schema: List[Column], version: int, consumer: StreamConsumer):
+    def stream_to_archive(self, schema: List[Column], version: int, consumer: DocumentConsumer):
         """Write rows from a document to a stream consumer.
 
         Parameters

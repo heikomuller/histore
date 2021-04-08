@@ -15,7 +15,7 @@ from histore.document.csv.read import SimpleCSVDocument
 from histore.document.mem.base import InMemoryDocument
 from histore.document.row import DocumentRow
 from histore.document.schema import to_schema
-from histore.document.stream import StreamConsumer
+from histore.document.stream import DocumentConsumer
 from histore.key.base import NumberKey
 
 
@@ -26,7 +26,7 @@ CSV_FILE = os.path.join(DIR, 'agencies.csv')
 
 # -- Helper classes -----------------------------------------------------------
 
-class RowCollector(StreamConsumer):
+class RowCollector(DocumentConsumer):
     """Stream consumer for test purposes. Ensures that all rows have the
     appropriate number of columns and snapshot version.
     """

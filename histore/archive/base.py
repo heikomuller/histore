@@ -29,7 +29,7 @@ import histore.archive.merge as nested_merge
 
 
 """Type aliases for archive API methods."""
-InputDocument = Union[pd.DataFrame, CSVFile, str]
+InputDocument = Union[pd.DataFrame, CSVFile, str, InputStream]
 
 
 class Archive(object):
@@ -193,7 +193,7 @@ class Archive(object):
             if partial:
                 raise ValueError('merge partial snapshot into empty archive')
             elif not self.primary_key:
-                stream = to_document(doc=doc).reader().stream()
+                stream = to_stream(doc=doc)
                 return self.load_from_stream(
                     stream=stream,
                     valid_time=valid_time,
@@ -523,3 +523,18 @@ def to_document(doc: InputDocument, primary_key: Optional[PrimaryKey] = None) ->
     elif isinstance(doc, str):
         return open_document(file=CSVFile(doc), primary_key=primary_key)
     return doc
+
+
+def to_stream(doc: InputDocument) -> InputStream:
+    """Get input tsream for a given document.
+
+    Parameters
+    ----------
+    doc: histore.archive.base.InputDocument
+        Input document representing a dataset snapshot.
+
+    Returns
+    -------
+    histore.document.stream.InputStream
+    """
+    return doc if isinstance(doc, InputStream) else to_document(doc=doc).reader().stream()
