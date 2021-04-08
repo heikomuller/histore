@@ -66,3 +66,4 @@
 
 * Add more compact archive serialization option.
 * Add option to select archive serializer (\#27)
+* Add option to load initial archive snapshot from a data stream.
