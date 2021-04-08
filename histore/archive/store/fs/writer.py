@@ -141,5 +141,3 @@ class DefaultEncoder(json.JSONEncoder):
         elif isinstance(obj, KeyValue):
             assert not obj.is_new()
             return obj.value
-        else:
-            return super(DefaultEncoder, self).default(obj)

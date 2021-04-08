@@ -9,8 +9,12 @@
 completely into main memory.
 """
 
+from typing import List, Optional
+
 from histore.document.base import Document
 from histore.document.mem.reader import InMemoryDocumentReader
+from histore.document.reader import DocumentReader
+from histore.document.schema import Column, to_schema
 
 
 class InMemoryDocument(Document):
@@ -124,7 +128,7 @@ class InMemoryDocument(Document):
             readorder=matched_rows
         )
 
-    def reader(self, schema):
+    def reader(self, schema: Optional[List[Column]] = None) -> DocumentReader:
         """Get reader for document rows ordered by their row key.
 
         Parameters
@@ -136,7 +140,8 @@ class InMemoryDocument(Document):
             column identifier that are required by the document reader to
             generate document rows. An error is raised if the number of
             elements in the schema does not match the number of columns in the
-            data frame.
+            data frame. If no schema is provided the document schema itself is
+            used as the default.
 
         Returns
         -------
@@ -148,10 +153,10 @@ class InMemoryDocument(Document):
         """
         # Raise an error if the number of elements in the schema does not match
         # the number of columns in the document.
-        if len(self.columns) != len(schema):
+        if schema is not None and len(self.columns) != len(schema):
             raise ValueError('invalid schema for data frame')
         return InMemoryDocumentReader(
-            schema=schema,
+            schema=schema if schema is not None else to_schema(self.columns),
             rows=self.rows,
             readorder=self.readorder
         )

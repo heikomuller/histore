@@ -13,9 +13,11 @@ from histore.key.base import NumberKey
 from histore.archive.row import ArchiveRow
 from histore.archive.timestamp import Timestamp
 from histore.archive.value import SingleVersionValue
+from histore.document.row import DocumentRow
+from histore.document.stream import StreamConsumer
 
 
-class ArchiveWriter(metaclass=ABCMeta):
+class ArchiveWriter(StreamConsumer, metaclass=ABCMeta):
     """The abstract archive writer class defines the methods for adding rows
     to an output archive. The writer maintains an internal counter to assign
     unique identifier to document rows.
@@ -33,6 +35,20 @@ class ArchiveWriter(metaclass=ABCMeta):
         """
         self.row_counter = row_counter
 
+    def consume_document_row(self, row: DocumentRow, version: int):
+        """Add a given document row from an input stream to a new archive
+        version.
+
+        Parameters
+        ----------
+        row: histore.document.row.DocumentRow
+            Row from an input stream (snapshot) that is being added to the
+            archive snapshot for the given version.
+        version: int
+            Unique identifier for the new snapshot version.
+        """
+        self.write_document_row(row=row, version=version)
+
     @abstractmethod
     def write_archive_row(self, row):  # pragma: no cover
         """Add the given row to a new archive version.
@@ -44,7 +60,7 @@ class ArchiveWriter(metaclass=ABCMeta):
         """
         raise NotImplementedError()
 
-    def write_document_row(self, row, version):
+    def write_document_row(self, row: DocumentRow, version: int):
         """Add a given document row to a new archive version with the given
         identifier. Uses the internal row counter to assign a new unique row
         identifier.
@@ -52,7 +68,7 @@ class ArchiveWriter(metaclass=ABCMeta):
         Parameters
         ----------
         row: histore.document.row.DocumentRow
-            Row from an inout document (snapshot) that is being added to the
+            Row from an input document (snapshot) that is being added to the
             archive snapshot for the given version.
         version: int
             Unique identifier for the snapshot version that the document row is
@@ -63,14 +79,14 @@ class ArchiveWriter(metaclass=ABCMeta):
         ts = Timestamp(version=version)
         cells = dict()
         for colid, value in row.values.items():
-            cells[colid] = SingleVersionValue(value=value, timestamp=ts)
+            cells[colid] = SingleVersionValue(value=value, timestamp=ts, has_timestamp=False)
         key = row.key
         if not isinstance(key, tuple) and key.is_new():
             key = NumberKey(self.row_counter)
         arch_row = ArchiveRow(
             rowid=self.row_counter,
             key=key,
-            pos=SingleVersionValue(value=row.pos, timestamp=ts),
+            pos=SingleVersionValue(value=row.pos, timestamp=ts, has_timestamp=False),
             cells=cells,
             timestamp=ts
         )

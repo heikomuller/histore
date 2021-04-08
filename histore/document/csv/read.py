@@ -14,9 +14,9 @@ from histore.document.csv.base import CSVFile, CSVReader
 from histore.document.csv.sort import SortedCSVDocument
 from histore.document.mem.base import InMemoryDocument
 from histore.document.mem.dataframe import DataFrameDocument
-from histore.document.reader import DocumentReader
+from histore.document.reader import DocumentReader, DocumentStream
 from histore.document.row import DocumentRow
-from histore.document.schema import Column
+from histore.document.schema import Column, to_schema
 from histore.key.base import NumberKey
 
 import histore.document.csv.sort as sort
@@ -66,7 +66,7 @@ class SimpleCSVDocument(Document):
         """
         return DataFrameDocument(self.file.read_df()).partial(reader)
 
-    def reader(self, schema: List[Column]):
+    def reader(self, schema: Optional[List[Column]] = None) -> DocumentReader:
         """Get reader for data frame rows ordered by their row identifier. In
         a partial document the row positions that are returned by the reader
         are aligned with the positions of the corresponding rows in the
@@ -74,14 +74,15 @@ class SimpleCSVDocument(Document):
 
         Parameters
         ----------
-        schema: list(histore.document.schema.Column)
+        schema: list(histore.document.schema.Column), default=None
             List of columns in the document schema. Each column corresponds to
             a column in the column list of this document (corresponding to
             their position in the list). The schema columns provide the unique
             column identifier that are required by the document reader to
             generate document rows. An error is raised if the number of
             elements in the schema does not match the number of columns in the
-            data frame.
+            data frame. If no schema is provided the document schema itself is
+            used as the default.
 
         Returns
         -------
@@ -91,7 +92,10 @@ class SimpleCSVDocument(Document):
         ------
         ValueError
         """
-        return SimpleCSVDocumentReader(reader=self.file.open(), schema=schema)
+        return SimpleCSVDocumentReader(
+            reader=self.file.open(),
+            schema=schema if schema is not None else to_schema(self.columns)
+        )
 
 
 class SimpleCSVDocumentReader(DocumentReader):
@@ -162,6 +166,15 @@ class SimpleCSVDocumentReader(DocumentReader):
             self.reader = None
         # Return the buffered result
         return result
+
+    def stream(self) -> DocumentStream:
+        """Get an input stream object for the document.
+
+        Returns
+        -------
+        histore.document.reader.DocumentStream
+        """
+        return DocumentStream(columns=self.schema, doc=self)
 
 
 def open_document(

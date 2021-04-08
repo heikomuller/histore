@@ -201,3 +201,18 @@ def select_clause(schema: Schema, columns: Columns) -> Tuple[List[str], List[int
         column_names.append(colname)
         column_index.append(colidx)
     return column_names, column_index
+
+
+def to_schema(columns: Columns) -> List[Column]:
+    """Convert a list of column names to a list of column objects.
+
+    Parameters
+    ----------
+    columns: list of string
+        List of column names.
+
+    Returns
+    -------
+    list of histore.document.schema.Column
+    """
+    return [Column(colid=i, name=name, colidx=i) for i, name in enumerate(as_list(columns))]

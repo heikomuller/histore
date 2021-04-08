@@ -42,7 +42,7 @@ def test_read_unkeyed_file():
     while reader.has_next():
         row = reader.next()
         years.append(row.values[0])
-        origorder.append((row.key, 9-len(origorder)))
+        origorder.append((row.key, 9 - len(origorder)))
     YEARS = [
         '2018',
         '2018',
@@ -111,7 +111,7 @@ def test_read_keyed_external_document():
             compressed=True
         ),
         primary_key=['Calendar Year', 'Gender'],
-        max_size=300/(1024*1024)
+        max_size=300 / (1024 * 1024)
     )
     assert doc.columns == [
         'Calendar Year',
@@ -128,7 +128,7 @@ def test_read_keyed_external_document():
     origorder = list()
     while reader.has_next():
         row = reader.next()
-        origorder.append((row.key, 9-len(origorder)))
+        origorder.append((row.key, 9 - len(origorder)))
         keys.append((row.values[0], row.values[1]))
     KEYS = [
         ('2014', 'Female'),
@@ -159,7 +159,7 @@ def test_read_keyed_external_document():
             delim='\t'
         ),
         primary_key=['Calendar Year'],
-        max_size=1/(1024*1024)
+        max_size=1 / (1024 * 1024)
     )
     assert doc.columns == [
         'Calendar Year',

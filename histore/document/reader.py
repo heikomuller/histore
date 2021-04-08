@@ -9,7 +9,13 @@
 the rows in a data frame sorted by the row key.
 """
 
+from __future__ import annotations
 from abc import ABCMeta, abstractmethod
+from typing import Iterable, List
+
+from histore.document.row import DocumentRow
+from histore.document.schema import Column, Schema
+from histore.document.stream import InputStream, StreamConsumer
 
 
 class DocumentReader(metaclass=ABCMeta):
@@ -27,7 +33,7 @@ class DocumentReader(metaclass=ABCMeta):
         return row_stream(self)
 
     @abstractmethod
-    def has_next(self):  # pragma: no cover
+    def has_next(self) -> bool:
         """Test if the reader has more rows to read. If True the next() method
         will return the next row. Otherwise, the next() method will return
         None.
@@ -36,10 +42,10 @@ class DocumentReader(metaclass=ABCMeta):
         -------
         bool
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def next(self):  # pragma: no cover
+    def next(self) -> DocumentRow:
         """Read the next row in the document. Returns None if the end of the
         document has been reached.
 
@@ -47,12 +53,57 @@ class DocumentReader(metaclass=ABCMeta):
         -------
         histore.document.row.DocumentRow
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
+
+    def stream(self) -> DocumentStream:
+        """Get an input stream object for the document.
+
+        The input stream is used, for example, to load an initial dataset
+        snapshot into an empty archive.
+
+        Returns
+        -------
+        histore.document.reader.DocumentStream
+        """
+        raise NotImplementedError()  # pragma: no cover
+
+
+class DocumentStream(InputStream):
+    """Input stream implementation for a document reader."""
+    def __init__(self, columns: Schema, doc: DocumentReader):
+        """Initialize the list of columns in the document schema and the reader
+        for document rows.
+
+        Parameters
+        ----------
+        columns: list of string, default=None
+            List of column names in the schema of the data stream rows.
+        doc: histore.document.reader.DocumentReader
+            Reader for document rows.
+        """
+        super(DocumentStream, self).__init__(columns=columns)
+        self.doc = doc
+
+    def stream_to_archive(self, schema: List[Column], version: int, consumer: StreamConsumer):
+        """Write rows from a document to a stream consumer.
+
+        Parameters
+        ----------
+        schema: list of histore.document.schema.Column
+            List of columns (with unique identifier). The order of entries in
+            this list corresponds to the order of columns in the document schema.
+        version: int
+            Unique identifier for the new snapshot version.
+        consumer: histore.document.stream.StreamCounsumer
+            Consumer for rows in the stream.
+        """
+        for row in self.doc:
+            consumer.consume_document_row(row=row, version=version)
 
 
 # -- Helper Methods -----------------------------------------------------------
 
-def row_stream(reader):
+def row_stream(reader: DocumentReader) -> Iterable:
     """Geterator that yields all rows in a document reader.
 
     Parameters

@@ -23,6 +23,7 @@ from histore.document.base import Document, PrimaryKey
 from histore.document.csv.base import CSVFile
 from histore.document.csv.read import open_document
 from histore.document.mem.dataframe import DataFrameDocument
+from histore.document.stream import InputStream
 
 import histore.archive.merge as nested_merge
 
@@ -184,9 +185,21 @@ class Archive(object):
         ------
         ValueError
         """
-        # Ensure that partial is not set for an empty archive.
-        if partial and self.is_empty():
-            raise ValueError('merge partial snapshot into empty archive')
+        # If the archive is empty, does not have a primary key, and the document
+        # is not partial, then we can optimize by loading the document as a
+        # stream.
+        if self.is_empty():
+            # Ensure that partial is not set for an empty archive.
+            if partial:
+                raise ValueError('merge partial snapshot into empty archive')
+            elif not self.primary_key:
+                stream = to_document(doc=doc).reader().stream()
+                return self.load_from_stream(
+                    stream=stream,
+                    valid_time=valid_time,
+                    description=description,
+                    action=action
+                )
         # Documents may optionally be specified as data frames or CSV files.
         # Ensure that we have an instance of the Document class.
         doc = to_document(doc=doc, primary_key=self.primary_key)
@@ -288,6 +301,71 @@ class Archive(object):
         bool
         """
         return self.store.is_empty()
+
+    def load_from_stream(
+        self, stream: InputStream, valid_time: Optional[datetime] = None,
+        description: Optional[str] = None, action: Optional[Dict] = None
+    ):
+        """Load an initial snapshot from a data stream into an empty dataset
+        archive.
+
+        This method can only be applied for empty archives that do not have a
+        primary key defined. Attempting to load a snapshot from a stream into a
+        non-empty archive or an empty archive with a primary key will raise an
+        error.
+
+        Returns the descriptor of the merged snapshot in the new version of
+        the archive.
+
+        Parameters
+        ----------
+        stream: histore.document.stream.InputStream
+            Input document representing the dataset snapshot that is being
+            merged into the archive.
+        valid_time: datetime.datetime
+            Timestamp when the snapshot was first valid. A snapshot is valid
+            until the valid time of the next snapshot in the archive.
+        description: string, default=None
+            Optional user-provided description for the snapshot.
+        action: dict, default=None
+            Optional metadata defining the action that created the snapshot.
+
+        Returns
+        -------
+        histore.archive.snapshot.Snapshot
+
+        Raises
+        ------
+        ValueError
+        """
+        # Ensure that the archive does not have a primary key defined.
+        if self.primary_key:
+            raise RuntimeError('cannot load from stream for archive with primary key')
+        # We can only load an archive from a stream if the archive is empty.
+        # Raise an error if the archive is not empty.
+        if not self.is_empty():
+            raise RuntimeError('cannot merge stream into archive')
+        # Get a modified snapshot list where the last entry represents the
+        # new snapshot.
+        version = self.snapshots().next_version()
+        # Create archive schema from list of stream columns. Since the archive
+        # schema is empty the returned list of columns corresponds to the list
+        # of columns in the input stream.
+        schema, columns, _ = self.schema().merge(columns=stream.columns, version=version)
+        # Get writer for the archive.
+        writer = self.store.get_writer()
+        stream.stream_to_archive(schema=columns, version=version, consumer=writer)
+        # Commit all changes to the associated archive store.
+        snapshot = self.store.commit(
+            schema=schema,
+            writer=writer,
+            version=version,
+            valid_time=valid_time,
+            description=description,
+            action=action
+        )
+        # Return descriptor for the created snapshot.
+        return snapshot
 
     def reader(self) -> ArchiveReader:
         """Get the row reader for this archive.

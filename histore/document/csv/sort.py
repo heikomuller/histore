@@ -26,8 +26,9 @@ import sys
 from histore.document.base import Document
 from histore.document.csv.base import CSVReader
 from histore.document.mem.base import InMemoryDocument
-from histore.document.reader import DocumentReader
+from histore.document.reader import DocumentReader, DocumentStream
 from histore.document.row import DocumentRow
+from histore.document.schema import Column, Schema, to_schema
 from histore.key.base import to_key
 
 import histore.config as config
@@ -39,14 +40,16 @@ class SortedCSVDocument(Document):
     """CSV file containing a document that is sorted by one or more of the
     document columns.
     """
-    def __init__(self, filename, columns, primary_key):
+    def __init__(self, filename: str, columns: Schema, primary_key: Schema):
         """Initialize the object properties.
 
         Parameters
         ----------
         filename: string
             Path to the CSV file that contains the document.
-        primary_key: list
+        columns: list of string
+            List of column names in the dataset schema.
+        primary_key: list of string
             List of index positions for sort columns.
         """
         self.filename = filename
@@ -87,17 +90,18 @@ class SortedCSVDocument(Document):
             readorder=readorder
         ).partial(reader)
 
-    def reader(self, schema):
+    def reader(self, schema: Optional[List[Column]] = None) -> DocumentReader:
         """Get reader for the CSV document.
 
         Parameters
         ----------
-        schema: list(histore.document.schema.Column)
+        schema: list(histore.document.schema.Column), default=None
             List of columns in the document schema. Each column corresponds to
             a column in the column list of this document (corresponding to
             their position in the list). The schema columns provide the unique
             column identifier that are required by the document reader to
-            generate document rows.
+            generate document rows. If no schema is provided the document schema
+            itself is used as the default.
 
         Returns
         -------
@@ -105,7 +109,7 @@ class SortedCSVDocument(Document):
         """
         return SortedCSVDocumentReader(
             filename=self.filename,
-            schema=schema,
+            schema=schema if schema is not None else to_schema(self.columns),
             primary_key=self.primary_key
         )
 
@@ -180,6 +184,15 @@ class SortedCSVDocumentReader(DocumentReader):
             self.fh.close()
         # Return the buffered result
         return result
+
+    def stream(self) -> DocumentStream:
+        """Get an input stream object for the document.
+
+        Returns
+        -------
+        histore.document.reader.DocumentStream
+        """
+        return DocumentStream(columns=self.schema, doc=self)
 
 
 # -- Helper methods for document classes --------------------------------------

@@ -39,3 +39,7 @@ def test_numpy_objects():
     assert doc['b'] == 1
     assert doc['c'] == 1.2
     assert doc['d'] == [1, 2]
+    # Edge cases --------------------------------------------------------------
+    encoder = DefaultEncoder()
+    assert encoder.default(np.float64(1.2)) == 1.2
+    assert encoder.default('abc') is None

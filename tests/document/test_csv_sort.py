@@ -30,7 +30,7 @@ def test_split_file():
     assert len(buffer) == 10
     assert len(filenames) == 0
     # Split the file into blocks of two rows each.
-    os.environ[config.ENV_HISTORE_SORTBUFFER] = str(200/(1024*1024))
+    os.environ[config.ENV_HISTORE_SORTBUFFER] = str(200 / (1024 * 1024))
     with CSVFile(DATAFILE).open() as reader:
         buffer, filenames = sort.split(reader, sortkey=PK)
     assert len(buffer) == 0
@@ -46,7 +46,7 @@ def test_split_file():
     del os.environ[config.ENV_HISTORE_SORTBUFFER]
     # Split into three files with one row in the buffer.
     with CSVFile(DATAFILE).open() as reader:
-        buffer, filenames = sort.split(reader, sortkey=PK, buffer_size=300/(1024*1024))
+        buffer, filenames = sort.split(reader, sortkey=PK, buffer_size=300 / (1024 * 1024))
     assert len(buffer) == 1
     assert len(filenames) == 3
     fout = sort.mergesort(buffer=buffer, filenames=filenames, sortkey=PK)
