@@ -62,6 +62,7 @@
 * Disable type inference when checking out dataset snapshot as data frame (\#24).
 
 
-### 0.4.0 - 2021-04-07
+### 0.4.0 - 2021-04-08
 
 * Add more compact archive serialization option.
+* Add option to select archive serializer (\#27)
