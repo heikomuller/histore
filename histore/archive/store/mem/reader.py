@@ -25,6 +25,10 @@ class BufferedReader(ArchiveReader):
         # stream.
         self.read_index = 0
 
+    def close(self):
+        """Set row buffer to None."""
+        self.rows = None
+
     def has_next(self):
         """Test if the reader has more rows to read. If True the next() method
         will return the next row. Otherwise, the next() method will return

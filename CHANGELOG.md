@@ -62,8 +62,9 @@
 * Disable type inference when checking out dataset snapshot as data frame (\#24).
 
 
-### 0.4.0 - 2021-04-08
+### 0.4.0 - TBD
 
 * Add more compact archive serialization option.
 * Add option to select archive serializer (\#27)
 * Add option to load initial archive snapshot from a data stream.
+* Add `histore.document.base.DataReader` implementation for dataset snapshots.
