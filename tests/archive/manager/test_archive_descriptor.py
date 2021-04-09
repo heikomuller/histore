@@ -100,10 +100,7 @@ def test_archive_serializer(spec, clsdef):
             timestamp='l1',
             pos='l2',
             name='l3',
-            cells='l4',
             value='l5',
-            key='l6',
-            rowid='l7',
             colid='l8',
             version='l9',
             valid_time='l10',
@@ -117,10 +114,7 @@ def test_archive_serializer(spec, clsdef):
     assert serializer.timestamp == 'l1'
     assert serializer.pos == 'l2'
     assert serializer.name == 'l3'
-    assert serializer.cells == 'l4'
     assert serializer.value == 'l5'
-    assert serializer.key == 'l6'
-    assert serializer.rowid == 'l7'
     assert serializer.colid == 'l8'
     assert serializer.version == 'l9'
     assert serializer.valid_time == 'l10'

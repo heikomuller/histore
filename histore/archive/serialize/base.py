@@ -209,12 +209,10 @@ def SERIALIZER(clspath: str, kwargs: Optional[Dict] = None) -> Dict:
 
 def COMPACT(
     timestamp: Optional[str] = 't', pos: Optional[str] = 'p',
-    name: Optional[str] = 'n', cells: Optional[str] = 'c',
-    value: Optional[str] = 'v', key: Optional[str] = 'k',
-    rowid: Optional[str] = 'r', colid: Optional[str] = 'c',
-    version: Optional[str] = 'v', valid_time: Optional[str] = 'vt',
-    transaction_time: Optional[str] = 'tt', description: Optional[str] = 'd',
-    action: Optional[str] = 'a'
+    name: Optional[str] = 'n', value: Optional[str] = 'v',
+    colid: Optional[str] = 'c', version: Optional[str] = 'v',
+    valid_time: Optional[str] = 'vt', transaction_time: Optional[str] = 'tt',
+    description: Optional[str] = 'd', action: Optional[str] = 'a'
 ):
     """Helper to create a specification for the compact serializer.
 
@@ -226,14 +224,8 @@ def COMPACT(
         Element label for objects index position values.
     name: string, default='n'
         Element label for column names.
-    cells: string, default='c'
-        Element label for row cell values.
     value: string, default='v'
         Element label for timestamped values.
-    key: string, default='k'
-        Element label for row key values.
-    rowid: string, default='r'
-        Element label for arcive row identifier.
     colid: string, default='c'
         Element label for column identifier.
     version: string, default='v'
@@ -257,10 +249,7 @@ def COMPACT(
             'timestamp': timestamp,
             'pos': pos,
             'name': name,
-            'cells': cells,
             'value': value,
-            'key': key,
-            'rowid': rowid,
             'colid': colid,
             'version': version,
             'valid_time': valid_time,

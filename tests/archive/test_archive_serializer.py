@@ -48,9 +48,10 @@ def test_serialize_column():
     assert column.timestamp.is_equal(ts)
 
 
-def test_serialize_row():
+@pytest.mark.parametrize('serializer_cls', [DefaultSerializer, CompactSerializer])
+def test_serialize_row(serializer_cls):
     """Test (de-)serialization of archive rows."""
-    serializer = DefaultSerializer()
+    serializer = serializer_cls()
     ts = Timestamp(intervals=TimeInterval(start=1, end=5))
     pos = SingleVersionValue(value=0, timestamp=ts)
     key = (NumberKey(0), StringKey('A'))
@@ -74,6 +75,71 @@ def test_serialize_row():
     assert row.pos.value == 0
     assert len(row.cells) == 2
     assert row.key == key
+
+
+def test_serialize_row_compact():
+    """Test row serialization for the compact serializer."""
+    serializer = CompactSerializer()
+    ts = Timestamp(version=0)
+
+    def single(value):
+        return SingleVersionValue(value=value, timestamp=ts, has_timestamp=False)
+
+    row = ArchiveRow(
+        rowid=1,
+        key=NumberKey(2),
+        pos=single(3),
+        cells={
+            1: single('a'),
+            3: single('c'),
+            5: single('e'),
+            4: single('f'),
+            8: single('h'),
+            10: single('j'),
+            11: single('k')
+        },
+        timestamp=ts
+    )
+    doc = serializer.serialize_row(row)
+    assert doc[4] == [1, [3, 5], 8, [10, 11]]
+    assert doc[5] == ['a', 'c', 'f', 'e', 'h', 'j', 'k']
+    row = serializer.deserialize_row(doc)
+    assert len(row.cells) == 7
+    assert row.cells[3].value == 'c'
+
+    def single_ts(value):
+        return SingleVersionValue(
+            value=value,
+            timestamp=Timestamp(version=1),
+            has_timestamp=True
+        )
+
+    row = ArchiveRow(
+        rowid=1,
+        key=NumberKey(2),
+        pos=single_ts(3),
+        cells={
+            1: single_ts('a'),
+            3: single_ts('c'),
+            5: single_ts('e'),
+            4: single_ts('f'),
+            12: single_ts('l'),
+            10: single_ts('j'),
+            11: single_ts('k')
+        },
+        timestamp=ts
+    )
+    doc = serializer.serialize_row(row)
+    assert doc[4] == [1, [3, 5], [10, 12]]
+    assert doc[5] == [
+        {'t': [1], 'v': 'a'},
+        {'t': [1], 'v': 'c'},
+        {'t': [1], 'v': 'f'},
+        {'t': [1], 'v': 'e'},
+        {'t': [1], 'v': 'j'},
+        {'t': [1], 'v': 'k'},
+        {'t': [1], 'v': 'l'}
+    ]
 
 
 def test_serialize_snapshot():

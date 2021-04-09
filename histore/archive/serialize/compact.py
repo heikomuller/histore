@@ -15,9 +15,12 @@ are dictionaries.
 
 from typing import Any, List, Optional
 
+from histore.archive.row import ArchiveRow
 from histore.archive.timestamp import TimeInterval, Timestamp
 from histore.archive.value import ArchiveValue, MultiVersionValue, SingleVersionValue
 from histore.archive.serialize.default import DefaultSerializer
+
+import histore.key.base as anno
 
 
 class CompactSerializer(DefaultSerializer):
@@ -27,7 +30,17 @@ class CompactSerializer(DefaultSerializer):
 
     The compact serializer takes advantage of some optimization opportunities
     over the default serializer. It inherits from the default serializer and
-    modifies the way how timestamps and values are serialized.
+    modifies the way how rows, timestamps and values are serialized.
+
+    For rows the compact serializer takes advantage of the fact that each row
+    has a fixed number of elements to it. The serializer therefore uses a list
+    of objects instead of a dictionary. The elements in the list are:
+    1) row identifier,
+    2) row key
+    3) row timestamp
+    4) row position
+    5) a timestamp-like serialization of the column identifier for the row cells, and
+    6) a list of cell values corresponding to the list of column identifier in 5).
 
     For timestamps intervals that start and end at the same version are
     serialized as a single integer instead of a pair of integers.
@@ -38,12 +51,10 @@ class CompactSerializer(DefaultSerializer):
     """
     def __init__(
         self, timestamp: Optional[str] = 't', pos: Optional[str] = 'p',
-        name: Optional[str] = 'n', cells: Optional[str] = 'c',
-        value: Optional[str] = 'v', key: Optional[str] = 'k',
-        rowid: Optional[str] = 'r', colid: Optional[str] = 'c',
-        version: Optional[str] = 'v', valid_time: Optional[str] = 'vt',
-        transaction_time: Optional[str] = 'tt', description: Optional[str] = 'd',
-        action: Optional[str] = 'a'
+        name: Optional[str] = 'n', value: Optional[str] = 'v',
+        colid: Optional[str] = 'c', version: Optional[str] = 'v',
+        valid_time: Optional[str] = 'vt', transaction_time: Optional[str] = 'tt',
+        description: Optional[str] = 'd', action: Optional[str] = 'a'
     ):
         """Initialize the labels for elements used in the serialized objects.
         By default short labels are used to reduce storage overhead.
@@ -59,14 +70,8 @@ class CompactSerializer(DefaultSerializer):
             Element label for objects index position values.
         name: string, default='n'
             Element label for column names.
-        cells: string, default='c'
-            Element label for row cell values.
         value: string, default='v'
             Element label for timestamped values.
-        key: string, default='k'
-            Element label for row key values.
-        rowid: string, default='r'
-            Element label for arcive row identifier.
         colid: string, default='c'
             Element label for column identifier.
         version: string, default='v'
@@ -88,10 +93,7 @@ class CompactSerializer(DefaultSerializer):
             timestamp=timestamp,
             pos=pos,
             name=name,
-            cells=cells,
             value=value,
-            key=key,
-            rowid=rowid,
             colid=colid,
             version=version,
             valid_time=valid_time,
@@ -99,6 +101,83 @@ class CompactSerializer(DefaultSerializer):
             description=description,
             action=action
         )
+
+    def deserialize_row(self, obj: List) -> ArchiveRow:
+        """Get archive row instance from a serialized object. Expects a
+        dictionary as created by the serialize_row method.
+
+        Parameters
+        ----------
+        obj: list
+            Serialized archive row object.
+
+        Returns
+        -------
+        histore.archive.row.ArchiveRow
+        """
+        rowid = obj[0]
+        key = obj[1]
+        ts = self.deserialize_timestamp(obj[2])
+        pos = self.deserialize_value(obj=obj[3], ts=ts)
+        columns = obj[4]
+        values = obj[5]
+        cells = dict()
+        validx = 0
+        for interval in columns:
+            if isinstance(interval, list):
+                for i in range(interval[0], interval[1] + 1):
+                    cells[i] = self.deserialize_value(obj=values[validx], ts=ts)
+                    validx += 1
+            else:
+                cells[interval] = self.deserialize_value(obj=values[validx], ts=ts)
+                validx += 1
+        if isinstance(key, list) or isinstance(key, tuple):
+            key = tuple([anno.to_key(k) for k in key])
+        else:
+            key = anno.to_key(key)
+        return ArchiveRow(
+            rowid=rowid,
+            key=key,
+            pos=pos,
+            cells=cells,
+            timestamp=ts
+        )
+
+    def serialize_row(self, row: ArchiveRow) -> List:
+        """Get serialization for an archive row object.
+
+        Parameters
+        ----------
+        row: histore.archive.row.ArchiveRow
+            Archive row object that is being serialized.
+
+        Returns
+        list
+        dict
+        """
+        ts = row.timestamp
+        columns = list()
+        values = list()
+        for colid, val in sorted(row.cells.items(), key=lambda x: x[0]):
+            if columns:
+                last_interval = columns[-1]
+                if last_interval[1] == colid - 1:
+                    last_interval[1] = colid
+                else:
+                    if last_interval[0] == last_interval[1]:
+                        columns[-1] = last_interval[0]
+                    columns.append([colid, colid])
+            else:
+                columns.append([colid, colid])
+            values.append(self.serialize_value(value=val, ts=ts))
+        return [
+            row.rowid,
+            row.key,
+            self.serialize_timestamp(ts),
+            self.serialize_value(value=row.pos, ts=ts),
+            columns,
+            values
+        ]
 
     def deserialize_timestamp(self, obj: List) -> Timestamp:
         """Get timestamp instance from serialization.
