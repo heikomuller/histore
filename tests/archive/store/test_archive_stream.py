@@ -66,7 +66,9 @@ def test_stream_archive():
     )
     archive.commit(df)
     # -- Stream first snapshot ------------------------------------------------
-    with archive.stream(version=0).open() as s:
+    stream = archive.stream(version=0)
+    assert stream.columns == ['Name', 'Age']
+    with stream.open() as s:
         assert [values for _, values in s] == SNAPSHOT_1
     with archive.stream(version=1).open() as s:
         assert [values for _, values in s] == SNAPSHOT_2

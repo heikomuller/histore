@@ -161,6 +161,16 @@ class SnapshotReader(DataReader):
         self.version = version
         self.schema = schema
 
+    @property
+    def columns(self) -> List[Column]:
+        """Synonym to get list of columns in the reader schema.
+
+        Returns
+        -------
+        list of histore.document.schema.Column
+        """
+        return self.schema
+
     def open(self) -> SnapshotIterator:
         """Open the data stream to get a iterator for the rows in the dataset
         snapshot.
