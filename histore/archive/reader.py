@@ -27,6 +27,11 @@ class ArchiveReader(metaclass=ABCMeta):
         return row_stream(self)
 
     @abstractmethod
+    def close(self):
+        """Release all reseources that are associated with the reader."""
+        raise NotImplementedError()  # pragma: no cover
+
+    @abstractmethod
     def has_next(self):
         """Test if the reader has more rows to read. If True the next() method
         will return the next row. Otherwise, the next() method will return

@@ -59,6 +59,12 @@ class ArchiveFileReader(ArchiveReader):
         else:
             self.fin = None
 
+    def close(self):
+        """Release all reseources that are associated with the reader."""
+        self.buffer = None
+        self.fin.close()
+        self.fin = None
+
     def has_next(self):
         """The next row for the reader is the current buffer value. If the
         buffer is empty there is no next row.
@@ -87,9 +93,7 @@ class ArchiveFileReader(ArchiveReader):
         line = self.fin.readline()
         if line == ']':
             # The end of the archive was reached. Close the input file.
-            self.buffer = None
-            self.fin.close()
-            self.fin = None
+            self.close()
         else:
             # Remove trailing comma for list array elements before the final
             # element.
