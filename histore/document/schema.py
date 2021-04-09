@@ -206,6 +206,9 @@ def select_clause(schema: Schema, columns: Columns) -> Tuple[List[str], List[int
 def to_schema(columns: Columns) -> List[Column]:
     """Convert a list of column names to a list of column objects.
 
+    If all column names are already of type Column no changes will occur. If
+    the given list contains a mix of types an error is raised.
+
     Parameters
     ----------
     columns: list of string
@@ -215,4 +218,16 @@ def to_schema(columns: Columns) -> List[Column]:
     -------
     list of histore.document.schema.Column
     """
-    return [Column(colid=i, name=name, colidx=i) for i, name in enumerate(as_list(columns))]
+    has_col = False
+    has_str = False
+    result = list()
+    for i, col in enumerate(as_list(columns)):
+        if isinstance(col, Column):
+            result.append(col)
+            has_col = True
+        else:
+            result.append(Column(colid=i, name=col, colidx=i))
+            has_str = True
+    if has_col and has_str:
+        raise ValueError('invalid column list')
+    return result

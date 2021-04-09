@@ -69,3 +69,4 @@
 * Add option to load initial archive snapshot from a data stream.
 * Add `histore.document.base.DataReader` implementation for dataset snapshots.
 * Add close method to `histore.archive.reader.ArchiveReader` interface.
+* Change behavior of `histore.document.schema.to_schema()` to take existing Column objects into account.

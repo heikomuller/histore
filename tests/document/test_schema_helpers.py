@@ -8,7 +8,7 @@
 import pandas as pd
 import pytest
 
-from histore.document.schema import Column, as_list, select_clause
+from histore.document.schema import Column, as_list, select_clause, to_schema
 
 
 @pytest.mark.parametrize(
@@ -72,3 +72,16 @@ def test_select_clause_with_duplicates(dupcols):
     columns = [dupcols.columns[0], Column(colid=10, name='B', colidx=2)]
     with pytest.raises(ValueError):
         select_clause(dupcols.columns, columns)
+
+
+def test_to_schema_helper():
+    assert to_schema([]) == []
+    columns = to_schema(['A', 'B'])
+    for col in columns:
+        assert isinstance(col, Column)
+    columns = to_schema(columns)
+    for col in columns:
+        assert isinstance(col, Column)
+    columns.append('C')
+    with pytest.raises(ValueError):
+        to_schema(columns)
