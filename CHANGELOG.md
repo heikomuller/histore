@@ -68,3 +68,4 @@
 * Add option to select archive serializer (\#27)
 * Add option to load initial archive snapshot from a data stream.
 * Add `histore.document.base.DataReader` implementation for dataset snapshots.
+* Add close method to `histore.archive.reader.ArchiveReader` interface.
