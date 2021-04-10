@@ -10,6 +10,7 @@ committed to an archive.
 """
 
 from abc import ABCMeta, abstractmethod
+from datetime import datetime
 from typing import Iterator, List, Tuple, Union
 
 from histore.document.schema import Schema
@@ -18,6 +19,9 @@ from histore.document.schema import Schema
 """Type aliases."""
 # Primary key of a dataset.
 PrimaryKey = Union[str, List[str]]
+# Scalar values and dataset rows.
+Scalar = Union[int, float, str, datetime]
+DataRow = List[Scalar]
 
 
 # -- Input reader -------------------------------------------------------------

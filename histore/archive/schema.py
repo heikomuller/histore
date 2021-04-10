@@ -250,9 +250,7 @@ class ArchiveSchema(object):
         # Sort columns based on their position and return a list of snapshot
         # columns.
         cols.sort(key=lambda x: x[2])
-        return [
-            Column(colid=id, name=name, colidx=pos) for id, name, pos in cols
-        ]
+        return [Column(colid=id, name=name, colidx=pos) for id, name, pos in cols]
 
     def merge(
         self, columns: List[str], version: int, matching: Optional[str] = MATCH_IDNAME,

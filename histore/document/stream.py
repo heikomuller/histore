@@ -10,8 +10,9 @@ version from a data stream.
 """
 
 from abc import ABCMeta, abstractmethod
-from typing import List
+from typing import Dict, List
 
+from histore.document.base import DataRow
 from histore.document.row import DocumentRow
 from histore.document.schema import Column, Schema
 
@@ -63,5 +64,48 @@ class InputStream(metaclass=ABCMeta):
             Unique identifier for the new snapshot version.
         consumer: histore.document.stream.StreamCounsumer
             Consumer for rows in the stream.
+        """
+        raise NotImplementedError()  # pragma: no cover
+
+
+class StreamOperator(metaclass=ABCMeta):
+    """Abstract class for operators on rows in a data stream. The stream
+    operator can be used to directly process rows in a dataset archive to
+    create a new dataset snapshot.
+    """
+    def __init__(self, columns: Schema):
+        """Initialize the schema for rows that this operator will produce.
+
+        Parameters
+        ----------
+        columns: list of string
+            Columns in the output schema of the operator.
+        """
+        self.columns = columns
+
+    @abstractmethod
+    def action(self) -> Dict:
+        """Get a dictionary serialization describing the action that is performed
+        by the operator.
+
+        The result may be None.
+
+        Returns
+        -------
+        dict
+        """
+        raise NotImplementedError()  # pragma: no cover
+
+    @abstractmethod
+    def eval(self, row: DataRow) -> DataRow:
+        """Evaluate the operator on the given row.
+
+        Returns the processed row. If the result is None this signals that the
+        given row should not be part of the collected result.
+
+        Parameters
+        -----------
+        row: list
+            List of values in the row.
         """
         raise NotImplementedError()  # pragma: no cover

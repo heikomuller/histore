@@ -15,7 +15,7 @@ import pandas as pd
 from histore.archive.provenance.archive import SnapshotDiff
 from histore.archive.reader import ArchiveReader, RowPositionReader, SnapshotReader
 from histore.archive.schema import ArchiveSchema, MATCH_ID, MATCH_IDNAME
-from histore.archive.snapshot import SnapshotListing
+from histore.archive.snapshot import Snapshot, SnapshotListing
 from histore.archive.store.base import ArchiveStore
 from histore.archive.store.fs.base import ArchiveFileStore
 from histore.archive.store.mem.base import VolatileArchiveStore
@@ -23,7 +23,7 @@ from histore.document.base import Document, PrimaryKey
 from histore.document.csv.base import CSVFile
 from histore.document.csv.read import open_document
 from histore.document.mem.dataframe import DataFrameDocument
-from histore.document.stream import InputStream
+from histore.document.stream import InputStream, StreamOperator
 
 import histore.archive.merge as nested_merge
 
@@ -59,6 +59,81 @@ class Archive(object):
         """
         self.primary_key = primary_key
         self.store = store if store is not None else VolatileArchiveStore()
+
+    def apply(self, op: StreamOperator, origin: Optional[int] = None) -> Snapshot:
+        """Apply a given operator on the given snapshot in the archive.
+
+        The resulting snapshot will directly merged into the archive. This
+        method allows to update data in an archive directly without the need
+        to checkout the snapshot first and then commit the modified version.
+
+        Returns the handle for the created snapshot.
+
+        Note that there are some limitations for this method. Most importantly,
+        the order of rows cannot be modified and neither can it insert new rows
+        at this point. Columns can be added, moved, renamed, and deleted.
+        It is also important to note that if rows are deleted the position
+        information in the created snapshot will not reflect this accurately.
+        That is, the ordering of rows will still be correct, but the positions
+        are no longer absolute positions since some positin values may be
+        missing.
+
+        Parameters
+        ----------
+        op: histore.document.stream.StreamOperator
+            Operator that is used to update the rows in a dataset snapshot to
+            create a new snapshot in this archive.
+        version: int, default=None
+            Unique version identifier. By default the last version is updated.
+
+        Returns
+        -------
+        histore.archive.snapshot.Snapshot
+        """
+        # Raise error if empty
+        pass
+        # Ensure that the origin version is set.
+        if origin is None:
+            origin = self.snapshots().last_snapshot().version
+        # Get identifier for the new snapshot.
+        new_version = self.snapshots().next_version()
+        # Merge the new snapshot schema with the current archive schema. THen
+        # get the snapshot schema from the merged archive schema to ensure we
+        # have all the column identifier.
+        schema, _, _ = self.schema().merge(
+            columns=op.columns,
+            version=new_version,
+            origin=origin
+        )
+        origin_colids = [c.colid for c in schema.at_version(version=origin)]
+        snapshot_colids = schema.at_version(version=new_version)
+        # Iterate over rows and apply the operator to those that belong to the
+        # modified snapshot.
+        reader = self.reader()
+        writer = self.store.get_writer()
+        while reader.has_next():
+            row = reader.next()
+            if row.timestamp.contains(origin):
+                pos, vals = row.at_version(version=origin, columns=origin_colids)
+                vals = op.eval(vals)
+                if vals is not None:
+                    # Merge the archive row and the modified document row.
+                    row = row.merge(
+                        values={colid: val for colid, val in zip(snapshot_colids, vals)},
+                        pos=pos,
+                        version=new_version,
+                        origin=origin
+                    )
+            writer.write_archive_row(row)
+        # Commit all changes to the associated archive store.
+        snapshot = self.store.commit(
+            schema=schema,
+            writer=writer,
+            version=new_version,
+            action=op.action()
+        )
+        # Return descriptor for the created snapshot.
+        return snapshot
 
     def checkout(self, version: Optional[int] = None) -> pd.DataFrame:
         """Access a dataset snapshot in the archive. Retrieves the datset that
@@ -111,7 +186,7 @@ class Archive(object):
         matching: Optional[str] = MATCH_IDNAME, renamed: Optional[Dict] = None,
         renamed_to: Optional[bool] = True, partial: Optional[bool] = False,
         origin: Optional[int] = None
-    ):
+    ) -> Snapshot:
         """Commit a new snapshot to the dataset archive. The given document
         represents the dataset snapshot that is being merged into the archive.
         The document may represent a complete snapshot of the data or only
@@ -305,7 +380,7 @@ class Archive(object):
     def load_from_stream(
         self, stream: InputStream, valid_time: Optional[datetime] = None,
         description: Optional[str] = None, action: Optional[Dict] = None
-    ):
+    ) -> Snapshot:
         """Load an initial snapshot from a data stream into an empty dataset
         archive.
 

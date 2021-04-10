@@ -82,7 +82,7 @@ class ArchiveRow(object):
 
     def at_version(
         self, version: int, columns: List[int], raise_error: Optional[bool] = True
-    ):
+    ) -> Tuple[int, List]:
         """Get cell values and the index position for the row in the given
         version of the dataset. Returns the index position of the row and a
         list of cell values for all columns in the given list. The order of
@@ -101,7 +101,7 @@ class ArchiveRow(object):
 
         Returns
         -------
-        int, dict
+        int, list
         """
         values = list()
         for colid in columns:
@@ -259,9 +259,9 @@ class ArchiveRow(object):
             the values dictionary but that remain unchanged with respect to the
             specified source version (origin).
         origin: int, default=None
-            Version that the row values originate from. Cell that remain
-            unchanged have the timestamp extended for the version the was
-            present the version of origin.
+            Version that the row values originate from. Cells that remain
+            unchanged have the timestamp extended for the version that was
+            present at the version of origin.
 
         Returns
         -------
