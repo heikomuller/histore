@@ -106,7 +106,7 @@ class Archive(object):
             origin=origin
         )
         origin_colids = [c.colid for c in schema.at_version(version=origin)]
-        snapshot_colids = schema.at_version(version=new_version)
+        snapshot_colids = [c.colid for c in schema.at_version(version=new_version)]
         # Iterate over rows and apply the operator to those that belong to the
         # modified snapshot.
         reader = self.reader()

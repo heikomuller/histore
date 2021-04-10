@@ -98,7 +98,7 @@ def test_encoder_default(ManagerCls, kwargs, tmpdir):
     assert df.shape == (1, 1)
     assert df.iloc[0][0] == dt
     assert isinstance(df.iloc[0][0], datetime)
-    # DataFrane schema
+    # DataFrame schema
     for col in df.columns:
         assert isinstance(col, Column)
         assert col.colid >= 0
