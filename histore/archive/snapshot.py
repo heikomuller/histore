@@ -11,17 +11,19 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from histore.document.snapshot import InputDescriptor
+
 import histore.util as util
 
 
-class Snapshot(object):
+class Snapshot(InputDescriptor):
     """Descriptor for archive snapshots. Contains all the meta-data about a
     single snapshot in a dataset archive.
     """
     def __init__(
         self, version: int, valid_time: datetime,
         transaction_time: Optional[datetime] = None,
-        description: Optional[str] = None, action: Optional[Dict] = None
+        description: Optional[str] = '', action: Optional[Dict] = None
     ):
         """Initialize the snapshot meta-data.
 
@@ -35,18 +37,18 @@ class Snapshot(object):
         transaction_time: datetime.datetime, default=None
             Timestamp when the snapshot was inserted into the archive. If the
             timestamp is not given the current time is used.
-        description: string, default=None
+        description: string, default=''
             Optional user-provided description for the snapshot.
         action: dict, default=None
             Optional metadata defining the action that created the snapshot.
         """
+        super(Snapshot, self).__init__(
+            valid_time=valid_time,
+            description=description,
+            action=action
+        )
         self.version = version
-        self.valid_time = valid_time
-        if transaction_time is None:
-            transaction_time = util.utc_now()
-        self.transaction_time = transaction_time
-        self.description = description if description is not None else ''
-        self.action = action
+        self.transaction_time = transaction_time if transaction_time else util.utc_now()
 
     def __repr__(self):
         """Unambiguous string representation of the archive snapshot
@@ -144,9 +146,8 @@ class SnapshotListing(object):
         return len(self.snapshots)
 
     def append(
-        self, version: int, valid_time: Optional[datetime] = None,
-        description: Optional[str] = None, action: Optional[Dict] = None
-    ):
+        self, version: int, descriptor: Optional[InputDescriptor] = None
+    ) -> SnapshotListing:
         """Add a new version to the given listing. This will return a modified
         version listing with the new snapshot as the last element.
 
@@ -162,13 +163,8 @@ class SnapshotListing(object):
         ----------
         version: int
             Unique version identifier for the new snapshot.
-        valid_time: datetime.datetime, default=None
-            Timestamp when the snapshot was first valid. A snapshot is valid
-            until the valid time of the next snapshot in the archive.
-        description: string, default=None
-            Optional user-provided description for the snapshot.
-        action: dict, default=None
-            Optional metadata defining the action that created the snapshot.
+        descriptor: histore.document.snapshot.InputDescriptor, default=None
+            Descriptor for the input document that created the snapshot.
 
         Returns
         -------
@@ -181,13 +177,14 @@ class SnapshotListing(object):
         if version != self.next_version():
             raise ValueError("invalid version '{}'".format(version))
         transaction_time = util.utc_now()
-        valid_time = valid_time if valid_time is not None else transaction_time
+        descriptor = descriptor if descriptor is not None else InputDescriptor(valid_time=transaction_time)
+        valid_time = descriptor.valid_time if descriptor.valid_time is not None else transaction_time
         s = Snapshot(
             version=version,
             valid_time=valid_time,
             transaction_time=transaction_time,
-            description=description,
-            action=action
+            description=descriptor.description,
+            action=descriptor.action
         )
         return SnapshotListing(snapshots=self.snapshots + [s])
 

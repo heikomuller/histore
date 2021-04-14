@@ -9,7 +9,7 @@
 are maintained in environment variables.
 """
 
-from pathlib import Path
+from appdirs import user_cache_dir
 
 import os
 
@@ -34,7 +34,7 @@ def BASEDIR() -> str:
     value = os.environ.get(ENV_HISTORE_BASEDIR)
     if value is None or value == '':  # pragma: no cover
         # Use the default value if the environment variable is not set.
-        value = os.path.join(str(Path.home()), '.histore')
+        value = os.path.join(user_cache_dir(appname=__name__.split('.')[0]), '.histore')
     return value
 
 

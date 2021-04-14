@@ -84,7 +84,7 @@ def test_rollback_multi_value():
     value = MultiVersionValue([
         SingleVersionValue(
             value=1,
-            timestamp=Timestamp(intervals=[TimeInterval(start=1, end=3)])
+            timestamp=Timestamp(intervals=[TimeInterval(start=2, end=3)])
         ),
         SingleVersionValue(
             value=2,
@@ -99,6 +99,18 @@ def test_rollback_multi_value():
     value = value.rollback(2)
     assert isinstance(value, SingleVersionValue)
     assert value.value == 1
+    # -- Rollback to version that did not contain the value -------------------
+    value = MultiVersionValue([
+        SingleVersionValue(
+            value=1,
+            timestamp=Timestamp(intervals=[TimeInterval(start=2, end=3)])
+        ),
+        SingleVersionValue(
+            value=2,
+            timestamp=Timestamp(intervals=[TimeInterval(start=4, end=5)])
+        )
+    ])
+    assert value.rollback(1) is None
 
 
 def test_rollback_single_value():

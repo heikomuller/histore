@@ -5,10 +5,9 @@
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
 
-"""In-memory document created from a Json serialization of a document. The Json
-serialization of a document contains the list of columns ('columns') and an
-array or arrays for document rows ('data'). The serialization has the optional
-primary key element ('primaryKey') that contains a list of key columns.
+"""In-memory document created from a dictionary serialization of a document.
+The dictionary serialization of a document contains the list of columns
+('columns') and an array or arrays for document rows ('data').
 """
 
 import jsonschema
@@ -16,11 +15,10 @@ import jsonschema
 from histore.document.mem.base import InMemoryDocument
 from histore.document.schema import Column
 
-import histore.document.schema as schema
 import histore.key.annotate as anno
 
 
-"""Json schema for Json document serializations."""
+"""Json schema for dictionary document serializations."""
 
 COLUMN_SCHEMA = {
     'type': 'object',
@@ -38,22 +36,19 @@ DOCUMENT_SCHEMA = {
             'type': 'array',
             'items': {'anyOf': [COLUMN_SCHEMA, {'type': 'string'}]}
         },
-        'data': {'type': 'array', 'items': {'type': 'array'}},
-        'primaryKey': {'type': 'array', 'items': {'type': 'string'}},
-        'rowIndex': {'type': 'array', 'items': {'type': 'number'}}
+        'data': {'type': 'array', 'items': {'type': 'array'}}
     },
     'required': ['columns', 'data']
 }
 
 
-class JsonDocument(InMemoryDocument):
-    """Create an in-memory document from a Json serialization of a document.
-    Expects a Json document in the following format:
+class DictionaryDocument(InMemoryDocument):
+    """Create an in-memory document from a dictionary serialization of a
+    document. Expects a dictionary in the following format:
 
     {
         "columns": [],
-        "data": [[]],
-        "primaryKey": ["string" | "int"] | "rowIndex": ["int"]
+        "data": [[]]
     }
 
     Columns are either represented as strings (the column name) or as
@@ -71,7 +66,7 @@ class JsonDocument(InMemoryDocument):
         Parameters
         ----------
         doc: dict
-            Json serialization of a document.
+            Dictionary serialization of a document.
         validate: bool default=True
             Validate the given dictionary if the flag is True. Raises a
             ValidationError if the validation fails.
@@ -99,22 +94,9 @@ class JsonDocument(InMemoryDocument):
             columns.append(col)
         # Get the document rows.
         rows = doc['data']
-        # Create the keys for the document rows.
-        if 'primaryKey' in doc:
-            readorder = anno.pk_readorder(
-                rows=rows,
-                primary_key=schema.column_index(
-                    schema=columns,
-                    columns=doc['primaryKey']
-                )
-            )
-        elif 'rowIndex' in doc:
-            readorder = anno.rowindex_readorder(index=doc['rowIndex'])
-        else:
-            readorder = anno.rowindex_readorder(index=list(range(len(rows))))
         # Create instance of the in-memory document.
-        super(JsonDocument, self).__init__(
+        super(DictionaryDocument, self).__init__(
             columns=columns,
             rows=rows,
-            readorder=readorder
+            readorder=anno.rowindex_readorder(index=list(range(len(rows))))
         )

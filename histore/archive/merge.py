@@ -89,3 +89,4 @@ def merge_rows(
         # Output an archive row created from the document row.
         writer.write_document_row(row=doc_row, version=version)
         doc_row = doc_reader.next()
+    doc_reader.close()

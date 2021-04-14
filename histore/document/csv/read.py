@@ -9,19 +9,17 @@
 
 from typing import List, Optional
 
-from histore.document.base import Document, PrimaryKey
+import csv
+import os
+
+from histore.document.base import Document
 from histore.document.csv.base import CSVFile, CSVReader
-from histore.document.csv.sort import SortedCSVDocument
 from histore.document.mem.base import InMemoryDocument
 from histore.document.mem.dataframe import DataFrameDocument
-from histore.document.reader import DocumentReader, DocumentStream
+from histore.document.reader import DocumentReader
 from histore.document.row import DocumentRow
-from histore.document.schema import Column, to_schema
-from histore.key.base import NumberKey
-
-import histore.document.csv.sort as sort
-import histore.document.schema as schema
-import histore.key.annotate as anno
+from histore.document.schema import Column, Schema, to_schema
+from histore.key.base import NumberKey, to_key
 
 
 # -- Documents ----------------------------------------------------------------
@@ -119,7 +117,13 @@ class SimpleCSVDocumentReader(DocumentReader):
         self._next_row = None
         self.next()
 
-    def has_next(self):  # pragma: no cover
+    def close(self):
+        """Release all resources that are held by this reader."""
+        if self.reader:
+            self.reader.close()
+            self.reader = None
+
+    def has_next(self) -> bool:
         """Test if the reader has more rows to read. If this reader has more
         rows the internal row buffer is not empty.
 
@@ -129,7 +133,7 @@ class SimpleCSVDocumentReader(DocumentReader):
         """
         return self._next_row is not None
 
-    def next(self):
+    def next(self) -> DocumentRow:
         """Read the next row in the document. Returns None if the end of the
         document has been reached.
 
@@ -167,83 +171,180 @@ class SimpleCSVDocumentReader(DocumentReader):
         # Return the buffered result
         return result
 
-    def stream(self) -> DocumentStream:
-        """Get an input stream object for the document.
+
+# -- Document class for sorted CSV files --------------------------------------
+
+class SortedCSVDocument(Document):
+    """CSV file containing a document that is sorted by one or more of the
+    document columns.
+    """
+    def __init__(self, filename: str, columns: Schema, primary_key: List[int]):
+        """Initialize the object properties.
+
+        Parameters
+        ----------
+        filename: string
+            Path to the CSV file that contains the document.
+        columns: list of string
+            List of column names in the dataset schema.
+        primary_key: list of string
+            List of index positions for sort columns.
+        """
+        self.filename = filename
+        self.columns = columns
+        self.primary_key = primary_key
+
+    def close(self):
+        """Remove the sorted (temporary) file when merging is done."""
+        os.remove(self.filename)
+
+    def partial(self, reader):
+        """If the document in the CSV file is a partial document we read it
+        into a data frame and use the respective data frame document method.
+        This requires that partial documents in CSV files fit into main memory.
+
+        Parameters
+        ----------
+        reader: histore.archive.reader.RowPositionReader
+            Reader for row (key, position) tuples from the original
+            snapshot version.
 
         Returns
         -------
-        histore.document.reader.DocumentStream
+        histore.document.base.Document
         """
-        return DocumentStream(columns=self.schema, doc=self)
+        rows = list()
+        readorder = list()
+        with open(self.filename, 'r', newline='') as f:
+            csvreader = csv.reader(f)
+            for row in csvreader:
+                rows.append(row)
+                key = rowkey(row, self.primary_key)
+                pos = len(readorder)
+                readorder.append((pos, key, pos))
+        return InMemoryDocument(
+            columns=self.columns,
+            rows=rows,
+            readorder=readorder
+        ).partial(reader)
+
+    def reader(self, schema: Optional[List[Column]] = None) -> DocumentReader:
+        """Get reader for the CSV document.
+
+        Parameters
+        ----------
+        schema: list(histore.document.schema.Column), default=None
+            List of columns in the document schema. Each column corresponds to
+            a column in the column list of this document (corresponding to
+            their position in the list). The schema columns provide the unique
+            column identifier that are required by the document reader to
+            generate document rows. If no schema is provided the document schema
+            itself is used as the default.
+
+        Returns
+        -------
+        histore.document.reader.DocumentReader
+        """
+        return SortedCSVDocumentReader(
+            filename=self.filename,
+            schema=schema if schema is not None else to_schema(self.columns),
+            primary_key=self.primary_key
+        )
 
 
-def open_document(
-    file: CSVFile, primary_key: Optional[PrimaryKey] = None,
-    max_size: Optional[float] = None
-) -> Document:
-    """Read a document from a csv file. If the primary key attributes are
-    given the returned document is sorted by the primary key values.
-    Otherwise, the original order of rows is kept and each row is assigned
-    a unique index that is equal to the row position. Sorts the document by
-    the primary key values (if given).
+class SortedCSVDocumentReader(DocumentReader):
+    """Document reader for a sorted CSV document."""
+    def __init__(self, filename, schema, primary_key):
+        """Initialize the CSV reader and the list of column names.
+
+        Parameters
+        ----------
+        reader: csv.reader
+            Reader for the document file. If the file has a header it is
+            assumed that the corresponding row has already been read.
+        schema: list(histore.document.schema.Column)
+            List of columns in the document schema. Each column corresponds to
+            a column in the document rows (based on list position). The schema
+            columns provide the unique column identifier that are required to
+            generate the returned document rows.
+        primary_key: list of int
+            List of index positions for sort columns.
+        """
+        self.fh = open(filename, 'r', newline='')
+        self.reader = csv.reader(self.fh)
+        self.schema = schema
+        self.primary_key = primary_key
+        self._next_row = None
+        self._read_index = 0
+        self.next()
+
+    def close(self):
+        """Release all resources that are held by this reader."""
+        self.fh.close()
+
+    def has_next(self):  # pragma: no cover
+        """Test if the reader has more rows to read. If this reader has more
+        rows the internal row buffer is not empty.
+
+        Returns
+        -------
+        bool
+        """
+        return self._next_row is not None
+
+    def next(self):
+        """Read the next row in the document. Returns None if the end of the
+        document has been reached.
+
+        Returns
+        -------
+        histore.document.row.DocumentRow
+        """
+        result = self._next_row
+        try:
+            row = next(self.reader)
+            # If a next row was read ensure that the number of values
+            # is the same as the number of columns in the schema.
+            if len(row) != len(self.schema):
+                self.fh.close()
+                raise ValueError('invalid row %d' % (self.reader.line_num))
+            # Create document row object for the read values.
+            rowpos = self._read_index
+            values = dict()
+            for i, col in enumerate(self.schema):
+                values[col.colid] = row[i]
+            key = rowkey(row, self.primary_key)
+            self._next_row = DocumentRow(
+                key=key,
+                pos=rowpos,
+                values=values
+            )
+            self._read_index += 1
+        except StopIteration:
+            # Close the file if the file is reached.
+            self._next_row = None
+            self.fh.close()
+        # Return the buffered result
+        return result
+
+
+# -- Helper methods for document classes --------------------------------------
+
+def rowkey(row, primary_key):
+    """Get the key value for a row.
 
     Parameters
     ----------
-    file: histore.document.csv.base.CSVFile
-        Reference to the CSV file.
-    primary_key: string or list, default=None
-        Column(s) that are used to generate identifier for snapshot rows.
-        The columns may be identified by their name or index position. If a
-        string in the primary key list refers to a non-unique column name
-        in the file, a ValueError is raised.
-    max_size: float, default=None
-        Maximum size (in MB) of the main-memory buffer for blocks of the
-        CSV file that are sorted in main-memory.
+    row: list
+        List of cells in a row.
+    primary_key: list
+        List of index positions for primary key columns.
 
     Returns
     -------
-    histore.document.base.Document
-
-    Raises
-    ------
-    ValueError
+    scalar or tuple
     """
-    # Create document instance depending on whether a primary key was given
-    # or not.
-    if primary_key is not None:
-        # If a primary key is given we first need to get the index position
-        # for the key attributes in the document schema and then sort the
-        # input file.
-        columns = file.columns
-        pk = schema.column_index(schema=columns, columns=primary_key)
-        with file.open() as reader:
-            buffer, filenames = sort.split(
-                reader=reader,
-                sortkey=pk,
-                buffer_size=max_size
-            )
-        if not filenames:
-            # If the file fits into main-memory return a sorted in-memory
-            # document.
-            return InMemoryDocument(
-                columns=columns,
-                rows=buffer,
-                readorder=anno.pk_readorder(rows=buffer, primary_key=pk)
-            )
-        else:
-            # Merge the CSV file blocks and return a sorted CSV document
-            # object that wrapps the sorted CSV file.
-            return SortedCSVDocument(
-                filename=sort.mergesort(
-                    buffer=buffer,
-                    filenames=filenames,
-                    sortkey=pk
-                ),
-                columns=columns,
-                primary_key=pk
-            )
+    if len(primary_key) == 1:
+        return to_key(row[primary_key[0]])
     else:
-        # In this case we do not need to sort the document. The document
-        # will always be read in original order. Return a file reader for
-        # the csv file.
-        return SimpleCSVDocument(file)
+        return tuple([to_key(row[c]) for c in primary_key])

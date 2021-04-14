@@ -9,13 +9,12 @@
 
 import os
 
+from histore.document.base import DocumentConsumer
 from histore.document.csv.base import CSVFile
-from histore.document.csv.sort import SortedCSVDocument
-from histore.document.csv.read import SimpleCSVDocument
+from histore.document.csv.read import SimpleCSVDocument, SortedCSVDocument
 from histore.document.mem.base import InMemoryDocument
 from histore.document.row import DocumentRow
 from histore.document.schema import to_schema
-from histore.document.stream import DocumentConsumer
 from histore.key.base import NumberKey
 
 
@@ -55,7 +54,7 @@ class RowCollector(DocumentConsumer):
 
 def test_csv_document_stream():
     """Test reading a CSV document as a stream."""
-    stream = SimpleCSVDocument(CSVFile(filename=CSV_FILE)).reader().stream()
+    stream = SimpleCSVDocument(CSVFile(filename=CSV_FILE))
     stream.stream_to_archive(
         schema=to_schema(['agency', 'borough', 'state']),
         version=0,
@@ -65,12 +64,11 @@ def test_csv_document_stream():
 
 def test_sorted_csv_document_stream():
     """Test reading a sorted CSV document as a stream."""
-    doc = SortedCSVDocument(
+    stream = SortedCSVDocument(
         filename=CSV_FILE,
         columns=['agency', 'borough', 'state'],
         primary_key=list(range(3))
     )
-    stream = doc.reader().stream()
     stream.stream_to_archive(
         schema=to_schema(['agency', 'borough', 'state']),
         version=0,
@@ -80,12 +78,11 @@ def test_sorted_csv_document_stream():
 
 def test_in_memory_document_stream():
     """Test reading a in-memory document as a stream."""
-    doc = InMemoryDocument(
+    stream = InMemoryDocument(
         columns=['A', 'B'],
         rows=[[1, 2], [3, 4]],
         readorder=[(1, NumberKey(3), 0), (0, NumberKey(2), 1)]
     )
-    stream = doc.reader().stream()
     stream.stream_to_archive(
         schema=to_schema(['A', 'B']),
         version=0,

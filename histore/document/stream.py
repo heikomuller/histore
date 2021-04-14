@@ -10,33 +10,16 @@ version from a data stream.
 """
 
 from abc import ABCMeta, abstractmethod
-from typing import Dict, List
+from typing import Optional
 
-from histore.document.base import DataRow
-from histore.document.row import DocumentRow
-from histore.document.schema import Column, Schema
+import json
 
-
-class DocumentConsumer(metaclass=ABCMeta):
-    """Mixin class for stream consumer that are used to write document rows to
-    a archive store.
-    """
-    @abstractmethod
-    def consume_document_row(self, row: DocumentRow, version: int):
-        """Add a given document row to a new archive version.
-
-        Parameters
-        ----------
-        row: histore.document.row.DocumentRow
-            Row from an input stream (snapshot) that is being added to the
-            archive snapshot for the given version.
-        version: int
-            Unique identifier for the new snapshot version.
-        """
-        raise NotImplementedError()  # pragma: no cover
+from histore.document.base import DataRow, OutputStream
+from histore.document.schema import Schema
+from histore.document.snapshot import InputDescriptor
 
 
-class InputStream(metaclass=ABCMeta):
+class InputStream(OutputStream, metaclass=ABCMeta):
     """Abstract class for data input streams. An input stream contains informaton
     about the schema of the stream rows and a method that allows to output the
     stream rows to a dataset archive.
@@ -52,18 +35,21 @@ class InputStream(metaclass=ABCMeta):
         self.columns = columns
 
     @abstractmethod
-    def stream_to_archive(self, schema: List[Column], version: int, consumer: DocumentConsumer):
-        """Write rows in a stream to a consumer.
+    def write_as_json(
+        self, filename: str, compression: Optional[str] = None,
+        encoder: Optional[json.JSONEncoder] = None
+    ):
+        """Write the rows in the data stream to a file in Json serialized
+        format.
 
         Parameters
         ----------
-        schema: list of histore.document.schema.Column
-            List of columns (with unique identifier). The order of entries in
-            this list corresponds to the order of columns in the stream schema.
-        version: int
-            Unique identifier for the new snapshot version.
-        consumer: histore.document.stream.StreamCounsumer
-            Consumer for rows in the stream.
+        filename: string
+            Path to the output file.
+        compression: string, default=None
+            String representing the compression mode for the output file.
+        encoder: json.JSONEncoder, default=None
+            Encoder used when writing archive rows as JSON objects to file.
         """
         raise NotImplementedError()  # pragma: no cover
 
@@ -73,31 +59,21 @@ class StreamOperator(metaclass=ABCMeta):
     operator can be used to directly process rows in a dataset archive to
     create a new dataset snapshot.
     """
-    def __init__(self, columns: Schema):
+    def __init__(self, columns: Schema, snapshot: Optional[InputDescriptor] = None):
         """Initialize the schema for rows that this operator will produce.
 
         Parameters
         ----------
         columns: list of string
             Columns in the output schema of the operator.
+        snapshot: histore.document.snapshot.InputDescriptor, default=None
+            Optional metadata for the created snapshot.
         """
         self.columns = columns
+        self.snapshot = snapshot
 
     @abstractmethod
-    def action(self) -> Dict:
-        """Get a dictionary serialization describing the action that is performed
-        by the operator.
-
-        The result may be None.
-
-        Returns
-        -------
-        dict
-        """
-        raise NotImplementedError()  # pragma: no cover
-
-    @abstractmethod
-    def eval(self, row: DataRow) -> DataRow:
+    def eval(self, rowid: int, row: DataRow) -> DataRow:
         """Evaluate the operator on the given row.
 
         Returns the processed row. If the result is None this signals that the
@@ -105,6 +81,8 @@ class StreamOperator(metaclass=ABCMeta):
 
         Parameters
         -----------
+        rowid: int
+            Unique identifier for the processed row.
         row: list
             List of values in the row.
         """

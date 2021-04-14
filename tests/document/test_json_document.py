@@ -5,97 +5,80 @@
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
 
-"""Unit tests for the in-memory documents that are generated from Json
-serializations.
-"""
+"""Unit tests for Json documents."""
 
-import jsonschema
+import os
 import pytest
 
-from histore.document.mem.json import JsonDocument
+from histore.document.json.base import JsonDocument, JsonDocumentReader
+from histore.document.json.reader import JsonReader
+from histore.document.json.writer import JsonWriter
 from histore.document.schema import Column
+from histore.tests.base import ListReader
 
 
-def test_json_document_with_errors():
-    """Test creating instances of Json documents from serializations with
-    errors.
+@pytest.fixture
+def json_file(tmpdir):
+    filename = os.path.join(tmpdir, 'output.json')
+    input = [
+        ['Alice', 23],
+        ['Bob', 43],
+        ['Claire', 32]
+    ]
+    writer = JsonWriter(filename=filename)
+    writer.write(['Name', 'Age'])
+    for i, row in enumerate(input):
+        writer.write([i, row])
+    writer.close()
+    return filename
+
+
+def test_document_iterator(json_file):
+    """Test iterating over rows in a dataset file."""
+    with JsonDocument(filename=json_file).reader() as reader:
+        rows = [r for r in reader]
+    assert len(rows) == 3
+
+
+def test_empty_document(tmpdir):
+    """Test opening a document for a non-existing file."""
+    filename = os.path.join(tmpdir, 'output.json')
+    doc = JsonDocument(filename=filename)
+    assert doc.columns == []
+
+
+def test_read_data_frame(json_file):
+    """Test reading a partial document."""
+    df = JsonDocument(filename=json_file).read_df()
+    assert df.shape == (3, 2)
+
+
+def test_read_invalid_document(json_file):
+    """Test error case where number of schema columns does not match the number
+    of cells in a data row.
     """
-    doc = {'columns': ['Name', 1], 'data': [['Bob', 23], ['Alice', 24]]}
-    JsonDocument(doc=doc, validate=False)
-    with pytest.raises(jsonschema.ValidationError):
-        JsonDocument(doc=doc)
+    with pytest.raises(ValueError):
+        JsonDocumentReader(
+            reader=JsonReader(json_file),
+            schema=[Column(colid=0, name='Name')]
+        )
 
 
-def test_json_document_without_key():
-    """Test creating instances of Json documents."""
-    # Document without row index or key.
-    doc = JsonDocument(
-        doc={'columns': ['Name', 'Age'], 'data': [['Bob', 23], ['Alice', 24]]}
-    )
-    # -- Test schema identifier and index -------------------------------------
-    columns = dict()
-    for col in doc.columns:
-        columns[col] = (col.colid, col.colidx)
-    assert columns['Name'] == (-1, 0)
-    assert columns['Age'] == (-1, 1)
-    # -- Test row values and positions ----------------------------------------
-    reader = doc.reader(schema=[Column(0, 'Name'), Column(1, 'Age')])
-    keys, positions, names = list(), list(), list()
+def test_read_partial_document(json_file):
+    """Test reading a partial document."""
+    doc = JsonDocument(filename=json_file).partial(ListReader(values=[]))
+    rows = list()
+    reader = doc.reader()
     while reader.has_next():
-        row = reader.next()
-        keys.append(row.key.value)
-        positions.append(row.pos)
-        names.append(row.values[0])
-    assert keys == [0, 1]
-    assert positions == [0, 1]
-    assert names == ['Bob', 'Alice']
+        rows.append(reader.next().values)
+    assert rows == [{0: 'Alice', 1: 23}, {0: 'Bob', 1: 43}, {0: 'Claire', 1: 32}]
 
 
-def test_json_document_with_pk():
-    """Test creating an instance of the Json document with a primary key."""
-    doc = JsonDocument(
-        doc={
-            'columns': [
-                {'id': 1, 'name': 'Name'},
-                {'id': 0, 'name': 'Age'}
-            ],
-            'data': [['Bob', 23], ['Alice', 24]],
-            'primaryKey': ['Name']}
-    )
-    # -- Test schema identifier and index -------------------------------------
-    columns = dict()
-    for col in doc.columns:
-        columns[col] = (col.colid, col.colidx)
-    assert columns['Name'] == (1, 0)
-    assert columns['Age'] == (0, 1)
-    # -- Test row values and positions ----------------------------------------
-    reader = doc.reader(schema=doc.columns)
-    keys, positions, names = list(), list(), list()
+def test_read_document(json_file):
+    """Test reading a serialized Json document."""
+    doc = JsonDocument(filename=json_file)
+    rows = list()
+    reader = doc.reader()
     while reader.has_next():
-        row = reader.next()
-        keys.append(row.key.value)
-        positions.append(row.pos)
-        names.append(row.values[1])
-    assert keys == ['Alice', 'Bob']
-    assert positions == [1, 0]
-    assert names == ['Alice', 'Bob']
-
-
-def test_json_document_with_readindex():
-    """Test creating an instance of the Json document with a row index."""
-    doc = JsonDocument(
-        doc={
-            'columns': ['Name', 'Age'],
-            'data': [['Bob', 23], ['Alice', 24]],
-            'rowIndex': [1, 0]}
-    )
-    reader = doc.reader(schema=[Column(0, 'Name'), Column(1, 'Age')])
-    keys, positions, names = list(), list(), list()
-    while reader.has_next():
-        row = reader.next()
-        keys.append(row.key.value)
-        positions.append(row.pos)
-        names.append(row.values[0])
-    assert keys == [0, 1]
-    assert positions == [1, 0]
-    assert names == ['Alice', 'Bob']
+        rows.append(reader.next().values)
+    assert rows == [{0: 'Alice', 1: 23}, {0: 'Bob', 1: 43}, {0: 'Claire', 1: 32}]

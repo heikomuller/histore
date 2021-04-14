@@ -11,6 +11,8 @@ import pandas as pd
 import pytest
 
 from histore.archive.base import Archive
+from histore.document.mem.dataframe import DataFrameDocument
+from histore.tests.base import DataFrameStream
 
 
 SNAPSHOT_1 = [['Alice', 32], ['Bob', 45], ['Claire', 27], ['Alice', 23]]
@@ -19,52 +21,14 @@ SNAPSHOT_3 = [['Dave', 33], ['Eve', 25], ['Claire', 27], ['Bob', 44], ['Alice', 
 SNAPSHOT_4 = [['Alice', 32], ['Eve', 25], ['Claire', 27], ['Bob', 44]]
 
 
-def test_load_archive_errors():
-    """Error cases for loading archive from stream."""
-    # -- Load into non-empty archive ------------------------------------------
-    archive = Archive()
-    # First snapshot
-    df = pd.DataFrame(
-        data=SNAPSHOT_1,
-        columns=['Name', 'Age']
-    )
-    archive.commit(df)
-    with pytest.raises(RuntimeError):
-        archive.load_from_stream(df)
-    # -- Load into archive with promary key -----------------------------------
-    archive = Archive(primary_key=['Name'])
-    with pytest.raises(RuntimeError):
-        archive.load_from_stream(df)
-
-
-def test_stream_archive():
-    """Test streaming an archive snapshot."""
+@pytest.mark.parametrize('doccls', [DataFrameDocument, DataFrameStream])
+def test_load_unkeyed_archive(doccls):
+    """Test committing snaposhots into an unkeyed archive."""
     # -- Setup - Create archive in main memory --------------------------------
     archive = Archive()
-    # First snapshot
-    df = pd.DataFrame(
-        data=SNAPSHOT_1,
-        columns=['Name', 'Age']
-    )
-    archive.commit(df)
-    # Second snapshot
-    df = pd.DataFrame(
-        data=SNAPSHOT_2,
-        columns=['Name', 'Age']
-    )
-    archive.commit(df)
-    # Third snapshot
-    df = pd.DataFrame(
-        data=SNAPSHOT_3,
-        columns=['Name', 'Age']
-    )
-    archive.commit(df)
-    # Fourth snapshot
-    df = pd.DataFrame(
-        data=SNAPSHOT_4,
-        columns=['Name', 'Age']
-    )
-    archive.commit(df)
+    for data in [SNAPSHOT_1, SNAPSHOT_2, SNAPSHOT_3, SNAPSHOT_4]:
+        doc = doccls(df=pd.DataFrame(data=data, columns=['Name', 'Age']))
+        archive.commit(doc)
     # -- Stream first snapshot ------------------------------------------------
     stream = archive.stream(version=0)
     assert stream.columns == ['Name', 'Age']

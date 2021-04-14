@@ -55,6 +55,13 @@ def test_datetime():
         util.to_datetime('Not a valid date')
 
 
+def test_get_delimiter():
+    """Test delimiter argument value handling."""
+    assert util.get_delimiter(None) == ','
+    assert util.get_delimiter('Tab') == '\t'
+    assert util.get_delimiter('|') == '|'
+
+
 def test_iostream():
     """Test error cases for IO streams."""
     with pytest.raises(ValueError):

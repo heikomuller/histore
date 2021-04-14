@@ -66,7 +66,12 @@
 
 * Add more compact archive serialization option.
 * Add option to select archive serializer (\#27)
-* Add option to load initial archive snapshot from a data stream.
-* Add `histore.document.base.DataReader` implementation for dataset snapshots.
+* Add option to commit dataset snapshot from a data stream.
+* Add `histore.archive.reader.SnapshotReader` (a `histore.document.base.DataReader` implementation) to read dataset snapshots.
 * Add close method to `histore.archive.reader.ArchiveReader` interface.
 * Change behavior of `histore.document.schema.to_schema()` to take existing Column objects into account.
+* Direct update of archive snapshots via `apply()` and `histore.document.stream.StreamOperator`.
+* Require archives to be created from initial snapshot if primary key is used.
+* Rename `histore.document.json.JsonDocument` to `histore.document.dictionary.DictionaryDocument`.
+* Add `histore.document.json.base.JsonDocument` to read serialized Json documents.
+* Use user's cache directory as the default parent directory for archive managers.

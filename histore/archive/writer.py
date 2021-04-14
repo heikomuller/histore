@@ -13,8 +13,8 @@ from histore.key.base import NumberKey
 from histore.archive.row import ArchiveRow
 from histore.archive.timestamp import Timestamp
 from histore.archive.value import SingleVersionValue
+from histore.document.base import DocumentConsumer
 from histore.document.row import DocumentRow
-from histore.document.stream import DocumentConsumer
 
 
 class ArchiveWriter(DocumentConsumer, metaclass=ABCMeta):

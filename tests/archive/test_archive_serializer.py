@@ -154,15 +154,6 @@ def test_serialize_snapshot():
     assert s.valid_time == snapshot.valid_time
     assert s.transaction_time == snapshot.transaction_time
     assert s.description == snapshot.description
-    # For completeness, test deserializing a snapshot object without
-    # description element.
-    snapshot.description = None
-    obj = serializer.serialize_snapshot(snapshot)
-    s = serializer.deserialize_snapshot(obj)
-    assert s.version == snapshot.version
-    assert s.valid_time == snapshot.valid_time
-    assert s.transaction_time == snapshot.transaction_time
-    assert s.description == ''
     # -- Snapshot with description --------------------------------------------
     snapshot = Snapshot(0, valid_time=vt, description='First snapshot')
     obj = serializer.serialize_snapshot(snapshot)

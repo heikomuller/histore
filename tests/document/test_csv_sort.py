@@ -13,7 +13,7 @@ import os
 from histore.document.csv.base import CSVFile
 
 import histore.config as config
-import histore.document.csv.sort as sort
+import histore.document.sort as sort
 
 
 DIR = os.path.dirname(os.path.realpath(__file__))

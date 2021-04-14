@@ -15,6 +15,7 @@ import pandas as pd
 import sys
 
 from histore.cli.archive import get_manager
+from histore.document.snapshot import InputDescriptor
 
 import histore.util as util
 
@@ -71,12 +72,12 @@ def commit_snapshot(
     # Read the data frame.
     df = pd.read_csv(
         filename,
-        delimiter=get_delimiter(delimiter),
+        delimiter=util.get_delimiter(delimiter),
         quotechar=quotechar if quotechar is not None else '"',
         quoting=csv.QUOTE_MINIMAL,
         compression='gzip' if gzip else None
     )
-    s = store.commit(df, description=comment)
+    s = store.commit(df, snapshot=InputDescriptor(description=comment))
     click.echo('Snapshot {} created.'.format(s.version))
 
 
@@ -133,7 +134,7 @@ def checkout_snapshot(
     df = store.checkout(version=version)
     df.to_csv(
         filename,
-        sep=get_delimiter(delimiter),
+        sep=util.get_delimiter(delimiter),
         quotechar=quotechar if quotechar is not None else '"',
         quoting=csv.QUOTE_MINIMAL,
         compression='gzip' if gzip else None,
@@ -183,29 +184,10 @@ def get_archive(basedir, name):
 
     Returns
     -------
-    histore.archive.base.archive
+    histore.archive.base.Archive
     """
     manager = get_manager(basedir)
     descriptor = manager.get_by_name(name)
     if descriptor is None:
         return None
     return manager.get(descriptor.identifier())
-
-
-def get_delimiter(delimiter):
-    """Get delimiter. Replace encodings for tabulator with tab character.
-
-    Parameters
-    ----------
-    delimiter: string
-        One-character used to separate fields.
-
-    Returns
-    -------
-    string
-    """
-    if delimiter is None:
-        return ','
-    if delimiter.lower() in ['tab', '\\t']:
-        return '\t'
-    return delimiter

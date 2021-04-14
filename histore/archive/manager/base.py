@@ -10,8 +10,10 @@
 from abc import ABCMeta, abstractmethod
 from typing import Callable, Dict, List, Optional, Union
 
-from histore.archive.base import Archive
+from histore.archive.base import Archive, InputDocument
 from histore.archive.manager.descriptor import ArchiveDescriptor
+from histore.document.base import PrimaryKey
+from histore.document.snapshot import InputDescriptor
 
 
 class ArchiveManager(metaclass=ABCMeta):
@@ -48,12 +50,19 @@ class ArchiveManager(metaclass=ABCMeta):
     @abstractmethod
     def create(
         self, name: Optional[str] = None, description: Optional[str] = None,
-        primary_key: Optional[Union[List[str], str]] = None,
         encoder: Optional[str] = None, decoder: Optional[str] = None,
-        serializer: Union[Dict, Callable] = None
+        serializer: Union[Dict, Callable] = None, doc: Optional[InputDocument] = None,
+        primary_key: Optional[PrimaryKey] = None, snapshot: Optional[InputDescriptor] = None,
+        sorted: Optional[bool] = False, max_size: Optional[float] = None,
+        validate: Optional[bool] = False
     ) -> ArchiveDescriptor:
-        """Create a new archive object. Raises a ValueError if an archive with
-        the given name exists.
+        """Create a new archive object under a given unique name.
+
+        For archives that are keyed by a primary key, the input document for
+        the first dataset snapshot  has to be provided. This snapshot will be
+        loaded into the archive.
+
+        Raises a ValueError if an archive with the given name exists.
 
         Parameters
         ----------
@@ -61,9 +70,6 @@ class ArchiveManager(metaclass=ABCMeta):
             Descriptive name that is associated with the archive.
         description: string, default=None
             Optional long description that is associated with the archive.
-        primary_key: string or list, default=None
-            Column(s) that are used to generate identifier for rows in the
-            archive.
         encoder: string, default=None
             Full package path for the Json encoder class that is used by the
             persistent archive.
@@ -79,6 +85,22 @@ class ArchiveManager(metaclass=ABCMeta):
             - ``kwargs`` : Additional arguments that are passed to the
                            constructor of the created serializer instance.
             Only ``clspath`` is required.
+        doc: histore.archive.base.InputDocument, default=None
+            Input document representing the initial dataset snapshot that is
+            being loaded into the archive.
+        primary_key: string or list, default=None
+            Column(s) that are used to generate identifier for snapshot rows.
+        snapshot: histore.document.snapshot.InputDescriptor, default=None
+            Optional metadata for the created snapshot.
+        sorted: bool, default=False
+            Flag indicating if the document is sorted by the optional primary
+            key attributes. Ignored if the archive is not keyed.
+        max_size: float, default=None
+            Maximum size (in MB) of the main-memory buffer for blocks of the
+            CSV file that are sorted in main-memory.
+        validate: bool, default=False
+            Validate that the resulting archive is in proper order before
+            committing the action.
 
         Returns
         -------

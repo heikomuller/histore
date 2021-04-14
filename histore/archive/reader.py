@@ -87,6 +87,7 @@ class RowPositionReader(object):
             row = self.reader.next()
             if row.timestamp.contains(self.version):
                 return (row.key, row.pos.at_version(self.version))
+        self.reader.close()
 
 
 class SnapshotIterator(DataIterator):

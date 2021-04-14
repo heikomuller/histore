@@ -20,14 +20,15 @@ DIR = os.path.dirname(os.path.realpath(__file__))
 WATERSHED_1 = os.path.join(DIR, '../../.files/y43c-5n92.tsv.gz')
 
 
-def test_persistent_archive(tmpdir):
+def test_persistent_archive(empty_dataset, tmpdir):
     """Test merging snapshots into a persistent archive."""
     archive = PersistentArchive(
         basedir=os.path.join(str(tmpdir), 'archive'),
         replace=True,
-        primary_key='Name'
+        primary_key='Name',
+        doc=empty_dataset
     )
-    assert archive.is_empty()
+    assert not archive.is_empty()
     # First snapshot
     df = pd.DataFrame(
         data=[['Alice', 32], ['Bob', 45], ['Claire', 27], ['Dave', 23]],
@@ -63,11 +64,11 @@ def test_persistent_archive(tmpdir):
     keys = ['Alice', 'Bob', 'Claire', 'Dave', 'Eve']
     for rowid in range(5):
         assert rows[rowid].key.value == keys[rowid]
-    ts = Timestamp(intervals=TimeInterval(0, 3))
+    ts = Timestamp(intervals=TimeInterval(1, 4))
     for i in range(3):
         assert rows[i].timestamp.is_equal(ts)
-    assert rows[3].timestamp.is_equal(Timestamp(intervals=TimeInterval(0, 1)))
-    assert rows[4].timestamp.is_equal(Timestamp(intervals=TimeInterval(2, 3)))
+    assert rows[3].timestamp.is_equal(Timestamp(intervals=TimeInterval(1, 2)))
+    assert rows[4].timestamp.is_equal(Timestamp(intervals=TimeInterval(3, 4)))
     assert sorted([v.value for v in rows[0].cells[1].values]) == [32, 33]
     # Rollback to version 1.
     archive.rollback(version=1)
@@ -108,16 +109,17 @@ def test_watershed_archive(doc, replace, tmpdir):
     archive = PersistentArchive(
         basedir=str(tmpdir),
         primary_key=['Site', 'Date'],
+        doc=doc,
         replace=replace
     )
-    s = archive.commit(doc)
+    s = archive.snapshots().last_snapshot()
     diff = archive.diff(s.version - 1, s.version)
     assert len(diff.schema().insert()) == 10
     assert len(diff.rows().insert()) == 1793
     # -- Recreate the archive instance.
     archive = PersistentArchive(
         basedir=str(tmpdir),
-        primary_key=['Site', 'Date'],
+        primary_key=[0, 1],
         replace=False
     )
     s = archive.commit(doc)

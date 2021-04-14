@@ -35,7 +35,7 @@ def test_archive_descriptor():
         'createdAt': util.utc_now().isoformat(),
         'name': 'My Archive',
         'description': 'This is my archive',
-        'primaryKey': ['SSN'],
+        'primaryKey': [0],
         'encoder': 'histore.tests.encode.TestEncoder',
         'decoder': 'histore.tests.encode.test_decoder'
     }
@@ -43,7 +43,7 @@ def test_archive_descriptor():
     assert descriptor.identifier() == '0000'
     assert descriptor.name() == 'My Archive'
     assert descriptor.description() == 'This is my archive'
-    assert descriptor.primary_key() == ['SSN']
+    assert descriptor.primary_key() == [0]
     dt_now = descriptor.encoder()().default(datetime.now())
     assert '$dt' in dt_now
     assert descriptor.decoder()(dt_now) == dt_now['$dt']
@@ -58,7 +58,7 @@ def test_archive_descriptor():
     descriptor = ArchiveDescriptor.create(
         name='My Archive',
         description='This is my archive',
-        primary_key='SSN',
+        primary_key=[0],
         encoder='histore.tests.encode.TestEncoder',
         decoder='histore.tests.encode.test_decoder',
         serializer=SERIALIZER
@@ -66,7 +66,7 @@ def test_archive_descriptor():
     assert descriptor.identifier() is not None
     assert descriptor.name() == 'My Archive'
     assert descriptor.description() == 'This is my archive'
-    assert descriptor.primary_key() == ['SSN']
+    assert descriptor.primary_key() == [0]
     dt_now = descriptor.encoder()().default(datetime.now())
     assert '$dt' in dt_now
     assert descriptor.decoder()(dt_now) == dt_now['$dt']
@@ -81,9 +81,9 @@ def test_archive_descriptor():
     assert descriptor.decoder() is None
     assert descriptor.serializer() is None
     # Error cases
-    doc = {'id': '0000', 'primaryKey': 'SSN'}
+    doc = {'id': '0000', 'primaryKey': [0]}
     descriptor = ArchiveDescriptor(doc, validate=False)
-    assert descriptor.primary_key() == 'SSN'
+    assert descriptor.primary_key() == [0]
     with pytest.raises(ValidationError):
         ArchiveDescriptor(doc)
 

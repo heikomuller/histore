@@ -10,12 +10,10 @@ object and the way in which archives are managed and maintained.
 """
 
 from abc import ABCMeta, abstractmethod
-from datetime import datetime
-from typing import Dict, Optional
 
 from histore.archive.reader import ArchiveReader
 from histore.archive.schema import ArchiveSchema
-from histore.archive.snapshot import Snapshot, SnapshotListing
+from histore.archive.snapshot import SnapshotListing
 from histore.archive.writer import ArchiveWriter
 
 
@@ -25,14 +23,13 @@ class ArchiveStore(metaclass=ABCMeta):
     """
     @abstractmethod
     def commit(
-        self, schema: ArchiveSchema, writer: ArchiveWriter, version: int,
-        valid_time: Optional[datetime] = None, description: Optional[str] = None,
-        action: Optional[Dict] = None
-    ) -> Snapshot:
-        """Commit a new version of the dataset archive. The modified components
-        of the archive are given as the three arguments of this method.
+        self, schema: ArchiveSchema, writer: ArchiveWriter,
+        snapshots: SnapshotListing
+    ):
+        """Commit an updated dataset archive.
 
-        Returns the handle for the newly created snapshot.
+        The modified components of the archive are given as the three
+        arguments of this method.
 
         Parameters
         ----------
@@ -41,19 +38,8 @@ class ArchiveStore(metaclass=ABCMeta):
         writer: histore.archive.writer.ArchiveWriter
             Instance of the archive writer class returned by this store that
             was used to output the rows of the new archive version.
-        version: int
-            Unique version identifier for the new snapshot.
-        valid_time: datetime.datetime, default=None
-            Timestamp when the snapshot was first valid. A snapshot is valid
-            until the valid time of the next snapshot in the archive.
-        description: string, default=None
-            Optional user-provided description for the snapshot.
-        action: dict, default=None
-            Optional metadata defining the action that created the snapshot.
-
-        Returns
-        -------
-        histore.archive.snapshot.Snapshot
+        snapshots: histore.archive.snapshot.SnapshotListing
+            Snapshot listing for the modified archive.
         """
         raise NotImplementedError()  # pragma: no cover
 

@@ -125,6 +125,13 @@ def test_write_file(tmpdir):
     reader.close()
     # Ensure that closing a reader multiple times has no effect.
     reader.close()
+    # Write without header
+    file = CSVFile(filename, write=True)
+    writer = file.write()
+    writer.write([1, 2])
+    writer.close()
+    file = CSVFile(filename)
+    assert file.columns == ['1', '2']
 
 
 # -- Helper Funcitons ---------------------------------------------------------

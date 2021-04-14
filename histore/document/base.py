@@ -9,11 +9,13 @@
 committed to an archive.
 """
 
+from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from datetime import datetime
 from typing import Iterator, List, Tuple, Union
 
-from histore.document.schema import Schema
+from histore.document.row import DocumentRow
+from histore.document.schema import Column, Schema
 
 
 """Type aliases."""
@@ -77,7 +79,48 @@ class DataReader(metaclass=ABCMeta):
 
 # -- Input Documents ----------------------------------------------------------
 
-class Document(metaclass=ABCMeta):
+
+class DocumentConsumer(metaclass=ABCMeta):
+    """Mixin class for output streams that are used to write document rows to
+    an archive.
+    """
+    @abstractmethod
+    def consume_document_row(self, row: DocumentRow, version: int):
+        """Add a given document row to a new archive version.
+
+        Parameters
+        ----------
+        row: histore.document.row.DocumentRow
+            Row from an input stream (snapshot) that is being added to the
+            archive snapshot for the given version.
+        version: int
+            Unique identifier for the new snapshot version.
+        """
+        raise NotImplementedError()  # pragma: no cover
+
+
+class OutputStream(metaclass=ABCMeta):
+    """Mixin-class for output streams that support to output the document rows
+    to a dataset archive.
+    """
+    @abstractmethod
+    def stream_to_archive(self, schema: List[Column], version: int, consumer: DocumentConsumer):
+        """Write rows in a stream to a consumer.
+
+        Parameters
+        ----------
+        schema: list of histore.document.schema.Column
+            List of columns (with unique identifier). The order of entries in
+            this list corresponds to the order of columns in the stream schema.
+        version: int
+            Unique identifier for the new snapshot version.
+        consumer: histore.document.base.DocumentConsumer
+            Consumer for rows in the stream.
+        """
+        raise NotImplementedError()  # pragma: no cover
+
+
+class Document(OutputStream, metaclass=ABCMeta):
     """The document interface provides access to a document reader. The reader
     is expected to give access to a document that is sorted in ascending order
     of the row key that is used by an archive during merge.
@@ -98,15 +141,15 @@ class Document(metaclass=ABCMeta):
         self.columns = columns
 
     @abstractmethod
-    def close(self):  # pragma: no cover
+    def close(self):
         """Signal that the archive merger is done with reading the document.
         Any resources that were created by the document (e.g., temporary files)
         can be released.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def partial(self, reader):  # pragma: no cover
+    def partial(self, reader):
         """Return a copy of the document that provides access to the set of
         rows such that the document is considered a partial document. In a
         partial document the rows are aligned with the position of the
@@ -123,10 +166,10 @@ class Document(metaclass=ABCMeta):
         -------
         histore.document.base.Document
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def reader(self, schema):  # pragma: no cover
+    def reader(self, schema):
         """Get reader for data frame rows ordered by their row identifier. In
         a partial document the row positions that are returned by the reader
         are aligned with the positions of the corresponding rows in the
@@ -151,4 +194,20 @@ class Document(metaclass=ABCMeta):
         ------
         ValueError
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
+
+    def stream_to_archive(self, schema: List[Column], version: int, consumer: DocumentConsumer):
+        """Write rows from a document to a stream consumer.
+
+        Parameters
+        ----------
+        schema: list of histore.document.schema.Column
+            List of columns (with unique identifier). The order of entries in
+            this list corresponds to the order of columns in the document schema.
+        version: int
+            Unique identifier for the new snapshot version.
+        consumer: histore.document.base.DocumentConsumer
+            Consumer for rows in the stream.
+        """
+        for row in self.reader(schema=schema):
+            consumer.consume_document_row(row=row, version=version)

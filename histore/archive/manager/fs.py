@@ -7,15 +7,18 @@
 
 """Factory pattern for archives that are maintained on disk."""
 
+from typing import Callable, Dict, Optional, Union
+
 import json
 import os
 import shutil
 
-from typing import Callable, Dict, List, Optional, Union
-
-from histore.archive.base import PersistentArchive
+from histore.archive.base import InputDocument, PersistentArchive
 from histore.archive.manager.base import ArchiveManager
 from histore.archive.manager.descriptor import ArchiveDescriptor
+from histore.archive.manager.descriptor import decoder_from_string, encoder_from_string, serializer_from_dict
+from histore.document.base import PrimaryKey
+from histore.document.snapshot import InputDescriptor
 
 import histore.config as config
 import histore.util as util
@@ -62,6 +65,20 @@ class FileSystemArchiveManager(ArchiveManager):
                 descriptor = ArchiveDescriptor(obj)
                 self._archives[descriptor.identifier()] = descriptor
 
+    def _archive_dir(self, identifier: str) -> str:
+        """Get directory for archive with the given identifier.
+
+        Parameters
+        ----------
+        identifier: string
+            Unique archive identifier.
+
+        Returns
+        -------
+        string
+        """
+        return os.path.join(self.basedir, identifier)
+
     def archives(self) -> Dict[str, ArchiveDescriptor]:
         """Get dictionary of archive descriptors. The returned dictionary maps
         archive identifier to their descriptor.
@@ -74,12 +91,19 @@ class FileSystemArchiveManager(ArchiveManager):
 
     def create(
         self, name: Optional[str] = None, description: Optional[str] = None,
-        primary_key: Optional[Union[List[str], str]] = None,
         encoder: Optional[str] = None, decoder: Optional[str] = None,
-        serializer: Union[Dict, Callable] = None
+        serializer: Union[Dict, Callable] = None, doc: Optional[InputDocument] = None,
+        primary_key: Optional[PrimaryKey] = None, snapshot: Optional[InputDescriptor] = None,
+        sorted: Optional[bool] = False, max_size: Optional[float] = None,
+        validate: Optional[bool] = False
     ) -> ArchiveDescriptor:
-        """Create a new archive object. Raises a ValueError if an archive with
-        the given name exists.
+        """Create a new archive object under a given unique name.
+
+        For archives that are keyed by a primary key, the input document for
+        the first dataset snapshot  has to be provided. This snapshot will be
+        loaded into the archive.
+
+        Raises a ValueError if an archive with the given name exists.
 
         Parameters
         ----------
@@ -87,14 +111,12 @@ class FileSystemArchiveManager(ArchiveManager):
             Descriptive name that is associated with the archive.
         description: string, default=None
             Optional long description that is associated with the archive.
-        primary_key: string or list, default=None
-            Column(s) that are used to generate identifier for rows in the
-            archive.
         encoder: string, default=None
             Full package path for the Json encoder class that is used by the
             persistent archive.
         decoder: string, default=None
             Full package path for the Json decoder function that is used by the
+            persistent archive.
         serializer: dict or callable, default=None
             Dictionary or callable that returns a dictionary that contains the
             specification for the serializer. The serializer specification is
@@ -104,6 +126,22 @@ class FileSystemArchiveManager(ArchiveManager):
             - ``kwargs`` : Additional arguments that are passed to the
                            constructor of the created serializer instance.
             Only ``clspath`` is required.
+        doc: histore.archive.base.InputDocument, default=None
+            Input document representing the initial dataset snapshot that is
+            being loaded into the archive.
+        primary_key: string or list, default=None
+            Column(s) that are used to generate identifier for snapshot rows.
+        snapshot: histore.document.snapshot.InputDescriptor, default=None
+            Optional metadata for the created snapshot.
+        sorted: bool, default=False
+            Flag indicating if the document is sorted by the optional primary
+            key attributes. Ignored if the archive is not keyed.
+        max_size: float, default=None
+            Maximum size (in MB) of the main-memory buffer for blocks of the
+            CSV file that are sorted in main-memory.
+        validate: bool, default=False
+            Validate that the resulting archive is in proper order before
+            committing the action.
 
         Returns
         -------
@@ -116,8 +154,32 @@ class FileSystemArchiveManager(ArchiveManager):
         # Ensure that the archive name is unique.
         if self.get_by_name(name) is not None:
             raise ValueError("archive '{}' already exists".format(name))
+        # Get serializer dictionary if a function was given.
+        serializer = serializer() if serializer is not None and callable(serializer) else serializer
+        # Create an unique identifier for the new archive.
+        identifier = util.get_unique_identifier()
+        # Load initial snapshot if given.
+        if doc is not None:
+            archive = PersistentArchive(
+                basedir=self._archive_dir(identifier),
+                doc=doc,
+                primary_key=primary_key,
+                snapshot=snapshot,
+                sorted=sorted,
+                max_size=max_size,
+                validate=validate,
+                serializer=serializer_from_dict(serializer),
+                encoder=encoder_from_string(encoder),
+                decoder=decoder_from_string(decoder)
+            )
+            # Get list of column identifier for primary key attributes after
+            # the snapshot was loaded.
+            primary_key = archive.primary_key
+        elif primary_key is not None:
+            raise ValueError('missing snapshot document')
         # Create the descriptor for the new archive.
         descriptor = ArchiveDescriptor.create(
+            identifier=identifier,
             name=name,
             description=description,
             primary_key=primary_key,
@@ -125,8 +187,6 @@ class FileSystemArchiveManager(ArchiveManager):
             decoder=decoder,
             serializer=serializer
         )
-        identifier = descriptor.identifier()
-        primary_key = descriptor.primary_key()
         # Write list of archive descriptors.
         self._archives[identifier] = descriptor
         self.write()
@@ -141,7 +201,7 @@ class FileSystemArchiveManager(ArchiveManager):
             Unique archive identifier
         """
         if self.contains(identifier):
-            archdir = os.path.join(self.basedir, identifier)
+            archdir = self._archive_dir(identifier)
             if os.path.isdir(archdir):
                 shutil.rmtree(archdir)
             del self._archives[identifier]
@@ -168,7 +228,7 @@ class FileSystemArchiveManager(ArchiveManager):
         if desc is None:
             raise ValueError('unknown archive {}'.format(identifier))
         return PersistentArchive(
-            basedir=os.path.join(self.basedir, identifier),
+            basedir=self._archive_dir(identifier),
             primary_key=desc.primary_key(),
             serializer=desc.serializer(),
             encoder=desc.encoder(),

@@ -9,10 +9,12 @@
 file system.
 """
 
-import click
-import sys
-
 from typing import Optional
+
+import click
+import csv
+import pandas as pd
+import sys
 
 from histore import PersistentArchiveManager
 from histore.archive.manager.base import ArchiveManager
@@ -46,6 +48,28 @@ DTF = '%Y-%m-%d %H:%M:%S'
     help='Comma-separate list of primary key columns'
 )
 @click.option(
+    '-d', '--delimiter',
+    required=False,
+    type=str,
+    help='One-character string used to separate fields'
+)
+@click.option(
+    '-q', '--quotechar',
+    required=False,
+    type=str,
+    help='One-character string used to quote fields with special characters'
+)
+@click.option(
+    '-z', '--gzip',
+    is_flag=True,
+    default=False,
+    help='Gzip compressed'
+)
+@click.option(
+    '-f', '--filename',
+    type=click.Path(file_okay=True, dir_okay=False, exists=True)
+)
+@click.option(
     '-t', '--comment',
     required=False,
     type=str,
@@ -58,22 +82,37 @@ DTF = '%Y-%m-%d %H:%M:%S'
     help='JSONEncoder class for the new archive'
 )
 @click.option(
-    '-d', '--decoder',
+    '-x', '--decoder',
     required=False,
     type=str,
     help='JSON decoder function for the new archive'
 )
 @click.argument('name')
-def create_archive(basedir, dbconnect, pk, comment, encoder, decoder, name):
+def create_archive(
+    basedir, dbconnect, pk, delimiter, quotechar, gzip, filename, comment,
+    encoder, decoder, name
+):
     """Create a new archive."""
     manager = get_manager(basedir, dbconnect=dbconnect)
     # Split primary key if it contains ','.
     primary_key = pk.split(',') if pk is not None else None
+    if filename:
+        # Read the data frame.
+        doc = pd.read_csv(
+            filename,
+            delimiter=util.get_delimiter(delimiter),
+            quotechar=quotechar if quotechar is not None else '"',
+            quoting=csv.QUOTE_MINIMAL,
+            compression='gzip' if gzip else None
+        )
+    else:
+        doc = None
     try:
         manager.create(
             name=name,
             description=comment,
             primary_key=primary_key,
+            doc=doc,
             encoder=encoder,
             decoder=decoder
         )

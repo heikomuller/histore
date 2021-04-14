@@ -18,15 +18,14 @@ import json
 import os
 import shutil
 
-from datetime import datetime
-from typing import Dict, Optional
-
 from histore.archive.schema import ArchiveSchema
 from histore.archive.serialize.default import DefaultSerializer
 from histore.archive.snapshot import SnapshotListing
 from histore.archive.store.base import ArchiveStore
-from histore.archive.store.fs.reader import ArchiveFileReader, default_decoder
-from histore.archive.store.fs.writer import ArchiveFileWriter, DefaultEncoder
+from histore.archive.store.fs.reader import ArchiveFileReader
+from histore.archive.store.fs.writer import ArchiveFileWriter
+from histore.document.json.reader import default_decoder
+from histore.document.json.writer import DefaultEncoder
 
 import histore.util as util
 
@@ -56,7 +55,7 @@ class ArchiveFileStore(ArchiveStore):
         replace: boolean, default=False
             Do not read existing files in the base directory to initialize the
             archive. Treat the archive as being empty instead if True.
-        serializer: histore.archive.serialize.ArchiveSerializer, default=None
+        serializer: histore.archive.serialize.base.ArchiveSerializer, default=None
             Implementation of the archive serializer interface that is used to
             serialize rows that are written to file.
         compression: string, default=None
@@ -105,51 +104,30 @@ class ArchiveFileStore(ArchiveStore):
                     os.remove(f)
 
     def commit(
-        self, schema: ArchiveSchema, writer: ArchiveFileWriter, version: int,
-        valid_time: Optional[datetime] = None, description: Optional[str] = None,
-        action: Optional[Dict] = None
+        self, schema: ArchiveSchema, writer: ArchiveFileWriter,
+        snapshots: SnapshotListing
     ):
-        """Commit a new version of the dataset archive. The modified components
-        of the archive are given as the three arguments of this method.
+        """Commit an updated dataset archive.
 
-        Returns the handle for the newly created snapshot.
+        The modified components of the archive are given as the three
+        arguments of this method.
 
         Parameters
         ----------
         schema: histore.archive.schema.ArchiveSchema
             Schema history for the new archive version.
-        writer: histore.archive.writer.ArchiveWriter
+        writer: histore.archive.store.fs.writer.ArchiveFileWriter
             Instance of the archive writer class returned by this store that
             was used to output the rows of the new archive version.
-        version: int
-            Unique version identifier for the new snapshot.
-        valid_time: datetime.datetime, default=None
-            Timestamp when the snapshot was first valid. A snapshot is valid
-            until the valid time of the next snapshot in the archive.
-        description: string, default=None
-            Optional user-provided description for the snapshot.
-        action: dict, default=None
-            Optional metadata defining the action that created the snapshot.
-
-        Returns
-        -------
-        histore.archive.snapshot.Snapshot
+        snapshots: histore.archive.snapshot.SnapshotListing
+            Snapshot listing for the modified archive.
         """
-        # Get an updated shapshot listing.
-        snapshots = self.snapshots.append(
-            version=version,
-            valid_time=valid_time,
-            description=description,
-            action=action
-        )
         # Materialize the modified archive.
         self._write(schema=schema, writer=writer, snapshots=snapshots)
         # Update the cached objects
         self.schema = schema
         self.snapshots = snapshots
         self.row_counter = writer.row_counter
-        # Return handle for the new snapshot.
-        return snapshots.last_snapshot()
 
     def is_empty(self) -> bool:
         """True if the archive does not contain any snapshots yet.

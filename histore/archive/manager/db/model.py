@@ -75,10 +75,7 @@ class Archive(Base):
         histore.archive.manager.descriptor.ArchiveDescriptor
         """
         # Create list of promary key columns (if defined).
-        if self.keyspec:
-            pk = [k.name for k in sorted(self.keyspec, key=lambda x: x.pos)]
-        else:
-            pk = None
+        pk = [k.colid for k in sorted(self.keyspec, key=lambda x: x.pos)] if self.keyspec else None
         return ArchiveDescriptor.create(
             identifier=self.archive_id,
             name=self.name,
@@ -102,7 +99,7 @@ class ArchiveKey(Base):
         ForeignKey('archive.archive_id'),
         primary_key=True
     )
-    name = Column(String(1024), primary_key=True)
+    colid = Column(Integer, primary_key=True)
     pos = Column(Integer, primary_key=True)
 
     # -- Relationships --------------------------------------------------------

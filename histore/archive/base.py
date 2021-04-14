@@ -7,25 +7,33 @@
 
 """Archives are collections of snapshots of an evolving dataset."""
 
-from datetime import datetime
-from typing import Dict, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
+import json
 import pandas as pd
+import tempfile
 
 from histore.archive.provenance.archive import SnapshotDiff
 from histore.archive.reader import ArchiveReader, RowPositionReader, SnapshotReader
 from histore.archive.schema import ArchiveSchema, MATCH_ID, MATCH_IDNAME
+from histore.archive.serialize.base import ArchiveSerializer
 from histore.archive.snapshot import Snapshot, SnapshotListing
 from histore.archive.store.base import ArchiveStore
 from histore.archive.store.fs.base import ArchiveFileStore
 from histore.archive.store.mem.base import VolatileArchiveStore
 from histore.document.base import Document, PrimaryKey
 from histore.document.csv.base import CSVFile
-from histore.document.csv.read import open_document
+from histore.document.csv.read import SimpleCSVDocument, SortedCSVDocument
+from histore.document.json.base import JsonDocument
+from histore.document.mem.base import InMemoryDocument
 from histore.document.mem.dataframe import DataFrameDocument
+from histore.document.schema import column_ref
+from histore.document.snapshot import InputDescriptor
 from histore.document.stream import InputStream, StreamOperator
 
 import histore.archive.merge as nested_merge
+import histore.document.sort as sort
+import histore.key.annotate as anno
 
 
 """Type aliases for archive API methods."""
@@ -33,41 +41,83 @@ InputDocument = Union[pd.DataFrame, CSVFile, str, InputStream]
 
 
 class Archive(object):
-    """An archive maintains a list of snapshot handles. All snapshots are
-    expected to follow the same document schema.
-
-    Archives are represented as trees. The root of the tree is maintained by
-    an archive store. The store provides a layer of abstraction such that the
-    archive object does not have to deal with the different ways in which
-    archives are managed by different systems.
+    """An archive maintains a list of dataset snapshots. Archive snapshots are
+    maintained by an archive store. The store provides a layer of abstraction
+    such that the archive object does not have to deal with the different ways
+    in which archives are managed by different systems.
     """
     def __init__(
-        self, store: Optional[ArchiveStore] = None, primary_key: Optional[PrimaryKey] = None
+        self, doc: Optional[InputDocument] = None,
+        primary_key: Optional[Union[PrimaryKey, List[int]]] = None,
+        snapshot: Optional[InputDescriptor] = None, sorted: Optional[bool] = False,
+        max_size: Optional[float] = None, validate: Optional[bool] = False,
+        store: Optional[ArchiveStore] = None
     ):
         """Initialize the associated archive store and the optional primary
-        key columns that are used to generate row identifier. If no primary
-        key is specified the row index for committed document is used to
-        generate identifier for archive rows.
+        key columns that are used to generate row identifier.
+
+        If a primary key is specified the first dataset snapshot has to be
+        provided. It is not allowed to create empty archives where the rows are
+        keyed by primary key columns.
+
+        If no primary key is specified the row index for committed document is
+        used to generate identifier for archive rows.
 
         Parameters
         ----------
+        doc: histore.archive.base.InputDocument, default=None
+            Input document representing the initial dataset snapshot that is
+            being loaded into the archive.
+        primary_key: string or list, default=None
+            Column(s) that are used to generate identifier for snapshot rows.
+        snapshot: histore.document.snapshot.InputDescriptor, default=None
+            Optional metadata for the created snapshot.
+        sorted: bool, default=False
+            Flag indicating if the document is sorted by the optional primary
+            key attributes. Ignored if the archive is not keyed.
+        max_size: float, default=None
+            Maximum size (in MB) of the main-memory buffer for blocks of the
+            CSV file that are sorted in main-memory.
+        validate: bool, default=False
+            Validate that the resulting archive is in proper order before
+            committing the action.
         store: histore.archive.store.base.ArchiveStore, default=None
             Associated archive store that is used to maintain all archive
             information. Uses the volatile in-memory store by default.
-        primary_key: string or list, default=None
-            Column(s) that are used to generate identifier for snapshot rows.
         """
-        self.primary_key = primary_key
         self.store = store if store is not None else VolatileArchiveStore()
+        if primary_key is not None:
+            if self.store.is_empty():
+                # Load first dataset if store is empty.
+                if doc is None:
+                    raise ValueError('missing snapshot document')
+                primary_key = self._load_dataset(
+                    doc=doc,
+                    primary_key=primary_key,
+                    snapshot=snapshot,
+                    sorted=sorted,
+                    max_size=max_size,
+                    validate=validate
+                )
+            else:
+                # Ensure that the primary key is a list of integers.
+                for k in primary_key:
+                    if not isinstance(k, int):
+                        raise ValueError("invalid key column '{}'".format(k))
+        self.primary_key = primary_key
 
-    def apply(self, op: StreamOperator, origin: Optional[int] = None) -> Snapshot:
-        """Apply a given operator on the given snapshot in the archive.
+    def apply(
+        self, operators: Union[StreamOperator, List[StreamOperator]],
+        origin: Optional[int] = None
+    ) -> List[Snapshot]:
+        """Apply a given operator o a sequence of operators on a snapshot in
+        the archive.
 
-        The resulting snapshot will directly merged into the archive. This
+        The resulting snapshot(s) will directly merged into the archive. This
         method allows to update data in an archive directly without the need
-        to checkout the snapshot first and then commit the modified version.
+        to checkout the snapshot first and then commit the modified version(s).
 
-        Returns the handle for the created snapshot.
+        Returns list of handles for the created snapshots.
 
         Note that there are some limitations for this method. Most importantly,
         the order of rows cannot be modified and neither can it insert new rows
@@ -80,33 +130,43 @@ class Archive(object):
 
         Parameters
         ----------
-        op: histore.document.stream.StreamOperator
-            Operator that is used to update the rows in a dataset snapshot to
-            create a new snapshot in this archive.
+        operators: histore.document.stream.StreamOperator or list of histore.document.stream.StreamOperator
+            Operator(s) that is/are used to update the rows in a dataset
+            snapshot to create new snapshot(s) in this archive.
         version: int, default=None
-            Unique version identifier. By default the last version is updated.
+            Unique version identifier for the original snapshot that is being
+            updated. By default the last version is updated.
 
         Returns
         -------
         histore.archive.snapshot.Snapshot
         """
-        # Raise error if empty
-        pass
         # Ensure that the origin version is set.
-        if origin is None:
-            origin = self.snapshots().last_snapshot().version
-        # Get identifier for the new snapshot.
-        new_version = self.snapshots().next_version()
-        # Merge the new snapshot schema with the current archive schema. THen
-        # get the snapshot schema from the merged archive schema to ensure we
-        # have all the column identifier.
-        schema, _, _ = self.schema().merge(
-            columns=op.columns,
-            version=new_version,
-            origin=origin
-        )
+        origin = origin if origin is not None else self.snapshots().last_snapshot().version
+        # Create pipeline of operators. Make sure to update the archive schema
+        # according to the operators. Each operator will create a new snapshot
+        # version.
+        result = list()
+        pipeline = list()
+        schema = self.schema()
         origin_colids = [c.colid for c in schema.at_version(version=origin)]
-        snapshot_colids = [c.colid for c in schema.at_version(version=new_version)]
+        # Get snapshot identifier and schema information for each created
+        # snapshot.
+        snapshots = self.snapshots()
+        for op in operators if isinstance(operators, list) else [operators]:
+            version = snapshots.next_version()
+            snapshots = snapshots.append(version=version, descriptor=op.snapshot)
+            result.append(snapshots.last_snapshot())
+            # Merge the new snapshot schema with the current archive schema. Then
+            # get the snapshot schema from the merged archive schema to ensure we
+            # have all the column identifier.
+            schema, _, _ = schema.merge(
+                columns=op.columns,
+                version=version,
+                origin=origin
+            )
+            snapshot_colids = [c.colid for c in schema.at_version(version=version)]
+            pipeline.append((op, version, snapshot_colids))
         # Iterate over rows and apply the operator to those that belong to the
         # modified snapshot.
         reader = self.reader()
@@ -115,25 +175,28 @@ class Archive(object):
             row = reader.next()
             if row.timestamp.contains(origin):
                 pos, vals = row.at_version(version=origin, columns=origin_colids)
-                vals = op.eval(vals)
-                if vals is not None:
-                    # Merge the archive row and the modified document row.
-                    row = row.merge(
-                        values={colid: val for colid, val in zip(snapshot_colids, vals)},
-                        pos=pos,
-                        version=new_version,
-                        origin=origin
-                    )
+                for op, version, snapshot_colids in pipeline:
+                    vals = op.eval(rowid=row.rowid, row=vals)
+                    if vals is not None:
+                        # Merge the archive row and the modified document row.
+                        row = row.merge(
+                            values={colid: val for colid, val in zip(snapshot_colids, vals)},
+                            pos=pos,
+                            version=version,
+                            origin=origin
+                        )
+                    else:
+                        break
             writer.write_archive_row(row)
+        reader.close()
         # Commit all changes to the associated archive store.
-        snapshot = self.store.commit(
+        self.store.commit(
             schema=schema,
             writer=writer,
-            version=new_version,
-            action=op.action()
+            snapshots=snapshots
         )
         # Return descriptor for the created snapshot.
-        return snapshot
+        return result
 
     def checkout(self, version: Optional[int] = None) -> pd.DataFrame:
         """Access a dataset snapshot in the archive. Retrieves the datset that
@@ -171,6 +234,7 @@ class Archive(object):
             if row.timestamp.contains(version):
                 pos, vals = row.at_version(version, colids, raise_error=False)
                 rows.append((row.rowid, pos, vals))
+        reader.close()
         # Sort rows in ascending order.
         rows.sort(key=lambda r: r[1])
         # Create document for the retrieved snapshot.
@@ -181,11 +245,11 @@ class Archive(object):
         return pd.DataFrame(data=data, index=rowindex, columns=columns, dtype=object)
 
     def commit(
-        self, doc: InputDocument, valid_time: Optional[datetime] = None,
-        description: Optional[str] = None, action: Optional[Dict] = None,
-        matching: Optional[str] = MATCH_IDNAME, renamed: Optional[Dict] = None,
-        renamed_to: Optional[bool] = True, partial: Optional[bool] = False,
-        origin: Optional[int] = None
+        self, doc: InputDocument, snapshot: Optional[InputDescriptor] = None,
+        sorted: Optional[bool] = False, max_size: Optional[float] = None,
+        validate: Optional[bool] = False, matching: Optional[str] = MATCH_IDNAME,
+        renamed: Optional[Dict] = None, renamed_to: Optional[bool] = True,
+        partial: Optional[bool] = False, origin: Optional[int] = None
     ) -> Snapshot:
         """Commit a new snapshot to the dataset archive. The given document
         represents the dataset snapshot that is being merged into the archive.
@@ -209,17 +273,20 @@ class Archive(object):
 
         Parameters
         ----------
-        doc: histore.document.base.Document, pd.DataFrame,
-                histore.document.csv.base.CSVFile, or string
+        doc: histore.archive.base.InputDocument, or string
             Input document representing the dataset snapshot that is being
             merged into the archive.
-        valid_time: datetime.datetime
-            Timestamp when the snapshot was first valid. A snapshot is valid
-            until the valid time of the next snapshot in the archive.
-        description: string, default=None
-            Optional user-provided description for the snapshot.
-        action: dict, default=None
-            Optional metadata defining the action that created the snapshot.
+        snapshot: histore.document.snapshot.InputDescriptor, default=None
+            Optional metadata for the created snapshot.
+        sorted: bool, default=False
+            Flag indicating if the document is sorted by the optional primary
+            key attributes. Ignored if the archive is not keyed.
+        max_size: float, default=None
+            Maximum size (in MB) of the main-memory buffer for blocks of the
+            CSV file that are sorted in main-memory.
+        validate: bool, default=False
+            Validate that the resulting archive is in proper order before
+            committing the action.
         matching: string, default='idname'
             Match mode for columns. Expects one of three modes:
             - idonly: The columns in the schema of the comitted document are
@@ -260,24 +327,26 @@ class Archive(object):
         ------
         ValueError
         """
-        # If the archive is empty, does not have a primary key, and the document
-        # is not partial, then we can optimize by loading the document as a
-        # stream.
+        # If the archive is empty the commited document is loaded via the
+        # opimized _load_dataset method. Raises an error if the partial flag
+        # is True.
         if self.is_empty():
             # Ensure that partial is not set for an empty archive.
             if partial:
                 raise ValueError('merge partial snapshot into empty archive')
-            elif not self.primary_key:
-                stream = to_stream(doc=doc)
-                return self.load_from_stream(
-                    stream=stream,
-                    valid_time=valid_time,
-                    description=description,
-                    action=action
-                )
+            # Note that the primary key cannot be defined if the archive
+            # is empty.
+            self._load_dataset(
+                doc=doc,
+                snapshot=snapshot,
+                sorted=sorted,
+                validate=validate
+            )
+            return self.snapshots().last_snapshot()
         # Documents may optionally be specified as data frames or CSV files.
-        # Ensure that we have an instance of the Document class.
-        doc = to_document(doc=doc, primary_key=self.primary_key)
+        # Ensure that we have an instance of the Document class or an InputStream
+        # with a columns property.
+        doc = to_input(doc=doc)
         try:
             # Use the last commited version as origin if matching columns by
             # name or if a partial document is commited and origin is None.
@@ -298,6 +367,11 @@ class Archive(object):
                 partial=partial,
                 origin=origin
             )
+            # Convert a stream into a document if necessary. Sort the document
+            # if requested.
+            mapping = {c.colid: c.colidx for c in schema.at_version(version=version)}
+            key_columns = [mapping[colid] for colid in self.primary_key] if self.primary_key else []
+            doc = to_document(doc=doc, keys=key_columns, sorted=sorted, max_size=max_size)
             # If the document is partial we need to adjust the positions of the
             # rows in the document.
             if partial:
@@ -322,16 +396,13 @@ class Archive(object):
             # for cleanup of temporary files.
             doc.close()
         # Commit all changes to the associated archive store.
-        snapshot = self.store.commit(
+        self.store.commit(
             schema=schema,
             writer=writer,
-            version=version,
-            valid_time=valid_time,
-            description=description,
-            action=action
+            snapshots=self.snapshots().append(version=version, descriptor=snapshot)
         )
         # Return descriptor for the created snapshot.
-        return snapshot
+        return self.snapshots().last_snapshot()
 
     def diff(self, original_version: int, new_version: int) -> SnapshotDiff:
         """Get provenance information representing the difference between two
@@ -366,6 +437,7 @@ class Archive(object):
             if row_prov is not None:
                 rows_diff.add(row_prov)
             row_count += 1
+        reader.close()
         return prov
 
     def is_empty(self) -> bool:
@@ -377,70 +449,83 @@ class Archive(object):
         """
         return self.store.is_empty()
 
-    def load_from_stream(
-        self, stream: InputStream, valid_time: Optional[datetime] = None,
-        description: Optional[str] = None, action: Optional[Dict] = None
-    ) -> Snapshot:
-        """Load an initial snapshot from a data stream into an empty dataset
-        archive.
+    def _load_dataset(
+        self, doc: InputDocument, primary_key: Optional[PrimaryKey] = None,
+        snapshot: Optional[InputDescriptor] = None, sorted: Optional[bool] = False,
+        max_size: Optional[float] = None, validate: Optional[bool] = False,
+    ) -> List[int]:
+        """Load an initial snapshot into an empty dataset archive.
 
-        This method can only be applied for empty archives that do not have a
-        primary key defined. Attempting to load a snapshot from a stream into a
-        non-empty archive or an empty archive with a primary key will raise an
+        Attempting to load a snapshot into a non-empty archive will raise an
         error.
 
-        Returns the descriptor of the merged snapshot in the new version of
-        the archive.
+        Returns the list of column identifier for the primary key columns (if
+        given). If no primary key was given the value is None.
 
         Parameters
         ----------
-        stream: histore.document.stream.InputStream
+        doc: histore.archive.base.InputDocument, or string
             Input document representing the dataset snapshot that is being
             merged into the archive.
-        valid_time: datetime.datetime
-            Timestamp when the snapshot was first valid. A snapshot is valid
-            until the valid time of the next snapshot in the archive.
-        description: string, default=None
-            Optional user-provided description for the snapshot.
-        action: dict, default=None
-            Optional metadata defining the action that created the snapshot.
+        primary_key: string or list, default=None
+            Column(s) that are used to generate identifier for snapshot rows.
+        snapshot: histore.document.snapshot.InputDescriptor, default=None
+            Optional metadata for the created snapshot.
+        sorted: bool, default=False
+            Flag indicating if the document is sorted by the optional primary
+            key attributes. Ignored if the archive is not keyed.
+        max_size: float, default=None
+            Maximum size (in MB) of the main-memory buffer for blocks of the
+            CSV file that are sorted in main-memory.
+        validate: bool, default=False
+            Validate that the resulting archive is in proper order before
+            committing the action.
 
         Returns
         -------
-        histore.archive.snapshot.Snapshot
+        list of int
 
         Raises
         ------
         ValueError
         """
-        # Ensure that the archive does not have a primary key defined.
-        if self.primary_key:
-            raise RuntimeError('cannot load from stream for archive with primary key')
-        # We can only load an archive from a stream if the archive is empty.
-        # Raise an error if the archive is not empty.
+        # The load operation is only valid for empty archives.
         if not self.is_empty():
             raise RuntimeError('cannot merge stream into archive')
+        # Documents may optionally be specified as data frames or CSV files.
+        # Ensure that we have an instance of the Document class or an InputStream
+        # with a columns property.
+        doc = to_input(doc=doc)
         # Get a modified snapshot list where the last entry represents the
         # new snapshot.
         version = self.snapshots().next_version()
         # Create archive schema from list of stream columns. Since the archive
         # schema is empty the returned list of columns corresponds to the list
         # of columns in the input stream.
-        schema, columns, _ = self.schema().merge(columns=stream.columns, version=version)
+        schema, columns, _ = self.schema().merge(columns=doc.columns, version=version)
+        # Get list of identifier for primary key columns (if given).
+        if primary_key:
+            key_columns = list()
+            key_index = list()
+            for keycol in primary_key if isinstance(primary_key, list) else [primary_key]:
+                _, colidx = column_ref(schema=columns, column=keycol)
+                key_index.append(colidx)
+                key_columns.append(columns[colidx].colid)
+            if not sorted:
+                doc = to_document(doc=doc, keys=key_index, sorted=False, max_size=max_size)
+        else:
+            key_columns = None
         # Get writer for the archive.
         writer = self.store.get_writer()
-        stream.stream_to_archive(schema=columns, version=version, consumer=writer)
+        doc.stream_to_archive(schema=columns, version=version, consumer=writer)
         # Commit all changes to the associated archive store.
-        snapshot = self.store.commit(
+        self.store.commit(
             schema=schema,
             writer=writer,
-            version=version,
-            valid_time=valid_time,
-            description=description,
-            action=action
+            snapshots=self.snapshots().append(version=version, descriptor=snapshot)
         )
-        # Return descriptor for the created snapshot.
-        return snapshot
+        # Return identifier for primary key columns.
+        return key_columns
 
     def reader(self) -> ArchiveReader:
         """Get the row reader for this archive.
@@ -471,11 +556,13 @@ class Archive(object):
         if not self.snapshots().has_version(version=version):
             raise ValueError("unknown version '{}'".format(version))
         # Rollback archive rows.
+        reader = self.reader()
         writer = self.store.get_writer()
-        for row in self.reader():
+        for row in reader:
             row = row.rollback(version)
             if row is not None:
                 writer.write_archive_row(row)
+        reader.close()
         # Commit the rolledback archive to the associated archive store.
         self.store.rollback(
             schema=self.schema().rollback(version=version),
@@ -532,8 +619,13 @@ class PersistentArchive(Archive):
     uses the default file system store.
     """
     def __init__(
-        self, basedir, replace=False, serializer=None, compression=None,
-        primary_key=None, encoder=None, decoder=None
+        self, basedir: str, doc: Optional[InputDocument] = None,
+        primary_key: Optional[Union[PrimaryKey, List[int]]] = None,
+        snapshot: Optional[InputDescriptor] = None, sorted: Optional[bool] = False,
+        max_size: Optional[float] = None, validate: Optional[bool] = False,
+        replace: Optional[bool] = False, serializer: Optional[ArchiveSerializer] = None,
+        compression: Optional[str] = None, encoder: Optional[json.JSONEncoder] = None,
+        decoder: Optional[Callable] = None
     ):
         """Initialize the associated archive store and the optional primary
         key columns that are used to generate row identifier. If no primary
@@ -545,23 +637,43 @@ class PersistentArchive(Archive):
         basedir: string
             Path to the base directory for archive files. If the directory does
             not exist it will be created.
+        doc: histore.archive.base.InputDocument, default=None
+            Input document representing the initial dataset snapshot that is
+            being loaded into the archive.
+        primary_key: string or list, default=None
+            Column(s) that are used to generate identifier for snapshot rows.
+        snapshot: histore.document.snapshot.InputDescriptor, default=None
+            Optional metadata for the created snapshot.
+        sorted: bool, default=False
+            Flag indicating if the document is sorted by the optional primary
+            key attributes. Ignored if the archive is not keyed.
+        max_size: float, default=None
+            Maximum size (in MB) of the main-memory buffer for blocks of the
+            CSV file that are sorted in main-memory.
+        validate: bool, default=False
+            Validate that the resulting archive is in proper order before
+            committing the action.
         replace: boolean, default=False
             Do not read existing files in the base directory to initialize the
             archive. Treat the archive as being empty instead if True.
-        serializer: histore.archive.serialize.ArchiveSerializer, default=None
+        serializer: histore.archive.serialize.base.ArchiveSerializer, default=None
             Implementation of the archive serializer interface that is used to
             serialize rows that are written to file.
         compression: string, default=None
             String representing the compression mode. Only te data file will be
             compressed. the metadata file is always storesd as plain text.
-        primary_key: string or list
-            Column(s) that are used to generate identifier for snapshot rows.
         encoder: json.JSONEncoder, default=None
             Encoder used when writing archive rows as JSON objects to file.
         decoder: func, default=None
             Custom decoder function when reading archive rows from file.
         """
         super(PersistentArchive, self).__init__(
+            doc=doc,
+            primary_key=primary_key,
+            snapshot=snapshot,
+            sorted=sorted,
+            max_size=max_size,
+            validate=validate,
             store=ArchiveFileStore(
                 basedir=basedir,
                 replace=replace,
@@ -569,8 +681,7 @@ class PersistentArchive(Archive):
                 compression=compression,
                 encoder=encoder,
                 decoder=decoder
-            ),
-            primary_key=primary_key
+            )
         )
 
 
@@ -578,60 +689,140 @@ class VolatileArchive(Archive):
     """Archive that maintains all dataset snapshots in main memory. This is
     a shortcut for the default archive constructor.
     """
-    def __init__(self, primary_key=None):
+    def __init__(
+        self, doc: Optional[InputDocument] = None,
+        primary_key: Optional[Union[PrimaryKey, List[int]]] = None,
+        snapshot: Optional[InputDescriptor] = None, sorted: Optional[bool] = False,
+        max_size: Optional[float] = None, validate: Optional[bool] = False,
+    ):
         """Initialize the associated optional primary key for the archive.
 
         Parameters
         ----------
-        primary_key: string or list
+        doc: histore.archive.base.InputDocument, default=None
+            Input document representing the initial dataset snapshot that is
+            being loaded into the archive.
+        primary_key: string or list, default=None
             Column(s) that are used to generate identifier for snapshot rows.
+        snapshot: histore.document.snapshot.InputDescriptor, default=None
+            Optional metadata for the created snapshot.
+        sorted: bool, default=False
+            Flag indicating if the document is sorted by the optional primary
+            key attributes. Ignored if the archive is not keyed.
+        max_size: float, default=None
+            Maximum size (in MB) of the main-memory buffer for blocks of the
+            CSV file that are sorted in main-memory.
+        validate: bool, default=False
+            Validate that the resulting archive is in proper order before
+            committing the action.
         """
         super(VolatileArchive, self).__init__(
-            store=VolatileArchiveStore(),
-            primary_key=primary_key
+            doc=doc,
+            primary_key=primary_key,
+            snapshot=snapshot,
+            sorted=sorted,
+            max_size=max_size,
+            validate=validate,
+            store=VolatileArchiveStore()
         )
 
 
 # -- Helper Functions ---------------------------------------------------------
 
-def to_document(doc: InputDocument, primary_key: Optional[PrimaryKey] = None) -> Document:
-    """Ensure that a given document object is an instance of class Document.
-    Inputs may alternatively be specified as pandas data frames or CSV files.
+def to_document(
+    doc: Union[Document, InputStream], keys: List[int], sorted: bool,
+    max_size: Optional[float] = None
+) -> Document:
+    """Convert a stream object into a document by writing it to a temporary
+    file.
+
+    Sort the document if requested.
+
+    Parameters
+    ----------
+    doc: histore.document.base.Document of histore.document.stream.InputStream
+        Snapshot document.
+    keys: list of int
+        List of index positions for primary key columns.
+    sorted: bool
+        Flag indicating if the document is sorted by the primary key attributes.
+        Sorts the document if the key is given and it is not sorted.
+    max_size: float, default=None
+        Maximum size (in MB) of the main-memory buffer for blocks of the
+        CSV file that are sorted in main-memory.
+
+    Returns
+    -------
+    histore.document.base.Document
+    """
+    if isinstance(doc, InputStream):
+        # Write stream to a temporary file.
+        _, filename = tempfile.mkstemp(suffix='.json', text=True)
+        doc.write_as_json(filename=filename)
+        doc = JsonDocument(filename=filename)
+    if keys and not sorted:
+        columns = doc.columns
+        if isinstance(doc, SimpleCSVDocument) or isinstance(doc, JsonDocument):
+            # Sort the document.
+            if isinstance(doc, SimpleCSVDocument):
+                with doc.file.open() as reader:
+                    buffer, filenames = sort.split(
+                        reader=reader,
+                        sortkey=keys,
+                        buffer_size=max_size
+                    )
+            else:
+                with doc._reader as reader:
+                    buffer, filenames = sort.split(
+                        reader=reader,
+                        sortkey=keys,
+                        buffer_size=max_size
+                    )
+            if not filenames:
+                # If the file fits into main-memory return a sorted in-memory
+                # document.
+                return InMemoryDocument(
+                    columns=columns,
+                    rows=buffer,
+                    readorder=anno.pk_readorder(rows=buffer, keys=keys)
+                )
+            else:
+                # Merge the CSV file blocks and return a sorted CSV document
+                # object that wrapps the sorted CSV file.
+                return SortedCSVDocument(
+                    filename=sort.mergesort(
+                        buffer=buffer,
+                        filenames=filenames,
+                        sortkey=keys
+                    ),
+                    columns=columns,
+                    primary_key=keys
+                )
+        else:
+            doc.annotate(keys=keys)
+    return doc
+
+
+def to_input(doc: InputDocument) -> Union[Document, InputStream]:
+    """Ensure that a given input document is either an instance of class
+    Document or InputStream.
 
     Parameters
     ----------
     doc: histore.document.base.Document, pd.DataFrame,
             histore.document.csv.base.CSVFile, or string
         Input document representing a dataset snapshot.
-    primary_key: string or list, default=None
-        Optional primary key columns for the document.
 
     Returns
     -------
-    histore.document.base.Document
+    histore.document.base.Document of histore.document.stream.InputStream
     """
     if isinstance(doc, pd.DataFrame):
         # If the given document is a pandas DataFrame we need to wrap it in
-        # the appropriate document class. The document type depends on how row
-        # keys are generated.
-        return DataFrameDocument(df=doc, primary_key=primary_key)
+        # the appropriate document class.
+        return DataFrameDocument(df=doc)
     elif isinstance(doc, CSVFile):
-        return open_document(file=doc, primary_key=primary_key)
+        return SimpleCSVDocument(file=doc)
     elif isinstance(doc, str):
-        return open_document(file=CSVFile(doc), primary_key=primary_key)
+        return SimpleCSVDocument(file=CSVFile(doc))
     return doc
-
-
-def to_stream(doc: InputDocument) -> InputStream:
-    """Get input tsream for a given document.
-
-    Parameters
-    ----------
-    doc: histore.archive.base.InputDocument
-        Input document representing a dataset snapshot.
-
-    Returns
-    -------
-    histore.document.stream.InputStream
-    """
-    return doc if isinstance(doc, InputStream) else to_document(doc=doc).reader().stream()

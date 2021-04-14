@@ -47,7 +47,7 @@ def test_archive_read_write(tmpdir):
     assert len(diff.rows().update()) == 4
     # Ensure that we can print provenance information without error.
     diff.describe()
-    # Ensuer that we can print individual provenance items without an error.
+    # Ensure that we can print individual provenance items without an error.
     for row in diff.rows().update():
         for cell in row.cells.values():
-            print(str(cell))
+            assert str(cell) is not None

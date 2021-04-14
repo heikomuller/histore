@@ -29,7 +29,7 @@ def test_dataframe_document():
         data.append([row.values[0], row.values[1]])
     assert data == [['Claire', 28], ['Alice', 23], ['Bob', 31]]
     # Primary key document
-    doc = DataFrameDocument(df=df, primary_key='Age')
+    doc = DataFrameDocument(df=df).annotate(keys=[1])
     data = list()
     for row in doc.reader(schema=columns):
         data.append([row.values[0], row.values[1]])
@@ -39,7 +39,7 @@ def test_dataframe_document():
         data=[['Alice', 23], ['Claire', 28], ['Bob', '30+'], ['Bob', 31]],
         columns=columns
     )
-    doc = DataFrameDocument(df=df, primary_key=['Name', 'Age'])
+    doc = DataFrameDocument(df=df).annotate(keys=[0, 1])
     data = list()
     for row in doc.reader(schema=columns):
         data.append([row.values[0], row.values[1]])

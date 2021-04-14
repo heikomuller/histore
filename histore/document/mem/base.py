@@ -16,6 +16,8 @@ from histore.document.mem.reader import InMemoryDocumentReader
 from histore.document.reader import DocumentReader
 from histore.document.schema import Column, to_schema
 
+import histore.key.annotate as anno
+
 
 class InMemoryDocument(Document):
     """The in-memory document maintains a array of document rows (each as a
@@ -51,6 +53,21 @@ class InMemoryDocument(Document):
         super(InMemoryDocument, self).__init__(columns=columns)
         self.rows = rows
         self.readorder = readorder
+
+    def annotate(self, keys: List[int]) -> Document:
+        """Update document read order based on the given primary key columns.
+
+        Parameters
+        ----------
+        keys: list of int
+            Index positions of the primary key columns.
+
+        Returns
+        -------
+        histore.document.base.Document
+        """
+        self.readorder = anno.pk_readorder(rows=self.rows, keys=keys)
+        return self
 
     def close(self):
         """There are no resources that need to be released by the in-memory

@@ -221,16 +221,13 @@ class DefaultSerializer(ArchiveSerializer):
         -------
         dict
         """
-        obj = {
+        return {
             self.version: snapshot.version,
+            self.description: snapshot.description,
             self.valid_time: snapshot.valid_time,
-            self.transaction_time: snapshot.transaction_time
+            self.transaction_time: snapshot.transaction_time,
+            self.action: snapshot.action
         }
-        if snapshot.description is not None:
-            obj[self.description] = snapshot.description
-        if snapshot.action is not None:
-            obj[self.action] = snapshot.action
-        return obj
 
     def deserialize_timestamp(self, obj: List) -> Timestamp:
         """Get timestamp instance from serialization.

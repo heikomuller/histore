@@ -12,12 +12,34 @@ from datetime import datetime
 from dateutil.parser import isoparse
 from dateutil.tz import UTC
 from importlib import import_module
+from typing import Optional
 
 import errno
 import gzip
 import os
 import shutil
 import uuid
+
+
+# -- CLI ----------------------------------------------------------------------
+
+def get_delimiter(delimiter):
+    """Get delimiter. Replace encodings for tabulator with tab character.
+
+    Parameters
+    ----------
+    delimiter: string
+        One-character used to separate fields.
+
+    Returns
+    -------
+    string
+    """
+    if delimiter is None:
+        return ','
+    if delimiter.lower() in ['tab', '\\t']:
+        return '\t'
+    return delimiter
 
 
 # -- Datetime -----------------------------------------------------------------
@@ -32,7 +54,7 @@ def current_time() -> str:
     return utc_now().isoformat()
 
 
-def to_datetime(timestamp):
+def to_datetime(timestamp: str) -> datetime:
     """Converts a timestamp string in ISO format into a datatime object in
     UTC timezone.
 
@@ -105,89 +127,6 @@ def import_obj(import_path):
 
 
 # -- I/O ----------------------------------------------------------------------
-
-def cleardir(directory):
-    """Remove all files in the given directory.
-
-    Parameters
-    ----------
-    directory: string
-        Path to directory that is being created.
-    """
-    for filename in os.listdir(directory):
-        file = os.path.join(directory, filename)
-        if os.path.isfile(file) or os.path.islink(file):
-            os.unlink(file)
-        else:
-            shutil.rmtree(file)
-
-
-def createdir(directory, abs=False):
-    """Safely create the given directory path if it does not exist.
-
-    Parameters
-    ----------
-    directory: string
-        Path to directory that is being created.
-    abs: boolean, optional
-        Return absolute path if true
-
-    Returns
-    -------
-    string
-    """
-    # Based on https://stackoverflow.com/questions/273192/
-    if not os.path.exists(directory):
-        try:
-            os.makedirs(directory)
-        except OSError as e:  # pragma: no cover
-            if e.errno != errno.EEXIST:
-                raise
-    if abs:
-        return os.path.abspath(directory)
-    else:
-        return directory
-
-
-def inputstream(filename, compression=None):
-    """Open the given file for input. The compression mode string determines
-    which compression algorithm is being used (or no compression if None).
-
-    Parameters
-    ----------
-    compression: string, default=None
-        String representing the compression mode for the output file.
-
-    Returns
-    -------
-    histore.util.IOStream
-    """
-    if compression is None:
-        return PlainTextFile(open(filename, 'r'))
-    elif compression == 'gzip':
-        return GZipFile(gzip.open(filename, 'rb'))
-    raise ValueError('unknown compression mode {}'.format(compression))
-
-
-def outputstream(filename, compression=None):
-    """Open the given file for output. The compression mode string determines
-    which compression algorithm is being used (or no compression if None).
-
-    Parameters
-    ----------
-    compression: string, default=None
-        String representing the compression mode for the output file.
-
-    Returns
-    -------
-    histore.util.IOStream
-    """
-    if compression is None:
-        return PlainTextFile(open(filename, 'w'))
-    elif compression == 'gzip':
-        return GZipFile(gzip.open(filename, 'wb'))
-    raise ValueError('unknown compression mode {}'.format(compression))
-
 
 class IOStream(metaclass=ABCMeta):
     def __init__(self, f):
@@ -293,6 +232,89 @@ class PlainTextFile(IOStream):
         """
         self.f.write(line)
         self.f.write('\n')
+
+
+def cleardir(directory):
+    """Remove all files in the given directory.
+
+    Parameters
+    ----------
+    directory: string
+        Path to directory that is being created.
+    """
+    for filename in os.listdir(directory):
+        file = os.path.join(directory, filename)
+        if os.path.isfile(file) or os.path.islink(file):
+            os.unlink(file)
+        else:
+            shutil.rmtree(file)
+
+
+def createdir(directory, abs=False):
+    """Safely create the given directory path if it does not exist.
+
+    Parameters
+    ----------
+    directory: string
+        Path to directory that is being created.
+    abs: boolean, optional
+        Return absolute path if true
+
+    Returns
+    -------
+    string
+    """
+    # Based on https://stackoverflow.com/questions/273192/
+    if not os.path.exists(directory):
+        try:
+            os.makedirs(directory)
+        except OSError as e:  # pragma: no cover
+            if e.errno != errno.EEXIST:
+                raise
+    if abs:
+        return os.path.abspath(directory)
+    else:
+        return directory
+
+
+def inputstream(filename, compression: Optional[str] = None) -> IOStream:
+    """Open the given file for input. The compression mode string determines
+    which compression algorithm is being used (or no compression if None).
+
+    Parameters
+    ----------
+    compression: string, default=None
+        String representing the compression mode for the output file.
+
+    Returns
+    -------
+    histore.util.IOStream
+    """
+    if compression is None:
+        return PlainTextFile(open(filename, 'r'))
+    elif compression == 'gzip':
+        return GZipFile(gzip.open(filename, 'rb'))
+    raise ValueError('unknown compression mode {}'.format(compression))
+
+
+def outputstream(filename, compression: Optional[str] = None) -> IOStream:
+    """Open the given file for output. The compression mode string determines
+    which compression algorithm is being used (or no compression if None).
+
+    Parameters
+    ----------
+    compression: string, default=None
+        String representing the compression mode for the output file.
+
+    Returns
+    -------
+    histore.util.IOStream
+    """
+    if compression is None:
+        return PlainTextFile(open(filename, 'w'))
+    elif compression == 'gzip':
+        return GZipFile(gzip.open(filename, 'wb'))
+    raise ValueError('unknown compression mode {}'.format(compression))
 
 
 # -- Unique identifier --------------------------------------------------------

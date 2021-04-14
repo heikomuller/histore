@@ -19,8 +19,10 @@ from histore.archive.manager.fs import FileSystemArchiveManager
 from histore.archive.manager.persist import PersistentArchiveManager
 from histore.archive.serialize.base import DEFAULT
 from histore.document.schema import Column
+from histore.document.snapshot import InputDescriptor
 
 import histore.config as config
+import histore.util as util
 
 
 @pytest.mark.parametrize(
@@ -30,7 +32,7 @@ import histore.config as config
         (DBArchiveManager, dict({'db': DB(connect_url=TEST_URL)}))
     ]
 )
-def test_create_archive(ManagerCls, kwargs, tmpdir):
+def test_create_archive(ManagerCls, kwargs, dataset, tmpdir):
     """Test functionality of the persistent archive manager."""
     # -- Setup ----------------------------------------------------------------
     kwargs['basedir'] = str(tmpdir)
@@ -39,25 +41,35 @@ def test_create_archive(ManagerCls, kwargs, tmpdir):
     manager = ManagerCls(**kwargs)
     assert len(manager.archives()) == 0
     # -- Add first archive ----------------------------------------------------
+    now = util.utc_now()
     descriptor = manager.create(
         name='First archive',
         description='My first archive',
         primary_key='SSN',
         encoder='histore.tests.encode.TestEncoder',
         decoder='histore.tests.encode.test_decoder',
-        serializer=DEFAULT
+        serializer=DEFAULT,
+        doc=dataset,
+        snapshot=InputDescriptor(
+            valid_time=now,
+            description='First snapshot',
+            action={'x': 1}
+        )
     )
     assert descriptor.identifier() is not None
     assert descriptor.name() == 'First archive'
     assert descriptor.description() == 'My first archive'
-    assert descriptor.primary_key() == ['SSN']
+    assert descriptor.primary_key() == [0]
     assert len(manager.archives()) == 1
     descriptor = manager.list()[0]
     assert descriptor.identifier() is not None
     assert descriptor.name() == 'First archive'
     assert descriptor.description() == 'My first archive'
-    assert descriptor.primary_key() == ['SSN']
+    assert descriptor.primary_key() == [0]
     archive = manager.get(descriptor.identifier())
+    assert archive.snapshots()[0].valid_time == now
+    assert archive.snapshots()[0].description == 'First snapshot'
+    assert archive.snapshots()[0].action == {'x': 1}
     assert archive is not None
     with pytest.raises(ValueError):
         manager.get('unknown')
@@ -156,7 +168,7 @@ def test_manager_factory(tmpdir):
         (DBArchiveManager, dict({'db': DB(connect_url=TEST_URL)}))
     ]
 )
-def test_rename_archive(ManagerCls, kwargs, tmpdir):
+def test_rename_archive(ManagerCls, kwargs, dataset, tmpdir):
     """Test functionality of the persistent archive manager."""
     # -- Setup ----------------------------------------------------------------
     kwargs['basedir'] = str(tmpdir)
@@ -168,7 +180,8 @@ def test_rename_archive(ManagerCls, kwargs, tmpdir):
     arch_1 = manager.create(
         name='First archive',
         description='My first archive',
-        primary_key='SSN'
+        primary_key='SSN',
+        doc=dataset
     )
     arch_2 = manager.create(name='Second archive', description='Another one')
     # -- Reload the archive manager -------------------------------------------

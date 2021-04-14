@@ -318,6 +318,5 @@ def to_key(value):
         return NumberKey(value=value)
     elif isinstance(value, str):
         return StringKey(value=value)
-    else:
-        # By default, use a string representation of the value.
-        return StringKey(value=str(value))
+    # By default, use a string representation of the value.
+    return StringKey(value=str(value))

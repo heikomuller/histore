@@ -9,7 +9,7 @@
 
 import math
 
-from histore.document.reader import DocumentReader, DocumentStream
+from histore.document.reader import DocumentReader
 from histore.document.row import DocumentRow
 
 
@@ -41,6 +41,11 @@ class InMemoryDocumentReader(DocumentReader):
         self.readorder = readorder
         # Maintain the position of the current row for the reader
         self.readindex = 0
+
+    def close(self):
+        """Release all resources that are held by this reader."""
+        self.schema = None
+        self.rows = None
 
     def has_next(self):
         """Test if the reader has more rows to read. If True the next() method
@@ -80,12 +85,3 @@ class InMemoryDocumentReader(DocumentReader):
                 pass
             values[self.schema[i].colid] = val
         return DocumentRow(key=key, pos=pos, values=values)
-
-    def stream(self) -> DocumentStream:
-        """Get an input stream object for the document.
-
-        Returns
-        -------
-        histore.document.reader.DocumentStream
-        """
-        return DocumentStream(columns=self.schema, doc=self)

@@ -19,10 +19,9 @@ DIR = os.path.dirname(os.path.realpath(__file__))
 WATERSHED_1 = os.path.join(DIR, '../../.files/y43c-5n92.tsv.gz')
 
 
-def test_archive_commit_and_rollback(tmpdir):
+def test_archive_commit_and_rollback(empty_dataset, tmpdir):
     """Test merging snapshots into a volatile archive and rolling back."""
-    archive = VolatileArchive(primary_key='Name')
-    assert archive.is_empty()
+    archive = VolatileArchive(primary_key='Name', doc=empty_dataset)
     # First snapshot
     df = pd.DataFrame(
         data=[['Alice', 32], ['Bob', 45], ['Claire', 27], ['Dave', 23]],
@@ -58,11 +57,11 @@ def test_archive_commit_and_rollback(tmpdir):
     keys = ['Alice', 'Bob', 'Claire', 'Dave', 'Eve']
     for rowid in range(5):
         assert rows[rowid].key.value == keys[rowid]
-    ts = Timestamp(intervals=TimeInterval(0, 3))
+    ts = Timestamp(intervals=TimeInterval(1, 4))
     for i in range(3):
         assert rows[i].timestamp.is_equal(ts)
-    assert rows[3].timestamp.is_equal(Timestamp(intervals=TimeInterval(0, 1)))
-    assert rows[4].timestamp.is_equal(Timestamp(intervals=TimeInterval(2, 3)))
+    assert rows[3].timestamp.is_equal(Timestamp(intervals=TimeInterval(1, 2)))
+    assert rows[4].timestamp.is_equal(Timestamp(intervals=TimeInterval(3, 4)))
     assert sorted([v.value for v in rows[0].cells[1].values]) == [32, 33]
     # Rollback to version 1.
     archive.rollback(version=1)

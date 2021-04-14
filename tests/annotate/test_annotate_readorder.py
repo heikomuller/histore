@@ -9,8 +9,6 @@
 index values.
 """
 
-import pytest
-
 import histore.document.schema as schema
 import histore.key.annotate as annotate
 
@@ -29,7 +27,7 @@ def test_primarykey_keys():
     # Single column key
     readorder = annotate.pk_readorder(
         rows=rows,
-        primary_key=schema.column_index(schema=['ID', 'Name'], columns='Name')
+        keys=schema.column_index(schema=['ID', 'Name'], columns='Name')
     )
     assert len(readorder) == 5
     assert [r[0] for r in readorder] == [1, 2, 0, 4, 3]
@@ -41,10 +39,7 @@ def test_primarykey_keys():
     assert readorder[4][1].is_null()
     # Multi column key
     pk = schema.column_index(schema=['ID', 'Name'], columns=['Name', 'ID'])
-    readorder = annotate.pk_readorder(
-        rows=rows,
-        primary_key=pk
-    )
+    readorder = annotate.pk_readorder(rows=rows, keys=pk)
     assert [r[0] for r in readorder] == [1, 2, 0, 4, 3]
     assert [r[2] for r in readorder] == [1, 2, 0, 4, 3]
     assert readorder[0][1][0].is_number()
@@ -59,10 +54,7 @@ def test_primarykey_keys():
     assert readorder[4][1][1].is_number()
     # No error if duplicate column is not part of the primary key.
     pk = schema.column_index(schema=['SSN', 'Name', 'SSN'], columns=['Name'])
-    annotate.pk_readorder(
-        rows=rows,
-        primary_key=pk
-    )
+    annotate.pk_readorder(rows=rows, keys=pk)
 
 
 def test_rowindex_keys():
