@@ -37,7 +37,7 @@ import histore.key.annotate as anno
 
 
 """Type aliases for archive API methods."""
-InputDocument = Union[pd.DataFrame, CSVFile, str, InputStream]
+InputDocument = Union[pd.DataFrame, str, Document, InputStream]
 
 
 class Archive(object):
@@ -821,8 +821,6 @@ def to_input(doc: InputDocument) -> Union[Document, InputStream]:
         # If the given document is a pandas DataFrame we need to wrap it in
         # the appropriate document class.
         return DataFrameDocument(df=doc)
-    elif isinstance(doc, CSVFile):
-        return SimpleCSVDocument(file=doc)
     elif isinstance(doc, str):
-        return SimpleCSVDocument(file=CSVFile(doc))
+        return CSVFile(filename=doc)
     return doc

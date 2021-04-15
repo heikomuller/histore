@@ -89,6 +89,6 @@ def test_read_write_document(tmpdir):
     reader = JsonReader(filename=filename)
     rows = list()
     while reader.has_next():
-        rows.append(reader.next())
+        rows.append(next(reader))
     reader.close()
     assert rows == input

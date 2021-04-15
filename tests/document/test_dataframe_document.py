@@ -7,67 +7,69 @@
 
 """Unit tests for the pandas data frame row list."""
 
-
 import pandas as pd
+import pytest
 
-from histore.document.mem.dataframe import DataFrameDocument, Rows
-from histore.document.schema import Column
+from histore.document.df import DataFrameDocument
 
 
-def test_dataframe_document():
-    """Test creating data frame documents."""
-    columns = [Column(colid=0, name='Name'), Column(colid=1, name='Age')]
-    df = pd.DataFrame(
-        data=[['Alice', 23], ['Bob', 31], ['Claire', 28]],
-        columns=columns,
-        index=[1, 2, 0]
+@pytest.fixture
+def dataset():
+    """Get data frame for test purposes."""
+    return pd.DataFrame(
+        data=[['alice', 26], ['bob', 34], ['claire', 19]],
+        index=[0, 2, 1],
+        columns=['Name', 'Age']
     )
-    # Index-key document
-    doc = DataFrameDocument(df=df)
-    data = list()
-    for row in doc.reader(schema=columns):
-        data.append([row.values[0], row.values[1]])
-    assert data == [['Claire', 28], ['Alice', 23], ['Bob', 31]]
-    # Primary key document
-    doc = DataFrameDocument(df=df).annotate(keys=[1])
-    data = list()
-    for row in doc.reader(schema=columns):
-        data.append([row.values[0], row.values[1]])
-    assert data == [['Alice', 23], ['Claire', 28], ['Bob', 31]]
-    # Primary key with multiple columns
-    df = pd.DataFrame(
-        data=[['Alice', 23], ['Claire', 28], ['Bob', '30+'], ['Bob', 31]],
-        columns=columns
-    )
-    doc = DataFrameDocument(df=df).annotate(keys=[0, 1])
-    data = list()
-    for row in doc.reader(schema=columns):
-        data.append([row.values[0], row.values[1]])
-    assert data == [['Alice', 23], ['Bob', 31], ['Bob', '30+'], ['Claire', 28]]
 
 
-def test_dataframe_rows():
-    """Test accessing and iterating over rows in a data frame."""
+def test_dataframe_document(dataset):
+    """Test creating data frame documents with default read order."""
+    doc = DataFrameDocument(df=dataset)
+    assert doc.columns == ['Name', 'Age']
+    rows = list()
+    for rowidx, values in doc.iterrows():
+        rows.append((rowidx, values))
+    assert rows == [(0, ['alice', 26]), (1, ['claire', 19]), (2, ['bob', 34])]
+
+
+def test_dataframe_iterate(dataset):
+    """Test iterating through data frame rows."""
+    doc = DataFrameDocument(df=dataset)
+    reader = doc.open()
+    rows = list()
+    while reader.has_next():
+        _, rowidx, values = reader.next()
+        rows.append((rowidx, values))
+    assert rows == [(0, ['alice', 26]), (1, ['claire', 19]), (2, ['bob', 34])]
+
+
+def test_dataframe_read(dataset):
+    """Test reading a data frame from a DataFrame document."""
+    doc = DataFrameDocument(df=dataset)
+    df = doc.read_df()
+    pd.testing.assert_frame_equal(df, dataset)
+    doc.close()
+    assert doc.read_df() is None
+
+
+def test_data_frame_with_new_rows():
+    """Test data frame with rows that have None or -1 as their index value."""
     df = pd.DataFrame(
-        data=[['Alice', 23], ['Bob', 31], ['Claire', 28]],
-        columns=['Name', 'Age'],
-        index=['A', 'B', 'C']
+        data=[['alice', 26], ['bob', 34], ['claire', 19]],
+        index=[None, 2, -1],
+        columns=['Name', 'Age']
     )
-    rows = Rows(df=df)
-    index = 0
-    for row in rows:
-        r = rows[index]
-        assert row[0] == r['Name']
-        assert row['Name'] == r[0]
-        assert row['Age'] == r['Age']
-        index += 1
-    assert index == 3
-    # Repeat previous tests with the same rows object.
-    index = 0
-    for row in rows:
-        r = rows[index]
-        assert row[0] == r['Name']
-        assert row['Name'] == r[0]
-        assert row['Age'] == r['Age']
-        index += 1
-    assert index == 3
+    with DataFrameDocument(df=df).open() as reader:
+        names = [values[0] for _, _, values in reader]
+    assert names == ['bob', 'alice', 'claire']
+
+
+def test_read_in_custom_order(dataset):
+    """Test reading the data frame document in custom order."""
+    doc = DataFrameDocument(df=dataset, readorder=[2, 1, 0])
+    assert doc.columns == ['Name', 'Age']
+    rows = list()
+    for rowidx, values in doc.iterrows():
+        rows.append((rowidx, values))
+    assert rows == [(1, ['claire', 19]), (2, ['bob', 34]), (0, ['alice', 26])]

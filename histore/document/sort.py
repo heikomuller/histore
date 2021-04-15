@@ -17,13 +17,12 @@ sorting.
 from tempfile import NamedTemporaryFile as TempFile
 from typing import List, Optional, Tuple
 
-import csv
 import heapq
 import os
 import sys
 
 
-from histore.document.base import DataIterator
+from histore.document.base import DocumentIterator
 
 import histore.config as config
 
@@ -43,7 +42,7 @@ def decorated_buffer(buffer, sortkey):
         yield keyvalue(row, sortkey), row
 
 
-def decorated_csv(filename, columns):
+def decorated_file(filename, columns):
     """Iterator for sorted CSV file block. From
     https://github.com/richardpenman/csvsort/blob/master/__init__.py
 
@@ -101,10 +100,10 @@ def mergesort(buffer, filenames, sortkey):
     if buffer:
         mergefile = filenames[0]
         with TempFile(delete=False, mode='w', newline='') as f_out:
-            writer = csv.writer(f_out)
+            writer = factory.get_writer(f_out)
             files = [
                 decorated_buffer(buffer, sortkey),
-                decorated_csv(mergefile, sortkey)
+                decorated_file(mergefile, sortkey)
             ]
             for _, row in heapq.merge(*files):
                 writer.writerow(row)
@@ -113,8 +112,8 @@ def mergesort(buffer, filenames, sortkey):
     while len(filenames) > 1:
         mergefiles, filenames = filenames[:2], filenames[2:]
         with TempFile(delete=False, mode='w', newline='') as f_out:
-            writer = csv.writer(f_out)
-            files = [decorated_csv(f, sortkey) for f in mergefiles]
+            writer = factory.get_writer(f_out)
+            files = [decorated_file(f, sortkey) for f in mergefiles]
             for _, row in heapq.merge(*files):
                 writer.writerow(row)
             filenames.append(f_out.name)
@@ -124,7 +123,7 @@ def mergesort(buffer, filenames, sortkey):
 
 
 def split(
-    reader: DataIterator, sortkey: List[int], buffer_size: Optional[float] = None
+    reader: DocumentIterator, sortkey: List[int], buffer_size: Optional[float] = None
 ) -> Tuple[List, List[str]]:
     """Split a CSV file into blocks of maximum size. Individual blocks are
     written to temporary files on disk. Only the final buffer is maintained in
@@ -137,7 +136,7 @@ def split(
 
     Parameters
     ----------
-    reader: histore.document.base.DataIterator
+    reader: histore.document.base.DocumentIterator
         Iterator for rowid, cell values in an input document.
     sortkey: list
         List of index positions for sort columns.
@@ -159,7 +158,7 @@ def split(
     buffer = list()
     current_size = 0
     tmp_filenames = list()
-    for _, row in reader:
+    for _, _, row in reader:
         buffer.append(row)
         current_size += sys.getsizeof(row)
         if current_size > max_size:
@@ -167,9 +166,10 @@ def split(
             buffer.sort(key=lambda row: keyvalue(row, sortkey))
             # Write buffer to disk.
             with TempFile(delete=False, mode='w', newline='') as f_out:
-                writer = csv.writer(f_out)
+                writer = factory.get_writer(f_out)
                 for r in buffer:
-                    writer.writerow(r)
+                    writer.write(r)
+                writer.close()
                 # Append file name to result file name list.
                 tmp_filenames.append(f_out.name)
             # Clear buffer.

@@ -11,9 +11,7 @@ keyed by a primary key or by list of row index values.
 
 from typing import Iterable, List, Union
 
-import numpy as np
-
-from histore.key.base import NewRow, NumberKey, to_key
+from histore.key.base import to_key
 
 
 def pk_readorder(rows: Iterable, keys: Union[int, List[int]]) -> List:
@@ -53,42 +51,4 @@ def pk_readorder(rows: Iterable, keys: Union[int, List[int]]) -> List:
             key = tuple([to_key(values[c]) for c in keys])
             pos = len(readorder)
             readorder.append((pos, key, pos))
-    return sorted(readorder, key=lambda r: r[1])
-
-
-def rowindex_readorder(index):
-    """Create a read order list from a given list of row index values. The
-    index list, for example, corresponds to the row index of a pandas data
-    frame.
-
-    Index values are considered as primary key values for document rows. Index
-    values that are not positive integers are treated as new rows.
-
-    Returns a list of 3-tuples with (row position, key, row position). The row
-    position represents the index position of a row in the given list. The key
-    is the value in the index at the poistion (or a new row identifier if the
-    original value was negative integer or not of type integer). The returned
-    list is sorted by the key values.
-
-    Parameters
-    ----------
-    index: list
-        List of row index values.
-
-    Returns
-    -------
-    list
-    """
-    # Ensure that all row identifier are integers. Generate identifier for
-    # those rows that have a non-integer index, None, or a negative value
-    # as their index. These rows are considered new rows.
-    readorder = list()
-    for ridx in index:
-        pos = len(readorder)
-        is_int = isinstance(ridx, int) or isinstance(ridx, np.integer)
-        if not is_int or ridx < 0:
-            key = NewRow(identifier=pos)
-        else:
-            key = NumberKey(value=ridx)
-        readorder.append((pos, key, pos))
     return sorted(readorder, key=lambda r: r[1])

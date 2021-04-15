@@ -8,7 +8,7 @@
 from abc import ABCMeta, abstractmethod
 from typing import Callable, List
 
-from histore.document.base import DataIterator, DataReader
+from histore.document.base import Document, DocumentIterator
 from histore.document.schema import Column
 
 
@@ -90,7 +90,7 @@ class RowPositionReader(object):
         self.reader.close()
 
 
-class SnapshotIterator(DataIterator):
+class SnapshotIterator(DocumentIterator):
     """Reader for data streams. Provides the functionality to open the stream
     for reading. Dataset reader should be able to read the same dataset
     multiple times.
@@ -143,7 +143,7 @@ class SnapshotIterator(DataIterator):
             self.reader = None
 
 
-class SnapshotReader(DataReader):
+class SnapshotReader(Document):
     """Stream reader for rows in a dataset archive snapshot."""
     def __init__(self, reader: Callable, version: int, schema: List[Column]):
         """Initialize the function to open the archive reader and information

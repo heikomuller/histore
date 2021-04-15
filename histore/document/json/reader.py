@@ -20,17 +20,22 @@ import histore.util as util
 
 
 class JsonReader(object):
-    """Reader for rows in a Json file."""
+    """Abstract reader for rows in a Json file. Returns rows that are Json
+    objects. The reader is agnostice to the format of these rows. The format is
+    implementation dependent and different sub-classes will implement their own
+    deserialization function.
+    """
     def __init__(
         self, filename: str, compression: Optional[str] = None,
         decoder: Optional[Callable] = None
     ):
-        """Initialize the input file and the Json decoder.
+        """Initialize the input file, the row deserializer, and the Json
+        decoder.
 
         Parameters
         ----------
         filename: string
-            Path to the output file.
+            Path to the input file.
         compression: string, default=None
             String representing the compression mode for the output file.
         decoder: func, default=None
@@ -46,30 +51,9 @@ class JsonReader(object):
             # file) or it contains the first object.
             if self.fin.readline() != '[':
                 raise ValueError('invalid input file {}'.format(filename))
-            self.next()
+            next(self)
         else:
             self.fin = None
-
-    def __enter__(self):
-        """Enter method for the context manager."""
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Close the associated file handle when the context manager exits."""
-        self.close()
-        return False
-
-    def __iter__(self):
-        """Return object for row iteration."""
-        return self
-
-    def __next__(self):
-        """Return next row from JSON reader. Raise a StopIteration error when
-        the end of the file is reached.
-        """
-        if not self.has_next():
-            raise StopIteration()
-        return self.next()
 
     def close(self):
         """Release all reseources that are associated with the reader."""
@@ -89,10 +73,11 @@ class JsonReader(object):
         """
         return self.buffer is not None
 
-    def next(self) -> Any:
+    def __next__(self) -> Any:
         """Read the next row in the file.
 
-        Returns None if the end of the file has been reached.
+        Raises a StopIteration error if an attempts is made to read past the
+        end of the file.
 
         Returns
         -------
@@ -101,8 +86,13 @@ class JsonReader(object):
         # The return value is the current buffer value.
         result = self.buffer
         # Read the next line. If the line equals the closing array bracket the
-        # end of the archive has been reached.
-        line = self.fin.readline()
+        # end of the archive has been reached. If the reader has been closed
+        # the file handle is None and an AttributeError will occur.
+        try:
+            line = self.fin.readline()
+        except AttributeError:
+            # Raise error to signal that the end of the file has been reached.
+            raise StopIteration()
         if line == ']':
             # The end of the archive was reached. Close the input file.
             self.close()

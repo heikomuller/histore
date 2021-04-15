@@ -88,6 +88,23 @@ def test_create_archive(ManagerCls, kwargs, dataset, tmpdir):
         manager.get(descriptor.identifier())
 
 
+def test_create_archive_error(tmpdir):
+    """Test error when creating and archive with primary key but no initial
+    snapshot document.
+    """
+    # -- Create empty manager instance ----------------------------------------
+    manager = FileSystemArchiveManager(basedir=tmpdir, create=True)
+    with pytest.raises(ValueError):
+        manager.create(
+            name='First archive',
+            description='My first archive',
+            encoder='histore.tests.encode.TestEncoder',
+            decoder='histore.tests.encode.test_decoder',
+            serializer=DEFAULT,
+            primary_key='SSN'
+        )
+
+
 @pytest.mark.parametrize(
     'ManagerCls,kwargs',
     [
