@@ -14,8 +14,8 @@ import pandas as pd
 import tempfile
 
 from histore.archive.provenance.archive import SnapshotDiff
-from histore.archive.reader import ArchiveReader, RowPositionReader, SnapshotReader
-from histore.archive.schema import ArchiveSchema, MATCH_ID, MATCH_IDNAME
+from histore.archive.reader import ArchiveReader, SnapshotReader
+from histore.archive.schema import ArchiveSchema
 from histore.archive.serialize.base import ArchiveSerializer
 from histore.archive.snapshot import Snapshot, SnapshotListing
 from histore.archive.store.base import ArchiveStore

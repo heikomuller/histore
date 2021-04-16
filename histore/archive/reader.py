@@ -55,41 +55,6 @@ class ArchiveReader(metaclass=ABCMeta):
         raise NotImplementedError()  # pragma: no cover
 
 
-class RowPositionReader(object):
-    """Reader for row index information for a given snapshot version in a
-    dataset archive. The row information is read in ascending order of the
-    row identifier in the archive.
-    """
-    def __init__(self, reader, version):
-        """Initialize the archive reader and the version for which the index is
-        being read.
-
-        Parameters
-        ----------
-        reader: histore.archive.reader.ArchiveReader
-            Reader for a dataset archive.
-        version: int
-            Identifier of version for which the row index is being read.
-        """
-        self.reader = reader
-        self.version = version
-
-    def next(self):
-        """Get information for the next row in the archive. The result is a
-        tuple of row key and position. If the end of the archive has been
-        reached the result is None.
-
-        Returns
-        -------
-        tuple
-        """
-        while self.reader.has_next():
-            row = self.reader.next()
-            if row.timestamp.contains(self.version):
-                return (row.key, row.pos.at_version(self.version))
-        self.reader.close()
-
-
 class SnapshotIterator(DocumentIterator):
     """Reader for data streams. Provides the functionality to open the stream
     for reading. Dataset reader should be able to read the same dataset
