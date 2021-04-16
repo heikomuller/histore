@@ -81,7 +81,7 @@ class JsonDocument(ExternalDocument):
             decoder=self.decoder
         )
 
-    def sorted(self, keys: List[int]) -> Document:
+    def sorted(self, keys: List[int], buffersize: Optional[float] = None) -> Document:
         """Sort the document rows based on the values in the key columns.
 
         Key columns are specified by their index position. Returns a new
@@ -91,10 +91,12 @@ class JsonDocument(ExternalDocument):
         ----------
         keys: list of int
             Index position of sort columns.
+        buffersize: float, default=None
+            Maximum size (in bytes) of file blocks that are kept in main-memory.
 
         Returns
         -------
         histore.document.base.Document
         """
-        sort = SortEngine(encoder=self.encoder, decoder=self.decoder)
+        sort = SortEngine(buffersize=buffersize, encoder=self.encoder, decoder=self.decoder)
         return sort.sorted(doc=self, keys=keys)

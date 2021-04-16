@@ -194,7 +194,7 @@ class CSVFile(ExternalDocument):
             skip_header=self._has_header
         )
 
-    def sorted(self, keys: List[int]) -> Document:
+    def sorted(self, keys: List[int], buffersize: Optional[float] = None) -> Document:
         """Sort the document rows based on the values in the key columns.
 
         Key columns are specified by their index position. Returns a new
@@ -204,12 +204,14 @@ class CSVFile(ExternalDocument):
         ----------
         keys: list of int
             Index position of sort columns.
+        buffersize: float, default=None
+            Maximum size (in bytes) of file blocks that are kept in main-memory.
 
         Returns
         -------
         histore.document.base.Document
         """
-        return SortEngine().sorted(doc=self, keys=keys)
+        return SortEngine(buffersize=buffersize).sorted(doc=self, keys=keys)
 
     def writer(self) -> CSVWriter:
         """Get a CSV writer for the associated CSV file.

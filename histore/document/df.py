@@ -111,7 +111,7 @@ class DataFrameDocument(Document):
         """
         return self._df
 
-    def sorted(self, keys: List[int]) -> DataFrameDocument:
+    def sorted(self, keys: List[int], buffersize: Optional[float] = None) -> DataFrameDocument:
         """Sort the document rows based on the values in the key columns.
 
         Key columns are specified by their index position. Returns a new
@@ -121,6 +121,9 @@ class DataFrameDocument(Document):
         ----------
         keys: list of int
             Index position of sort columns.
+        buffersize: float, default=None
+            Maximum size (in bytes) of file blocks that are kept in main-memory.
+            Ignored. Included for API completeness.
 
         Returns
         -------

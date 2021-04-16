@@ -72,6 +72,6 @@
 * Change behavior of `histore.document.schema.to_schema()` to take existing Column objects into account.
 * Direct update of archive snapshots via `apply()` and `histore.document.stream.StreamOperator`.
 * Require archives to be created from initial snapshot if primary key is used.
-* Rename `histore.document.json.JsonDocument` to `histore.document.dictionary.DictionaryDocument`.
 * Add `histore.document.json.base.JsonDocument` to read serialized Json documents.
 * Use user's cache directory as the default parent directory for archive managers.
+* Remove option for partial merge

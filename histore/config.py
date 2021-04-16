@@ -63,7 +63,7 @@ def SORTBUFFER() -> float:
         # buffer is at least 1MB.
         import psutil
         mem = psutil.virtual_memory()
-        value = max(mem.available / (1024 * 1024 * 2), 1.0)
+        value = max(mem.available / 2, 1024 * 1024)
     else:
         value = float(value)
     return value

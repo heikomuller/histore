@@ -10,7 +10,7 @@ completely into main memory.
 """
 
 from __future__ import annotations
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import pandas as pd
 
@@ -114,7 +114,7 @@ class InMemoryDocument(Document):
             data.append(row)
         return pd.DataFrame(data=data, index=index, columns=self.columns, dtype=object)
 
-    def sorted(self, keys: List[int]) -> InMemoryDocument:
+    def sorted(self, keys: List[int], buffersize: Optional[float] = None) -> InMemoryDocument:
         """Sort the document rows based on the values in the key columns.
 
         Key columns are specified by their index position. Returns a new
@@ -124,6 +124,9 @@ class InMemoryDocument(Document):
         ----------
         keys: list of int
             Index position of sort columns.
+        buffersize: float, default=None
+            Maximum size (in bytes) of file blocks that are kept in main-memory.
+            Ignored. Included for API completeness.
 
         Returns
         -------

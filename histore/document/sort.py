@@ -50,8 +50,8 @@ class SortEngine:
 
         Parameters
         ----------
-        buffer_size: float, default=None
-            Maximum size (in MB) of file blocks that are kept in main-memory.
+        buffersize: float, default=None
+            Maximum size (in bytes) of file blocks that are kept in main-memory.
             If no buffer size is given the value from the environment variable
             HISTORE_SORTBUFFER is used.
         encoder: json.JSONEncoder, default=None
@@ -96,7 +96,7 @@ class SortEngine:
                 with JsonWriter(filename=f_out, encoder=self.encoder) as writer:
                     files = [
                         decorated_buffer(buffer, keys),
-                        decorated_file(mergefile, sortkey, self.decoder)
+                        decorated_file(mergefile, keys, self.decoder)
                     ]
                     writer.write(columns)
                     for _, row in heapq.merge(*files):
@@ -185,8 +185,6 @@ class SortEngine:
         -------
         list(rows), list(filenames)
         """
-        # Convert buffer size from MB to bytes.
-        max_size = self.buffersize * 1024 * 1024
         # Split document rows into blocks
         buffer = list()
         current_size = 0
@@ -194,7 +192,7 @@ class SortEngine:
         for row in reader:
             buffer.append(row)
             current_size += sys.getsizeof(row)
-            if current_size > max_size:
+            if current_size > self.buffersize:
                 # Sort buffer.
                 buffer.sort(key=lambda row: util.keyvalue(row[2], keys))
                 # Write buffer to disk.

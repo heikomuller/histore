@@ -37,12 +37,12 @@ def json_file(tmpdir):
     return filename
 
 
-@pytest.mark.parametrize('buffersize', [200 / (1024 * 1024), 16])
+@pytest.mark.parametrize('buffersize', [20, 200, 16 * 1024 * 1024])
 def test_sort_csv_file(buffersize):
     """Test sorting a CSV file."""
     doc = CSVFile(DATAFILE)
     columns = doc.columns
-    doc = doc.sorted(keys=[1, 0])
+    doc = doc.sorted(keys=[1, 0], buffersize=buffersize)
     with doc.open() as reader:
         rows = [r for r in reader]
     assert doc.columns == columns
@@ -66,7 +66,7 @@ def test_sort_csv_without_buffer():
     """
     doc = CSVFile(DATAFILE)
     columns = doc.columns
-    sort = SortEngine(buffersize=200 / (1024 * 1024))
+    sort = SortEngine(buffersize=200)
     with doc.open() as reader:
         buffer, files = sort._split(reader=reader, columns=columns, keys=[1, 0])
         buffer.sort(key=lambda row: util.keyvalue(row[2], [1, 0]))
@@ -100,12 +100,12 @@ def test_sort_csv_without_buffer():
     ]
 
 
-@pytest.mark.parametrize('buffersize', [200 / (1024 * 1024), 16])
+@pytest.mark.parametrize('buffersize', [200, 16 * 1024 * 1024])
 def test_sort_json_document(buffersize, json_file, tmpdir):
     """Test sorting a Json document with integer and string values."""
     doc = JsonDocument(json_file)
     columns = doc.columns
-    doc = doc.sorted(keys=[1, 0])
+    doc = doc.sorted(keys=[1, 0], buffersize=buffersize)
     with doc.open() as reader:
         rows = [r for r in reader]
     assert doc.columns == columns
