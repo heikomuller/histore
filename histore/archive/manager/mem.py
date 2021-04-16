@@ -81,8 +81,8 @@ class VolatileArchiveManager(ArchiveManager):
             Flag indicating if the document is sorted by the optional primary
             key attributes. Ignored if the archive is not keyed.
         max_size: float, default=None
-            Maximum size (in MB) of the main-memory buffer for blocks of the
-            CSV file that are sorted in main-memory.
+            Maximum size (in bytes) for the memory buffer when sorting the
+            input document.
         validate: bool, default=False
             Validate that the resulting archive is in proper order before
             committing the action.
