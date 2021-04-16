@@ -16,7 +16,7 @@ from histore.document.json.writer import JsonWriter
 from histore.document.row import DocumentRow
 from histore.document.schema import Column
 from histore.document.stream import InputStream
-from histore.key.base import NumberKey
+from histore.key import NumberKey
 
 
 class DataFrameStream(InputStream):

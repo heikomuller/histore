@@ -16,7 +16,7 @@ import pytest
 
 from histore.document.json.reader import JsonReader, default_decoder
 from histore.document.json.writer import JsonWriter, DefaultEncoder
-from histore.key.base import NumberKey
+from histore.key import NumberKey
 
 import histore.util as util
 

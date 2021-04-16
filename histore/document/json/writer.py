@@ -15,7 +15,7 @@ import json
 import numpy as np
 
 
-from histore.key.base import KeyValue
+from histore.key import KeyValue
 
 import histore.util as util
 

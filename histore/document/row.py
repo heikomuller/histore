@@ -12,7 +12,7 @@ columns.
 
 from typing import Dict, Tuple, Union
 
-from histore.key.base import KeyValue
+from histore.key import KeyValue
 
 
 class DocumentRow(object):

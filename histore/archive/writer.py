@@ -9,7 +9,7 @@
 
 from abc import ABCMeta, abstractmethod
 
-from histore.key.base import NumberKey
+from histore.key import NumberKey
 from histore.archive.row import ArchiveRow
 from histore.archive.timestamp import Timestamp
 from histore.archive.value import SingleVersionValue

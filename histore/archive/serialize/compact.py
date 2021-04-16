@@ -20,7 +20,7 @@ from histore.archive.timestamp import TimeInterval, Timestamp
 from histore.archive.value import ArchiveValue, MultiVersionValue, SingleVersionValue
 from histore.archive.serialize.default import DefaultSerializer
 
-import histore.key.base as anno
+import histore.key as anno
 
 
 class CompactSerializer(DefaultSerializer):

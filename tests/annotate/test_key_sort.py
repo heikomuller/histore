@@ -7,7 +7,7 @@
 
 """Unit tests for sorting row keys."""
 
-from histore.key.base import NewRow, NullKey, NumberKey, StringKey
+from histore.key import NewRow, NullKey, NumberKey, StringKey
 
 
 def test_sort_scalar_values():

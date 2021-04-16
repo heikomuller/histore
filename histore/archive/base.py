@@ -47,7 +47,7 @@ class Archive(object):
     in which archives are managed by different systems.
     """
     def __init__(
-        self, doc: Optional[InputDocument] = None,
+        self, columns: Optional[Schema] = None,
         primary_key: Optional[Union[PrimaryKey, List[int]]] = None,
         snapshot: Optional[InputDescriptor] = None, sorted: Optional[bool] = False,
         buffersize: Optional[float] = None, validate: Optional[bool] = False,
@@ -248,7 +248,7 @@ class Archive(object):
         self, doc: InputDocument, snapshot: Optional[InputDescriptor] = None,
         sorted: Optional[bool] = False, buffersize: Optional[float] = None,
         validate: Optional[bool] = False, renamed: Optional[Dict] = None,
-        renamed_to: Optional[bool] = True
+        renamed_to: Optional[bool] = True, primary_key: Optional[PrimaryKey] = None
     ) -> Snapshot:
         """Commit a new snapshot to the dataset archive.
 
@@ -281,27 +281,15 @@ class Archive(object):
             (i.e., the dictionary key) to the new column name (the dictionary
             value) is assumed. If the flag is False a mapping from the new
             column name to the original column name is assumed.
+        primary_key: string or list, default=None
+            Column(s) that are used to generate identifier for snapshot rows.
 
         Returns
         -------
         histore.archive.snapshot.Snapshot
         """
-        # If the archive is empty the commited document is loaded via the
-        # opimized _load_dataset method.
-        if self.is_empty():
-            # Note that the primary key cannot be defined if the archive
-            # is empty.
-            self._load_dataset(
-                doc=doc,
-                snapshot=snapshot,
-                sorted=sorted,
-                validate=validate
-            )
-            return self.snapshots().last_snapshot()
-        # Documents may optionally be specified as data frames or CSV files.
-        # Ensure that we have an instance of the Document class or an InputStream
-        # with a columns property.
-        doc = to_input(doc=doc)
+        # Ensure that we have an instance of the Document class as input.
+        doc = to_document(doc=doc)
         try:
             # Get a modified snapshot list where the last entry represents the
             # new snapshot.
@@ -313,9 +301,10 @@ class Archive(object):
                 renamed=renamed,
                 renamed_to=renamed_to
             )
-            # Convert a stream into a document if necessary. Sort the document
-            # if requested.
+            # Map column identifier to the column position in the schema.
             mapping = {c.colid: c.colidx for c in schema.at_version(version=version)}
+            if primary_key:
+                pass
             key_columns = [mapping[colid] for colid in self.primary_key] if self.primary_key else []
             doc = to_document(doc=doc, keys=key_columns, sorted=sorted, buffersize=buffersize)
             # Merge document rows into the archive.

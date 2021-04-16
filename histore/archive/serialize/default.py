@@ -16,7 +16,7 @@ from histore.archive.timestamp import TimeInterval, Timestamp
 from histore.archive.value import ArchiveValue, MultiVersionValue, SingleVersionValue
 from histore.archive.serialize.base import ArchiveSerializer
 
-import histore.key.base as anno
+import histore.key as anno
 import histore.util as util
 
 

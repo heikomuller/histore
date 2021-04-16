@@ -13,7 +13,7 @@ history.
 from __future__ import annotations
 from typing import Dict, List, Optional, Set, Tuple, Union
 
-from histore.key.base import KeyValue
+from histore.key import KeyValue
 from histore.archive.provenance.base import ProvOp
 from histore.archive.provenance.row import DeleteRow, InsertRow, UpdateRow
 from histore.archive.value import ArchiveValue, SingleVersionValue
@@ -36,7 +36,7 @@ class ArchiveRow(object):
         ----------
         rowid: int
             Unique internal row identifier
-        key: histore.key.base.KeyValue, or tuple
+        key: histore.key.KeyValue, or tuple
             Derived row key for matching and merging purposes.
         pos: histore.archive.value.ArchiveValue
             Index positions for the row in the history of the dataset.
@@ -128,7 +128,7 @@ class ArchiveRow(object):
 
         Parameters
         ----------
-        key: histore.key.base.KeyValue, or tuple
+        key: histore.key.KeyValue, or tuple
             Key value of a document row.
 
         Returns

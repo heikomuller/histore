@@ -10,10 +10,7 @@ dataset archive.
 """
 
 
-def merge_rows(
-    arch_reader, doc_reader, version, writer, partial=False,
-    unchanged_cells=None, origin=None
-):
+def merge_rows(arch_reader, doc_reader, version, writer):
     """Merge rows in the given archive and database snapshot. Outputs the
     merged rows in the resulting archive to the given archive writer.
 
@@ -27,17 +24,6 @@ def merge_rows(
         Identifier of the new archive version.
     writer: histore.archive.writer.ArchiveWriter
         Consumer for rows in the new archive version.
-    partial: bool, default=False
-        Flag indicating whether the given document is a partial document. For
-        partial documents missing rows in the archive are considered unchanged
-        with respect to the given origin.
-    unchanged_cells: set, default=None
-        Set of identifier for columns whose cell values are not included in
-        the values dictionary for document rows but that remain unchanged with
-        respect to the specified source version (origin).
-    origin: int, default=None
-        Version that the row values originate from. Rows that remain unchanged
-        have the timestamp extended for the version of origin.
     """
     # Get the first row for each reader.
     arch_row = arch_reader.next()

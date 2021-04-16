@@ -94,7 +94,7 @@ class NewRow(KeyValue):
 
         Parameters
         ----------
-        other: histore.key.base.KeyValue
+        other: histore.key.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -109,7 +109,7 @@ class NewRow(KeyValue):
 
         Parameters
         ----------
-        other: histore.key.base.KeyValue
+        other: histore.key.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -148,7 +148,7 @@ class NullKey(KeyValue):
 
         Parameters
         ----------
-        other: histore.key.base.KeyValue
+        other: histore.key.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -162,7 +162,7 @@ class NullKey(KeyValue):
 
         Parameters
         ----------
-        other: histore.key.base.KeyValue
+        other: histore.key.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -200,7 +200,7 @@ class NumberKey(KeyValue):
 
         Parameters
         ----------
-        other: histore.key.base.KeyValue
+        other: histore.key.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -216,7 +216,7 @@ class NumberKey(KeyValue):
 
         Parameters
         ----------
-        other: histore.key.base.KeyValue
+        other: histore.key.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -254,7 +254,7 @@ class StringKey(KeyValue):
 
         Parameters
         ----------
-        other: histore.key.base.KeyValue
+        other: histore.key.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -270,7 +270,7 @@ class StringKey(KeyValue):
 
         Parameters
         ----------
-        other: histore.key.base.KeyValue
+        other: histore.key.KeyValue
             Object that this key is compared against.
 
         Returns
@@ -306,7 +306,7 @@ def to_key(value):
 
     Returns
     -------
-    histore.key.base.KeyValue
+    histore.key.KeyValue
     """
     if value is None:
         return NullKey()
@@ -318,5 +318,4 @@ def to_key(value):
         return NumberKey(value=value)
     elif isinstance(value, str):
         return StringKey(value=value)
-    # By default, use a string representation of the value.
-    return StringKey(value=str(value))
+    raise ValueError("invalid key value '{}'".format(value))
