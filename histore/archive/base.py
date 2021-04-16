@@ -37,7 +37,7 @@ import histore.key.annotate as anno
 
 
 """Type aliases for archive API methods."""
-InputDocument = Union[pd.DataFrame, str, Document, InputStream]
+InputDocument = Union[pd.DataFrame, str, InputStream, Document]
 
 
 class Archive(object):
@@ -247,29 +247,14 @@ class Archive(object):
     def commit(
         self, doc: InputDocument, snapshot: Optional[InputDescriptor] = None,
         sorted: Optional[bool] = False, buffersize: Optional[float] = None,
-        validate: Optional[bool] = False, matching: Optional[str] = MATCH_IDNAME,
-        renamed: Optional[Dict] = None, renamed_to: Optional[bool] = True,
-        partial: Optional[bool] = False, origin: Optional[int] = None
+        validate: Optional[bool] = False, renamed: Optional[Dict] = None,
+        renamed_to: Optional[bool] = True
     ) -> Snapshot:
-        """Commit a new snapshot to the dataset archive. The given document
-        represents the dataset snapshot that is being merged into the archive.
-        The document may represent a complete snapshot of the data or only
-        a partial snapshot. In the latter case, all columns and rows from the
-        snapshot that the document originated from (origin) are considered
-        unchanged.
+        """Commit a new snapshot to the dataset archive.
 
-        Matching of snapshot schema columns to archive columns can either be
-        done by name or by their unique identifier (if present). When matching
-        by name a snapshot version of origin is used to match against. Data
-        frames or snapshot versions with duplicate column names cannot be used
-        for matching columns by name.
-
-        If no origin is specified, the last commited snapshot is assumed as the
-        default snapshot of origin. If this is the first snapshot in the
-        archive the partial flag cannot be True (will raise a ValueError).
-
-        Returns the descriptor of the merged snapshot in the new version of
-        the archive.
+        The given document represents the dataset snapshot that is being merged
+        into the archive. Returns the descriptor of the merged snapshot in the
+        new version of the archive.
 
         Parameters
         ----------
@@ -287,19 +272,6 @@ class Archive(object):
         validate: bool, default=False
             Validate that the resulting archive is in proper order before
             committing the action.
-        matching: string, default='idname'
-            Match mode for columns. Expects one of three modes:
-            - idonly: The columns in the schema of the comitted document are
-            matched against columns in the archive schema by their identifier.
-            Assumes that columns in the document schema are instances of the
-            class histore.document.schema.Column.
-            - nameonly: Columns in the commited document schema are matched
-            by name against the columns in the schema of the snapshot that is
-            identified by origin.
-            - idname: Match columns of type histore.document.schema.Column
-            first against the columns in the archive schema. Match remaining
-            columns by name against the schema of the snapshot that is
-            identified by origin.
         renamed: dict, default=None
             Optional mapping of columns that have been renamed. Maps the new
             column name to the original name.
@@ -309,31 +281,14 @@ class Archive(object):
             (i.e., the dictionary key) to the new column name (the dictionary
             value) is assumed. If the flag is False a mapping from the new
             column name to the original column name is assumed.
-        partial: bool, default=False
-            If True the given snapshot is assumed to be partial. All columns
-            from the snapshot schema that is specified by origin that are not
-            matched by any column in the snapshot schema are assumed to be
-            unchanged. All rows from the orignal snapshot that are not in the
-            given snapshot are also assumed to be unchnged.
-        origin: int, default=None
-            Version identifier of the original column against which the given
-            column list is matched.
 
         Returns
         -------
         histore.archive.snapshot.Snapshot
-
-        Raises
-        ------
-        ValueError
         """
         # If the archive is empty the commited document is loaded via the
-        # opimized _load_dataset method. Raises an error if the partial flag
-        # is True.
+        # opimized _load_dataset method.
         if self.is_empty():
-            # Ensure that partial is not set for an empty archive.
-            if partial:
-                raise ValueError('merge partial snapshot into empty archive')
             # Note that the primary key cannot be defined if the archive
             # is empty.
             self._load_dataset(
@@ -348,48 +303,28 @@ class Archive(object):
         # with a columns property.
         doc = to_input(doc=doc)
         try:
-            # Use the last commited version as origin if matching columns by
-            # name or if a partial document is commited and origin is None.
-            if (matching != MATCH_ID or partial) and origin is None:
-                last_snapshot = self.snapshots().last_snapshot()
-                if last_snapshot:
-                    origin = last_snapshot.version
             # Get a modified snapshot list where the last entry represents the
             # new snapshot.
             version = self.snapshots().next_version()
             # Merge the new snapshot schema with the current archive schema.
-            schema, matched_columns, unchanged_columns = self.schema().merge(
+            schema, columns = self.schema().merge(
                 columns=doc.columns,
                 version=version,
-                matching=matching,
                 renamed=renamed,
-                renamed_to=renamed_to,
-                partial=partial,
-                origin=origin
+                renamed_to=renamed_to
             )
             # Convert a stream into a document if necessary. Sort the document
             # if requested.
             mapping = {c.colid: c.colidx for c in schema.at_version(version=version)}
             key_columns = [mapping[colid] for colid in self.primary_key] if self.primary_key else []
             doc = to_document(doc=doc, keys=key_columns, sorted=sorted, buffersize=buffersize)
-            # If the document is partial we need to adjust the positions of the
-            # rows in the document.
-            if partial:
-                posreader = RowPositionReader(
-                    reader=self.reader(),
-                    version=origin
-                )
-                doc = doc.partial(reader=posreader)
             # Merge document rows into the archive.
             writer = self.store.get_writer()
             nested_merge.merge_rows(
                 arch_reader=self.reader(),
-                doc_reader=doc.reader(schema=matched_columns),
+                doc_reader=doc.reader(schema=columns),
                 version=version,
-                writer=writer,
-                partial=partial,
-                unchanged_cells=[c.colid for c in unchanged_columns],
-                origin=origin
+                writer=writer
             )
         finally:
             # Ensure that the close method for the document is called to allow
