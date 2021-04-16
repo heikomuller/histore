@@ -31,10 +31,10 @@ CSV_FILE = os.path.join(DIR, '../.files/agencies.csv')
         DataFrameStream(df=pd.read_csv(CSV_FILE))
     ]
 )
-@pytest.mark.parametrize('max_size', [(100 / (1024 * 1024)), (16 * 1024 * 1024)])
-def test_read_document_sorted(input_document, max_size):
+@pytest.mark.parametrize('buffersize', [(100 / (1024 * 1024)), (16 * 1024 * 1024)])
+def test_read_document_sorted(input_document, buffersize):
     """Read document with primary key that needs to be sorted."""
-    doc = to_document(doc=input_document, keys=[1, 0], sorted=False, max_size=max_size)
+    doc = to_document(doc=input_document, keys=[1, 0], sorted=False, buffersize=buffersize)
     assert doc.columns == ['agency', 'borough', 'state']
     schema = [Column(colid=i, name=name) for i, name in enumerate(doc.columns)]
     keys = [(r.values[1], r.values[0]) for r in doc.reader(schema=schema)]

@@ -50,7 +50,7 @@ class Archive(object):
         self, doc: Optional[InputDocument] = None,
         primary_key: Optional[Union[PrimaryKey, List[int]]] = None,
         snapshot: Optional[InputDescriptor] = None, sorted: Optional[bool] = False,
-        max_size: Optional[float] = None, validate: Optional[bool] = False,
+        buffersize: Optional[float] = None, validate: Optional[bool] = False,
         store: Optional[ArchiveStore] = None
     ):
         """Initialize the associated archive store and the optional primary
@@ -75,7 +75,7 @@ class Archive(object):
         sorted: bool, default=False
             Flag indicating if the document is sorted by the optional primary
             key attributes. Ignored if the archive is not keyed.
-        max_size: float, default=None
+        buffersize: float, default=None
             Maximum size (in bytes) for the memory buffer when sorting the
             input document.
         validate: bool, default=False
@@ -96,7 +96,7 @@ class Archive(object):
                     primary_key=primary_key,
                     snapshot=snapshot,
                     sorted=sorted,
-                    max_size=max_size,
+                    buffersize=buffersize,
                     validate=validate
                 )
             else:
@@ -246,7 +246,7 @@ class Archive(object):
 
     def commit(
         self, doc: InputDocument, snapshot: Optional[InputDescriptor] = None,
-        sorted: Optional[bool] = False, max_size: Optional[float] = None,
+        sorted: Optional[bool] = False, buffersize: Optional[float] = None,
         validate: Optional[bool] = False, matching: Optional[str] = MATCH_IDNAME,
         renamed: Optional[Dict] = None, renamed_to: Optional[bool] = True,
         partial: Optional[bool] = False, origin: Optional[int] = None
@@ -281,7 +281,7 @@ class Archive(object):
         sorted: bool, default=False
             Flag indicating if the document is sorted by the optional primary
             key attributes. Ignored if the archive is not keyed.
-        max_size: float, default=None
+        buffersize: float, default=None
             Maximum size (in bytes) for the memory buffer when sorting the
             input document.
         validate: bool, default=False
@@ -371,7 +371,7 @@ class Archive(object):
             # if requested.
             mapping = {c.colid: c.colidx for c in schema.at_version(version=version)}
             key_columns = [mapping[colid] for colid in self.primary_key] if self.primary_key else []
-            doc = to_document(doc=doc, keys=key_columns, sorted=sorted, max_size=max_size)
+            doc = to_document(doc=doc, keys=key_columns, sorted=sorted, buffersize=buffersize)
             # If the document is partial we need to adjust the positions of the
             # rows in the document.
             if partial:
@@ -452,7 +452,7 @@ class Archive(object):
     def _load_dataset(
         self, doc: InputDocument, primary_key: Optional[PrimaryKey] = None,
         snapshot: Optional[InputDescriptor] = None, sorted: Optional[bool] = False,
-        max_size: Optional[float] = None, validate: Optional[bool] = False,
+        buffersize: Optional[float] = None, validate: Optional[bool] = False,
     ) -> List[int]:
         """Load an initial snapshot into an empty dataset archive.
 
@@ -474,7 +474,7 @@ class Archive(object):
         sorted: bool, default=False
             Flag indicating if the document is sorted by the optional primary
             key attributes. Ignored if the archive is not keyed.
-        max_size: float, default=None
+        buffersize: float, default=None
             Maximum size (in bytes) for the memory buffer when sorting the
             input document.
         validate: bool, default=False
@@ -512,7 +512,7 @@ class Archive(object):
                 key_index.append(colidx)
                 key_columns.append(columns[colidx].colid)
             if not sorted:
-                doc = to_document(doc=doc, keys=key_index, sorted=False, max_size=max_size)
+                doc = to_document(doc=doc, keys=key_index, sorted=False, buffersize=buffersize)
         else:
             key_columns = None
         # Get writer for the archive.
@@ -622,7 +622,7 @@ class PersistentArchive(Archive):
         self, basedir: str, doc: Optional[InputDocument] = None,
         primary_key: Optional[Union[PrimaryKey, List[int]]] = None,
         snapshot: Optional[InputDescriptor] = None, sorted: Optional[bool] = False,
-        max_size: Optional[float] = None, validate: Optional[bool] = False,
+        buffersize: Optional[float] = None, validate: Optional[bool] = False,
         replace: Optional[bool] = False, serializer: Optional[ArchiveSerializer] = None,
         compression: Optional[str] = None, encoder: Optional[json.JSONEncoder] = None,
         decoder: Optional[Callable] = None
@@ -647,7 +647,7 @@ class PersistentArchive(Archive):
         sorted: bool, default=False
             Flag indicating if the document is sorted by the optional primary
             key attributes. Ignored if the archive is not keyed.
-        max_size: float, default=None
+        buffersize: float, default=None
             Maximum size (in bytes) for the memory buffer when sorting the
             input document.
         validate: bool, default=False
@@ -672,7 +672,7 @@ class PersistentArchive(Archive):
             primary_key=primary_key,
             snapshot=snapshot,
             sorted=sorted,
-            max_size=max_size,
+            buffersize=buffersize,
             validate=validate,
             store=ArchiveFileStore(
                 basedir=basedir,
@@ -693,7 +693,7 @@ class VolatileArchive(Archive):
         self, doc: Optional[InputDocument] = None,
         primary_key: Optional[Union[PrimaryKey, List[int]]] = None,
         snapshot: Optional[InputDescriptor] = None, sorted: Optional[bool] = False,
-        max_size: Optional[float] = None, validate: Optional[bool] = False,
+        buffersize: Optional[float] = None, validate: Optional[bool] = False,
     ):
         """Initialize the associated optional primary key for the archive.
 
@@ -709,7 +709,7 @@ class VolatileArchive(Archive):
         sorted: bool, default=False
             Flag indicating if the document is sorted by the optional primary
             key attributes. Ignored if the archive is not keyed.
-        max_size: float, default=None
+        buffersize: float, default=None
             Maximum size (in bytes) for the memory buffer when sorting the
             input document.
         validate: bool, default=False
@@ -721,7 +721,7 @@ class VolatileArchive(Archive):
             primary_key=primary_key,
             snapshot=snapshot,
             sorted=sorted,
-            max_size=max_size,
+            buffersize=buffersize,
             validate=validate,
             store=VolatileArchiveStore()
         )
@@ -731,7 +731,7 @@ class VolatileArchive(Archive):
 
 def to_document(
     doc: Union[Document, InputStream], keys: List[int], sorted: bool,
-    max_size: Optional[float] = None
+    buffersize: Optional[float] = None
 ) -> Document:
     """Convert a stream object into a document by writing it to a temporary
     file.
@@ -747,7 +747,7 @@ def to_document(
     sorted: bool
         Flag indicating if the document is sorted by the primary key attributes.
         Sorts the document if the key is given and it is not sorted.
-    max_size: float, default=None
+    buffersize: float, default=None
         Maximum size (in bytes) for the memory buffer when sorting the
         input document.
 
@@ -769,14 +769,14 @@ def to_document(
                     buffer, filenames = sort.split(
                         reader=reader,
                         sortkey=keys,
-                        buffer_size=max_size
+                        buffer_size=buffersize
                     )
             else:
                 with doc._reader as reader:
                     buffer, filenames = sort.split(
                         reader=reader,
                         sortkey=keys,
-                        buffer_size=max_size
+                        buffer_size=buffersize
                     )
             if not filenames:
                 # If the file fits into main-memory return a sorted in-memory

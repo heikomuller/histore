@@ -53,7 +53,7 @@ class ArchiveManager(metaclass=ABCMeta):
         encoder: Optional[str] = None, decoder: Optional[str] = None,
         serializer: Union[Dict, Callable] = None, doc: Optional[InputDocument] = None,
         primary_key: Optional[PrimaryKey] = None, snapshot: Optional[InputDescriptor] = None,
-        sorted: Optional[bool] = False, max_size: Optional[float] = None,
+        sorted: Optional[bool] = False, buffersize: Optional[float] = None,
         validate: Optional[bool] = False
     ) -> ArchiveDescriptor:
         """Create a new archive object under a given unique name.
@@ -95,7 +95,7 @@ class ArchiveManager(metaclass=ABCMeta):
         sorted: bool, default=False
             Flag indicating if the document is sorted by the optional primary
             key attributes. Ignored if the archive is not keyed.
-        max_size: float, default=None
+        buffersize: float, default=None
             Maximum size (in bytes) for the memory buffer when sorting the
             input document.
         validate: bool, default=False
