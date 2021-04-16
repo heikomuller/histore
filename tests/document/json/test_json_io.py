@@ -82,10 +82,9 @@ def test_read_write_document(tmpdir):
         ['Alice', 23, 178.67, util.to_datetime('2020-01-15')],
         ['Bob', 43, 165.30, util.to_datetime('2020-03-31')]
     ]
-    writer = JsonWriter(filename=filename)
-    for row in input:
-        writer.write(row)
-    writer.close()
+    with JsonWriter(filename=filename) as writer:
+        for row in input:
+            writer.write(row)
     reader = JsonReader(filename=filename)
     rows = list()
     while reader.has_next():

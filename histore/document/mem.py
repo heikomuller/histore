@@ -9,28 +9,70 @@
 completely into main memory.
 """
 
-from typing import List, Optional
+from __future__ import annotations
+from typing import List, Tuple
 
-from histore.document.base import Document
-from histore.document.mem.reader import InMemoryDocumentReader
-from histore.document.reader import DocumentReader
-from histore.document.schema import Column, to_schema
+import pandas as pd
 
-import histore.key.annotate as anno
+from histore.document.base import DataRow, Document, DocumentIterator, RowIndex
+from histore.document.schema import Schema
+
+import histore.util as util
+
+
+class InMemoryDocumentIterator(DocumentIterator):
+    """Document iterator for in-memory documents."""
+    def __init__(self, rows: List[Tuple[int, RowIndex, DataRow]]):
+        """Initialize the list of document rows.
+
+        Parameters
+        ----------
+        rows: list
+            List of document rows. Each row in the list is a tuple of row
+            position, row index, and cell values.
+        """
+        self.rows = rows
+        self._readindex = 0
+
+    def close(self):
+        """Set list of rows to None."""
+        self.rows = None
+
+    def has_next(self) -> bool:
+        """Test if the iterator has more rows to read.
+
+        Returns
+        -------
+        bool
+        """
+        return self._readindex < len(self.rows)
+
+    def next(self) -> Tuple[int, RowIndex, DataRow]:
+        """Read the next row in the document.
+
+        Returns the row position, row index and the list of cell values for each
+        of the document columns. Raises a StopIteration error if an attempt is
+        made to read past the end of the document.
+
+        Returns
+        -------
+        tuple of int, histore.document.base.RowIndex, histore.document.base.DataRow
+        """
+        try:
+            rowpos, rowidx, values = self.rows[self._readindex]
+        except (IndexError, TypeError):
+            raise StopIteration()
+        self._readindex += 1
+        return rowpos, rowidx, values
 
 
 class InMemoryDocument(Document):
     """The in-memory document maintains a array of document rows (each as a
-    list of cell values) and a sorted row read order as a list of pairs of row
-    key and original row position in the document.  These row keys are either
-    derived using a primary key (i.e., from the cell values in each row) or
-    from the row index of a data frame.
+    tuple of row position, row index, and cell values). The row position is the
+    original position of the row in a sorted document.
     """
-    def __init__(self, columns, rows, readorder):
-        """Initialize the object properties. The abstract document class
-        maintains a list of row (identifier, position) tuples in the order
-        in which rows are being returned by the document reader (i.e., sorted
-        by their row key).
+    def __init__(self, columns: Schema, rows: List[Tuple[int, RowIndex, DataRow]]):
+        """Initialize document schema and rows.
 
         Parameters
         ----------
@@ -40,140 +82,54 @@ class InMemoryDocument(Document):
             each row is expected to correspond to their respective column in
             this list.
         rows: list
-            List of document rows. Each row in the list is an array of the same
-            length as the number of columns in the document.
-        readorder: list
-            The read order of a document is a sorted list of 3-tuples with
-            (list index, key, position). The list is sorted by the row key. The
-            list index is the index of a row in the given row list. The key is
-            the unique key value for the associated row. The position is the
-            position of the row in the document. The list index and the
-            position may differ for a row, especially for partial documents.
+            List of document rows. Each row in the list is a tuple of row
+            position, row index, and cell values.
         """
         super(InMemoryDocument, self).__init__(columns=columns)
         self.rows = rows
-        self.readorder = readorder
 
-    def annotate(self, keys: List[int]) -> Document:
-        """Update document read order based on the given primary key columns.
+    def close(self):
+        """Set list of rows to None when closing the document."""
+        self.rows = None
+
+    def open(self) -> InMemoryDocumentIterator:
+        """Open the document to get a iterator for the rows in the document.
+
+        Returns
+        -------
+        histore.document.base.DocumentIterator
+        """
+        return InMemoryDocumentIterator(rows=self.rows)
+
+    def read_df(self) -> pd.DataFrame:
+        """Create data frame from the document rows.
+
+        Returns
+        -------
+        pd.DataFrame
+        """
+        data, index = list(), list()
+        for _, rowid, row in self.rows:
+            index.append(rowid)
+            data.append(row)
+        return pd.DataFrame(data=data, index=index, columns=self.columns, dtype=object)
+
+    def sorted(self, keys: List[int]) -> InMemoryDocument:
+        """Sort the document rows based on the values in the key columns.
+
+        Key columns are specified by their index position. Returns a new
+        document.
 
         Parameters
         ----------
         keys: list of int
-            Index positions of the primary key columns.
+            Index position of sort columns.
 
         Returns
         -------
-        histore.document.base.Document
+        histore.document.mem.InMemoryDocument
         """
-        self.readorder = anno.pk_readorder(rows=self.rows, keys=keys)
-        return self
-
-    def close(self):
-        """There are no resources that need to be released by the in-memory
-        document.
-        """
-        pass
-
-    def partial(self, reader):
-        """Return a copy of the document where the rows are aligned with the
-        position of the corresponding row in the document origin. The original
-        row order is accessible via the given row position reader.
-
-        Parameters
-        ----------
-        reader: histore.archive.reader.RowPositionReader
-            Reader for row (key, position) tuples from the original
-            snapshot version.
-
-        Returns
-        -------
-        histore.document.base.Document
-        """
-        matched_rows, unmatched_rows = list(), list()
-        readidx = 0
-        orig_row = reader.next()
-        max_pos = -1
-        while orig_row and readidx < len(self.readorder):
-            rowidx, key, pos = self.readorder[readidx]
-            if orig_row[0] < key:
-                # The original row is not included in the partial document.
-                # Get information for next row in the original snapshot.
-                orig_row = reader.next()
-            elif orig_row[0] > key:
-                # The row in the partial document is a new row that was not
-                # present in the original document. Add the row identifier to
-                # the list of unmatched rows.
-                unmatched_rows.append((rowidx, key))
-                readidx += 1
-            else:
-                # Matched row. Adjust position of the row to the position of
-                # the row in the original document.
-                matched_rows.append((rowidx, key, orig_row[1]))
-                orig_row = reader.next()
-                readidx += 1
-            # Keep track of the maximum position in the original document.
-            if orig_row and orig_row[1] > max_pos:
-                max_pos = orig_row[1]
-        # Finish reading the original document to get the maximum position
-        # value.
-        while orig_row:
-            if orig_row[1] > max_pos:
-                max_pos = orig_row[1]
-            orig_row = reader.next()
-        # Append unmatched rows to the matched rows with adjusted row position.
-        for rowidx, key in unmatched_rows:
-            max_pos += 1
-            matched_rows.append((rowidx, key, max_pos))
-        # Append remaining rows in the partial document to the matched rows
-        # list with adjusted position.
-        while readidx < len(self.readorder):
-            max_pos += 1
-            rowidx, key, pos = self.readorder[readidx]
-            matched_rows.append((rowidx, key, max_pos))
-            readidx += 1
-        # Ensure that all document rows have been matched (currently only done
-        # by comparing the length of two lists). This is a sanity check in case
-        # of a bug in the above code.
-        if len(self.readorder) != len(matched_rows):  # pragma: no cover
-            raise RuntimeError('did not match all rows')
-        # Initialize the superclass with adjusted row positions.
-        matched_rows.sort(key=lambda r: r[1])
         return InMemoryDocument(
             columns=self.columns,
-            rows=self.rows,
-            readorder=matched_rows
-        )
-
-    def reader(self, schema: Optional[List[Column]] = None) -> DocumentReader:
-        """Get reader for document rows ordered by their row key.
-
-        Parameters
-        ----------
-        schema: list(histore.document.schema.Column)
-            List of columns in the document schema. Each column corresponds to
-            a column in the column list of this document (corresponding to
-            their position in the list). The schema columns provide the unique
-            column identifier that are required by the document reader to
-            generate document rows. An error is raised if the number of
-            elements in the schema does not match the number of columns in the
-            data frame. If no schema is provided the document schema itself is
-            used as the default.
-
-        Returns
-        -------
-        histore.document.mem.reader.InMemoryDocumentReader
-
-        Raises
-        ------
-        ValueError
-        """
-        # Raise an error if the number of elements in the schema does not match
-        # the number of columns in the document.
-        if schema is not None and len(self.columns) != len(schema):
-            raise ValueError('invalid schema for data frame')
-        return InMemoryDocumentReader(
-            schema=schema if schema is not None else to_schema(self.columns),
-            rows=self.rows,
-            readorder=self.readorder
+            rows=sorted(self.rows, key=lambda row: util.keyvalue(row[2], keys))
         )

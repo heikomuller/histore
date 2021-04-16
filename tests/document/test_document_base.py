@@ -7,7 +7,7 @@
 
 """Unit test for the input document snapshot descriptor."""
 
-from histore.document.snapshot import InputDescriptor
+from histore.document.base import InputDescriptor
 
 import histore.util as util
 

@@ -7,15 +7,16 @@
 
 """Collection of helper classes to read data frames from CSV files."""
 
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import os
 
-from histore.document.base import DataRow, DocumentIterator, RowIndex
+from histore.document.base import DataRow, Document, DocumentIterator, RowIndex
 from histore.document.csv.reader import CSVReader
 from histore.document.csv.writer import CSVWriter
 from histore.document.external import ExternalDocument
 from histore.document.schema import Schema
+from histore.document.sort import SortEngine
 
 
 class CSVIterator(DocumentIterator):
@@ -192,6 +193,23 @@ class CSVFile(ExternalDocument):
             none_is=self.none_is,
             skip_header=self._has_header
         )
+
+    def sorted(self, keys: List[int]) -> Document:
+        """Sort the document rows based on the values in the key columns.
+
+        Key columns are specified by their index position. Returns a new
+        document.
+
+        Parameters
+        ----------
+        keys: list of int
+            Index position of sort columns.
+
+        Returns
+        -------
+        histore.document.base.Document
+        """
+        return SortEngine().sorted(doc=self, keys=keys)
 
     def writer(self) -> CSVWriter:
         """Get a CSV writer for the associated CSV file.

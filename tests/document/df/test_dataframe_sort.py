@@ -14,7 +14,7 @@ import pytest
 from histore.document.df import DataFrameDocument
 
 DIR = os.path.dirname(os.path.realpath(__file__))
-DATAFILE = os.path.join(DIR, '../.files/agencies.csv')
+DATAFILE = os.path.join(DIR, '../../.files/agencies.csv')
 
 
 @pytest.fixture

@@ -12,7 +12,7 @@ from datetime import datetime
 from dateutil.parser import isoparse
 from dateutil.tz import UTC
 from importlib import import_module
-from typing import Optional
+from typing import List, Optional
 
 import errno
 import gzip
@@ -291,7 +291,7 @@ def inputstream(filename, compression: Optional[str] = None) -> IOStream:
     histore.util.IOStream
     """
     if compression is None:
-        return PlainTextFile(open(filename, 'r'))
+        return PlainTextFile(open(filename, 'r') if isinstance(filename, str) else filename)
     elif compression == 'gzip':
         return GZipFile(gzip.open(filename, 'rb'))
     raise ValueError('unknown compression mode {}'.format(compression))
@@ -311,10 +311,30 @@ def outputstream(filename, compression: Optional[str] = None) -> IOStream:
     histore.util.IOStream
     """
     if compression is None:
-        return PlainTextFile(open(filename, 'w'))
+        return PlainTextFile(open(filename, 'w') if isinstance(filename, str) else filename)
     elif compression == 'gzip':
         return GZipFile(gzip.open(filename, 'wb'))
     raise ValueError('unknown compression mode {}'.format(compression))
+
+
+# -- Sorting ------------------------------------------------------------------
+
+def keyvalue(row: List, columns: List[int]):
+    """Get the sort key for a given row. From
+    https://github.com/richardpenman/csvsort/blob/master/__init__.py
+
+    Parameters
+    ----------
+    row: list
+        List of cell values in a document row.
+    columns: list
+        List of index positions for sort columns.
+
+    Returns
+    -------
+    list
+    """
+    return [row[column] for column in columns]
 
 
 # -- Unique identifier --------------------------------------------------------

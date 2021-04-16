@@ -15,7 +15,7 @@ from __future__ import annotations
 from abc import ABCMeta, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Iterator, List, Optional, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import pandas as pd
 

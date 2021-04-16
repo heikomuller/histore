@@ -9,8 +9,6 @@
 local file system.
 """
 
-from typing import List
-
 import os
 import pandas as pd
 
@@ -53,20 +51,3 @@ class ExternalDocument(Document):
             index.append(rowid)
             data.append(row)
         return pd.DataFrame(data=data, index=index, columns=self.columns, dtype=object)
-
-    def sorted(self, keys: List[int]) -> Document:
-        """Sort the document rows based on the values in the key columns.
-
-        Key columns are specified by their index position. Returns a new
-        document.
-
-        Parameters
-        ----------
-        keys: list of int
-            Index position of sort columns.
-
-        Returns
-        -------
-        histore.document.base.Document
-        """
-        raise NotImplementedError()  # pragma: no cover

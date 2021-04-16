@@ -7,6 +7,7 @@
 
 """Writer for documents that are materialized as Json files on the file system."""
 
+from __future__ import annotations
 from datetime import datetime, date, time
 from typing import Any, Optional
 
@@ -47,6 +48,15 @@ class JsonWriter(object):
         self.fout = util.outputstream(filename, compression=compression)
         # Write buffer to keep track of the last row that is being written.
         self.buffer = None
+
+    def __enter__(self) -> JsonWriter:
+        """Enter method for the context manager."""
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> bool:
+        """Close the document iterator when the context manager exits."""
+        self.close()
+        return False
 
     def close(self):
         """Write the last row to the output file and close the output array and

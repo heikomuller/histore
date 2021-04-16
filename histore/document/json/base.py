@@ -11,75 +11,14 @@ following rows are triples of row position, row identifier and a list of cell
 values for each of the columns.
 """
 
-from typing import Callable, Optional, Tuple
+from typing import Callable, List, Optional
 
 import json
 
-from histore.document.base import DataRow, DocumentIterator, RowIndex
+from histore.document.base import Document
 from histore.document.external import ExternalDocument
-from histore.document.json.reader import JsonReader
-
-
-# -- Documents ----------------------------------------------------------------
-
-class JsonIterator(DocumentIterator):
-    """Document iterator for documents that have been serialized as Json
-    documents. The iterator expects a file that contains a list if lists (rows).
-    The first row is expected to contain the document schema. Data rows are
-    expected to be triples of row position, row index, and cell values.
-    """
-    def __init__(
-        self, filename: str, compression: Optional[str] = None,
-        decoder: Optional[Callable] = None
-    ):
-        """Initialize the input file, the row deserializer, and the Json
-        decoder.
-
-        Parameters
-        ----------
-        filename: string
-            Path to the data file.
-        compression: string, default=None
-            String representing the compression mode for the output file.
-        decoder: func, default=None
-            Custom decoder function when reading archive rows from file. If not
-            given, the default decoder will be used.
-        """
-        self.reader = JsonReader(
-            filename=filename,
-            compression=compression,
-            decoder=decoder
-        )
-        # Skip the column name row.
-        if self.reader.has_next():
-            next(self.reader)
-
-    def close(self):
-        """Close the associated Json reader."""
-        self.reader.close()
-
-    def has_next(self) -> bool:
-        """Test if the iterator has more rows to read.
-
-        Returns
-        -------
-        bool
-        """
-        return self.reader.has_next()
-
-    def next(self) -> Tuple[int, RowIndex, DataRow]:
-        """Read the next row in the document.
-
-        Returns the row position, row index and the list of cell values for each
-        of the document columns. Raises a StopIteration error if an attempt is
-        made to read past the end of the document.
-
-        Returns
-        -------
-        tuple of int, histore.document.base.RowIndex, histore.document.base.DataRow
-        """
-        rowpos, rowidx, values = next(self.reader)
-        return rowpos, rowidx, values
+from histore.document.json.reader import JsonReader, JsonIterator
+from histore.document.sort import SortEngine
 
 
 class JsonDocument(ExternalDocument):
@@ -89,7 +28,7 @@ class JsonDocument(ExternalDocument):
     """
     def __init__(
         self, filename: str, compression: Optional[str] = None,
-        decoder: Optional[Callable] = None, encoder: Optional[json.JSONEncoder] = None,
+        encoder: Optional[json.JSONEncoder] = None, decoder: Optional[Callable] = None,
         delete_on_close: Optional[bool] = False
     ):
         """Initialize inofrmation about the file that contains the Json
@@ -101,16 +40,17 @@ class JsonDocument(ExternalDocument):
             Path to the data file.
         compression: string, default=None
             String representing the compression mode for the output file.
-        decoder: func, default=None
-            Custom decoder function when reading archive rows from file. If not
-            given, the default decoder will be used.
         encoder: json.JSONEncoder, default=None
             Encoder used when writing rows as JSON objects to file during
             external merge sort.
+        decoder: func, default=None
+            Custom decoder function when reading archive rows from file. If not
+            given, the default decoder will be used.
         delete_on_close: bool, default=False
             If True, delete the file when the document is closed.
         """
         self.compression = compression
+        self.encoder = encoder
         self.decoder = decoder
         # Open the reader for the input file to get the list of column names
         # from the first row. If the file is empty the list of rows is empty.
@@ -140,3 +80,21 @@ class JsonDocument(ExternalDocument):
             compression=self.compression,
             decoder=self.decoder
         )
+
+    def sorted(self, keys: List[int]) -> Document:
+        """Sort the document rows based on the values in the key columns.
+
+        Key columns are specified by their index position. Returns a new
+        document.
+
+        Parameters
+        ----------
+        keys: list of int
+            Index position of sort columns.
+
+        Returns
+        -------
+        histore.document.base.Document
+        """
+        sort = SortEngine(encoder=self.encoder, decoder=self.decoder)
+        return sort.sorted(doc=self, keys=keys)

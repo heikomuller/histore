@@ -9,106 +9,64 @@
 
 import pytest
 
-from histore.key.base import NumberKey, StringKey
-from histore.document.mem.base import InMemoryDocument
-from histore.document.schema import Column
-from histore.tests.base import ListReader
+from histore.document.mem import InMemoryDocument
 
 
-COLS = [Column(0, 'Name'), Column(1, 'Age')]
-ROWS = [
-    ['Alice', 23],
-    ['Bob', 35],
-    ['Dave', 28],
-    ['Claire', 33]
-]
+@pytest.fixture
+def document():
+    """Get a document for test purposes."""
+    return InMemoryDocument(
+        columns=['Name', 'Age', 'Dept'],
+        rows=[
+            (0, 0, ['Alice', 23, 'R&D']),
+            (1, 1, ['Bob', 35, 'Finance']),
+            (2, 3, ['Dave', 28, 'Sales']),
+            (3, 2, ['Claire', 33, 'Finance'])
+        ]
+    )
 
-NAMES_SORTED = ['Alice', 'Bob', 'Claire', 'Dave']
-POS_SORTED = [0, 1, 3, 2]
 
-
-def test_array_document_reader():
+def test_document_iterrows(document):
     """Test the reader for an in-memory document."""
-    # Read rows in given order.
-    readorder = [(i, NumberKey(i), i) for i in range(len(ROWS))]
-    doc = InMemoryDocument(columns=COLS, rows=ROWS, readorder=readorder)
-    reader = doc.reader(schema=COLS)
-    readindex = 0
-    while reader.has_next():
-        row = reader.next()
-        assert row.pos == readindex
-        assert row.key.value == readindex
-        assert row.values[0] == ROWS[readindex][0]
-        assert row.values[1] == ROWS[readindex][1]
-        assert str(row).startswith('<DocumentRow(')
-        readindex += 1
-    assert readindex == 4
-    # Read rows in reverse order.
-    readorder = [(i, NumberKey(i), 4 - i) for i in range(len(ROWS))]
-    doc = InMemoryDocument(columns=COLS, rows=ROWS, readorder=readorder)
-    reader = doc.reader(schema=COLS)
-    readindex = 0
-    while reader.has_next():
-        row = reader.next()
-        assert row.pos == 4 - readindex
-        assert row.key.value == readindex
-        assert row.values[0] == ROWS[readindex][0]
-        assert row.values[1] == ROWS[readindex][1]
-        readindex += 1
-    assert readindex == 4
-    # Read rows keyed by their name
-    readorder = [(i, StringKey(ROWS[i][0]), i) for i in range(len(ROWS))]
-    readorder = sorted(readorder, key=lambda x: x[1])
-    assert [r[1].value for r in readorder] == NAMES_SORTED
-    doc = InMemoryDocument(columns=COLS, rows=ROWS, readorder=readorder)
-    reader = doc.reader(schema=[Column(0, 'Name'), Column(1, 'Age')])
-    readindex = 0
-    while reader.has_next():
-        row = reader.next()
-        assert row.pos == POS_SORTED[readindex]
-        assert row.values[0] == NAMES_SORTED[readindex]
-        readindex += 1
-    assert readindex == 4
-    # Error cases
-    with pytest.raises(ValueError):
-        doc.reader(schema=[Column(0, 'Name')])
+    rows = list()
+    for rowidx, row in document.iterrows():
+        rows.append((rowidx, row))
+    assert rows == [
+        (0, ['Alice', 23, 'R&D']),
+        (1, ['Bob', 35, 'Finance']),
+        (3, ['Dave', 28, 'Sales']),
+        (2, ['Claire', 33, 'Finance'])
+    ]
 
 
-def test_partial_array_document_reader():
-    """Test the reader for a partial in-memory document."""
-    # Read rows in given order.
-    origorder = [(StringKey(ROWS[i][0]), i) for i in range(len(ROWS))]
-    origorder = sorted(origorder, key=lambda t: t[0])
-    # Test 1: One inserted tuple has name which is greater that any existing
-    # name. List reader will terminate before document reader.
-    rows = [ROWS[2], ['Bea', 21], ['Eve', 48], ROWS[0]]
-    readorder = [(i, StringKey(rows[i][0]), i) for i in range(len(rows))]
-    readorder = sorted(readorder, key=lambda x: x[1])
-    doc = InMemoryDocument(columns=COLS, rows=rows, readorder=readorder)
-    doc = doc.partial(reader=ListReader(values=origorder))
-    reader = doc.reader(schema=COLS)
-    names, positions = list(), list()
-    while reader.has_next():
-        row = reader.next()
-        names .append(row.values[0])
-        positions.append(row.pos)
-    assert names == ['Alice', 'Bea', 'Dave', 'Eve']
-    assert positions == [0, 4, 2, 5]
-    # Test 2: No inserted tuple has name which is greater that any existing
-    # name. Document reader will terminate before list reader.
-    origorder = list()
-    for row in sorted(ROWS, key=lambda r: r[0]):
-        origorder.append((StringKey(row[0]), len(origorder)))
-    rows = [ROWS[1], ['Bea', 21], ROWS[0]]
-    readorder = [(i, StringKey(rows[i][0]), i) for i in range(len(rows))]
-    readorder = sorted(readorder, key=lambda x: x[1])
-    doc = InMemoryDocument(columns=COLS, rows=rows, readorder=readorder)
-    doc = doc.partial(reader=ListReader(values=origorder))
-    reader = doc.reader(schema=COLS)
-    names, positions = list(), list()
-    while reader.has_next():
-        row = reader.next()
-        names .append(row.values[0])
-        positions.append(row.pos)
-    assert names == ['Alice', 'Bea', 'Bob']
-    assert positions == [0, 4, 1]
+def test_error_read_after_close(document):
+    """Error when reading closed document."""
+    for rowidx, row in document.iterrows():
+        pass
+    document.close()
+    with document.open() as reader:
+        with pytest.raises(TypeError):
+            reader.has_next()
+    document.close()
+
+
+def test_read_df(document):
+    """Test reading the document as a data frame."""
+    df = document.read_df()
+    assert df.shape == (4, 3)
+    assert list(df.index) == [0, 1, 3, 2]
+
+
+def test_sort_document(document):
+    """Test sorting the document."""
+    doc = document.sorted(keys=[0])
+    with document.open() as reader:
+        names = [r[0] for _, _, r in reader]
+        assert names == ['Alice', 'Bob', 'Dave', 'Claire']
+    with doc.open() as reader:
+        names = [r[0] for _, _, r in reader]
+        assert names == ['Alice', 'Bob', 'Claire', 'Dave']
+    doc = document.sorted(keys=[2, 0])
+    with doc.open() as reader:
+        names = [r[0] for _, _, r in reader]
+        assert names == ['Bob', 'Claire', 'Alice', 'Dave']

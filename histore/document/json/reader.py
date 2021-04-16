@@ -11,10 +11,12 @@ in a file on the file system.
 
 from datetime import datetime
 from dateutil.parser import isoparse
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import json
 import os
+
+from histore.document.base import DataRow, DocumentIterator, RowIndex
 
 import histore.util as util
 
@@ -105,6 +107,66 @@ class JsonReader(object):
             self.buffer = json.loads(line, object_hook=self.decoder)
         # Return the previous buffer value as the result.
         return result
+
+
+class JsonIterator(DocumentIterator):
+    """Document iterator for documents that have been serialized as Json
+    documents. The iterator expects a file that contains a list if lists (rows).
+    The first row is expected to contain the document schema. Data rows are
+    expected to be triples of row position, row index, and cell values.
+    """
+    def __init__(
+        self, filename: str, compression: Optional[str] = None,
+        decoder: Optional[Callable] = None
+    ):
+        """Initialize the input file, the row deserializer, and the Json
+        decoder.
+
+        Parameters
+        ----------
+        filename: string
+            Path to the data file.
+        compression: string, default=None
+            String representing the compression mode for the output file.
+        decoder: func, default=None
+            Custom decoder function when reading archive rows from file. If not
+            given, the default decoder will be used.
+        """
+        self.reader = JsonReader(
+            filename=filename,
+            compression=compression,
+            decoder=decoder
+        )
+        # Skip the column name row.
+        if self.reader.has_next():
+            next(self.reader)
+
+    def close(self):
+        """Close the associated Json reader."""
+        self.reader.close()
+
+    def has_next(self) -> bool:
+        """Test if the iterator has more rows to read.
+
+        Returns
+        -------
+        bool
+        """
+        return self.reader.has_next()
+
+    def next(self) -> Tuple[int, RowIndex, DataRow]:
+        """Read the next row in the document.
+
+        Returns the row position, row index and the list of cell values for each
+        of the document columns. Raises a StopIteration error if an attempt is
+        made to read past the end of the document.
+
+        Returns
+        -------
+        tuple of int, histore.document.base.RowIndex, histore.document.base.DataRow
+        """
+        rowpos, rowidx, values = next(self.reader)
+        return rowpos, rowidx, values
 
 
 # -- Helper Functions ---------------------------------------------------------
