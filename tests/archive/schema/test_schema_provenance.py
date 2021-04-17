@@ -9,29 +9,29 @@
 
 from histore.archive.schema import ArchiveSchema
 
-import histore.archive.schema as mode
-
 
 def test_column_provenance():
     """Test provenance information for column updates."""
     schema = ArchiveSchema()
-    schema, _, _ = schema.merge(
+    schema, _ = schema.merge(
         columns=['Name', 'Age', 'Salary'],
-        matching=mode.MATCH_NAME,
         version=0
     )
-    schema, _, _ = schema.merge(
-        columns=['Age', 'Name', 'Salary'],
-        matching=mode.MATCH_NAME,
+    schema, _ = schema.merge(
+        columns=['Age', 'Name', 'Salary', 'Address'],
         version=1,
         origin=0
     )
-    schema, _, _ = schema.merge(
+    schema, _ = schema.merge(
         columns=['Name', 'Height'],
-        renamed={'Age': 'Height'},
-        matching=mode.MATCH_NAME,
+        renamed=[('Age', 'Height')],
         version=2,
         origin=1
+    )
+    schema, _ = schema.merge(
+        columns=['Name', 'Height'],
+        version=3,
+        origin=2
     )
     # Updated column provenance
     prov = schema.columns[0].diff(0, 1)
@@ -45,3 +45,9 @@ def test_column_provenance():
     assert prov.is_delete()
     assert prov.key == 2
     assert schema.columns[2].diff(2, 3) is None
+    # Inserted column.
+    prov = schema.columns[3].diff(0, 1)
+    assert prov.is_insert()
+    assert prov.key == 3
+    # Unchanged column.
+    assert schema.columns[0].diff(2, 3) is None

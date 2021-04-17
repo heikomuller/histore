@@ -63,7 +63,7 @@ ColumnRef = Union[int, str]
 # Reference to one or more columns in a dataset schema.
 Columns = Union[ColumnRef, List[ColumnRef]]
 # The schema of a dataset is a list of column names.
-Schema = List[str]
+Schema = List[Union[str, Column]]
 
 
 # -- Helper methods -----------------------------------------------------------

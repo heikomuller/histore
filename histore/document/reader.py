@@ -11,7 +11,7 @@ the rows in a data frame sorted by the row key.
 
 from __future__ import annotations
 from abc import ABCMeta, abstractmethod
-from typing import Dict, Iterable, List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from histore.document.base import DocumentIterator, RowIndex
 from histore.document.row import DocumentRow
