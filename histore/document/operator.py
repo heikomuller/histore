@@ -13,7 +13,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Dict, Optional
 
 from histore.document.base import DataRow, InputDescriptor
-from histore.document.schema import Schema
+from histore.document.schema import DocumentSchema
 
 
 class DatasetOperator(InputDescriptor, metaclass=ABCMeta):
@@ -22,7 +22,7 @@ class DatasetOperator(InputDescriptor, metaclass=ABCMeta):
     dataset snapshot.
     """
     def __init__(
-        self, columns: Schema, description: Optional[str] = None,
+        self, columns: DocumentSchema, description: Optional[str] = None,
         action: Optional[Dict] = None
     ):
         """Initialize the schema for rows that this operator will produce and

@@ -16,7 +16,7 @@ from histore.archive.provenance.base import ProvOp
 from histore.archive.provenance.column import DeleteColumn, InsertColumn, UpdateColumn
 from histore.archive.timestamp import Timestamp
 from histore.archive.value import SingleVersionValue
-from histore.document.schema import Column, Schema
+from histore.document.schema import Column, DocumentSchema
 
 
 class ArchiveColumn(object):
@@ -247,7 +247,7 @@ class ArchiveSchema(object):
         return [Column(colid=id, name=name, colidx=pos) for id, name, pos in cols]
 
     def merge(
-        self, columns: Schema, version: int, origin: Optional[int] = None,
+        self, columns: DocumentSchema, version: int, origin: Optional[int] = None,
         renamed: Optional[List[Tuple[str, str]]] = None
     ) -> Tuple[ArchiveSchema, List[int]]:
         """Add the given snapshot columns to the schema history for a dataset.
@@ -402,7 +402,7 @@ def create_column(colid: int, name: str, pos: int, version: int) -> ArchiveColum
     )
 
 
-def document_schema(columns: Schema) -> Tuple[Dict[int, Tuple[int, str]], Dict[str, int]]:
+def document_schema(columns: DocumentSchema) -> Tuple[Dict[int, Tuple[int, str]], Dict[str, int]]:
     """Create type-dependent mappings for document schema columns.
 
     For columns that are identifiable a mapping from the column identifier to

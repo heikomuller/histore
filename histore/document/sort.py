@@ -27,7 +27,7 @@ from histore.document.base import Document, DocumentIterator
 from histore.document.json.reader import JsonIterator
 from histore.document.json.writer import JsonWriter
 from histore.document.mem import InMemoryDocument
-from histore.document.schema import Schema
+from histore.document.schema import DocumentSchema
 
 import histore.config as config
 import histore.util as util
@@ -65,7 +65,10 @@ class SortEngine:
         self.encoder = encoder
         self.decoder = decoder
 
-    def _mergesort(self, buffer: List, filenames: List[str], columns: Schema, keys: List[int]) -> str:
+    def _mergesort(
+        self, buffer: List, filenames: List[str], columns: DocumentSchema,
+        keys: List[int]
+    ) -> str:
         """2-way merge sort for sorted blocks of an input document.
 
         Adopted from
@@ -162,7 +165,10 @@ class SortEngine:
                 delete_on_close=True
             )
 
-    def _split(self, reader: DocumentIterator, columns: Schema, keys: List[int]) -> Tuple[List, List[str]]:
+    def _split(
+        self, reader: DocumentIterator, columns: DocumentSchema,
+        keys: List[int]
+    ) -> Tuple[List, List[str]]:
         """Split a input document into blocks of maximum size.
 
         Individual blocks are written to temporary files on disk in JSON format.

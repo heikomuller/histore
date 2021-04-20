@@ -15,7 +15,7 @@ from typing import List, Optional, Tuple
 import pandas as pd
 
 from histore.document.base import DataRow, Document, DocumentIterator, RowIndex
-from histore.document.schema import Schema
+from histore.document.schema import DocumentSchema
 
 import histore.util as util
 
@@ -71,7 +71,7 @@ class InMemoryDocument(Document):
     tuple of row position, row index, and cell values). The row position is the
     original position of the row in a sorted document.
     """
-    def __init__(self, columns: Schema, rows: List[Tuple[int, RowIndex, DataRow]]):
+    def __init__(self, columns: DocumentSchema, rows: List[Tuple[int, RowIndex, DataRow]]):
         """Initialize document schema and rows.
 
         Parameters

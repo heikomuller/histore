@@ -62,8 +62,8 @@ class Column(str):
 ColumnRef = Union[int, str]
 # Reference to one or more columns in a dataset schema.
 Columns = Union[ColumnRef, List[ColumnRef]]
-# The schema of a dataset is a list of column names.
-Schema = List[Union[str, Column]]
+# The schema of a document (dataset) is a list of column names.
+DocumentSchema = List[Union[str, Column]]
 
 
 # -- Helper methods -----------------------------------------------------------
@@ -90,7 +90,7 @@ def as_list(columns: Columns) -> List[Union[int, str, Column]]:
         return columns
 
 
-def column_index(schema: Schema, columns: Columns):
+def column_index(schema: DocumentSchema, columns: Columns):
     """Get the list of column index positions in a given schema (list of
     column names). Columns are either specified by name or by index position.
     The result is a list of column index positions.
@@ -117,7 +117,7 @@ def column_index(schema: Schema, columns: Columns):
     return colidx
 
 
-def column_ref(schema: Schema, column: ColumnRef) -> Tuple[str, int]:
+def column_ref(schema: DocumentSchema, column: ColumnRef) -> Tuple[str, int]:
     """Get the column name and index position for a referenced column in the
     given schema. Columns may be referenced by their name or index. This
     function returns both, the name and the index of the referenced column.
@@ -166,7 +166,7 @@ def column_ref(schema: Schema, column: ColumnRef) -> Tuple[str, int]:
     return colname, colidx
 
 
-def select_clause(schema: Schema, columns: Columns) -> Tuple[List[str], List[int]]:
+def select_clause(schema: DocumentSchema, columns: Columns) -> Tuple[List[str], List[int]]:
     """Get the list of column name objects and index positions in a data frame
     for list of columns that are specified either by name or by index position.
 

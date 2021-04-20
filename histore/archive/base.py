@@ -26,7 +26,7 @@ from histore.document.csv.base import CSVFile
 from histore.document.df import DataFrameDocument
 from histore.document.operator import DatasetOperator
 from histore.document.reader import AnnotatedDocumentReader, DefaultDocumentReader
-from histore.document.schema import Schema
+from histore.document.schema import DocumentSchema
 
 import histore.archive.merge as nested_merge
 
@@ -615,7 +615,7 @@ class PersistentArchive(Archive):
 
 # -- Helper Functions ---------------------------------------------------------
 
-def get_key_columns(columns: Schema, primary_key: PrimaryKey) -> List[int]:
+def get_key_columns(columns: DocumentSchema, primary_key: PrimaryKey) -> List[int]:
     """Get identifier for primary key columns.
 
     Uses the archive schema merge method to get the identifiable columns for the

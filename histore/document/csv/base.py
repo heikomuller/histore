@@ -15,7 +15,7 @@ from histore.document.base import DataRow, Document, DocumentIterator, RowIndex
 from histore.document.csv.reader import CSVReader
 from histore.document.csv.writer import CSVWriter
 from histore.document.external import ExternalDocument
-from histore.document.schema import Schema
+from histore.document.schema import DocumentSchema
 from histore.document.sort import SortEngine
 
 
@@ -97,7 +97,7 @@ class CSVIterator(DocumentIterator):
 class CSVFile(ExternalDocument):
     """Read and write documents that are stored as CSV files."""
     def __init__(
-        self, filename: str, header: Optional[Schema] = None,
+        self, filename: str, header: Optional[DocumentSchema] = None,
         delim: Optional[str] = None, compressed: Optional[bool] = None,
         quotechar: Optional[str] = '"', encoding: Optional[str] = None,
         none_is: Optional[str] = None, skip_lines: Optional[int] = None,

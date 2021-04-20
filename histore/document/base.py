@@ -19,7 +19,7 @@ from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import pandas as pd
 
-from histore.document.schema import Schema
+from histore.document.schema import DocumentSchema
 
 
 """Type aliases."""

@@ -75,3 +75,4 @@
 * Add `histore.document.json.base.JsonDocument` to read serialized Json documents.
 * Use user's cache directory as the default parent directory for archive managers.
 * Remove option for partial merge.
+* Rename type-hint ``Schema`` to ``DocumentSchema``.

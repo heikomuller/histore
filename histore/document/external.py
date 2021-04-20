@@ -13,12 +13,12 @@ import os
 import pandas as pd
 
 from histore.document.base import Document
-from histore.document.schema import Schema
+from histore.document.schema import DocumentSchema
 
 
 class ExternalDocument(Document):
     """External document that maintains data in a file in disk."""
-    def __init__(self, columns: Schema, filename: str, delete_on_close: bool):
+    def __init__(self, columns: DocumentSchema, filename: str, delete_on_close: bool):
         """Initialize the document schema and the reference to the data file.
 
         Parameters
