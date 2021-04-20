@@ -53,8 +53,10 @@ def test_create_archive(test_runner):
 
 def test_delete_archive(test_runner):
     """Test deleting an existing archive."""
-    test_runner.invoke(cli, ['create', 'a_archive'])
-    test_runner.invoke(cli, ['create', 'myarchive'])
+    result = test_runner.invoke(cli, ['create', 'a_archive'])
+    assert result.exit_code == 0
+    result = test_runner.invoke(cli, ['create', 'myarchive'])
+    assert result.exit_code == 0
     # Abort deletion.
     result = test_runner.invoke(cli, ['delete', 'myarchive'], input='n')
     assert result.exit_code == 1

@@ -8,8 +8,9 @@
 """Document wrapper around data frames."""
 
 from __future__ import annotations
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
+import math
 import pandas as pd
 
 from histore.document.base import DataRow, Document, DocumentIterator, RowIndex
@@ -70,7 +71,7 @@ class DataFrameIterator(DocumentIterator):
         # value will be treated as a new row.
         if rowidx is None or rowidx < 0:
             rowidx = -1
-        values = list(self._df.iloc[origpos])
+        values = [nan_to_none(v) for v in self._df.iloc[origpos]]
         self._readindex += 1
         return origpos, rowidx, values
 
@@ -148,6 +149,23 @@ class DataFrameDocument(Document):
 
 
 # -- Helper Functions ---------------------------------------------------------
+
+def nan_to_none(value: Any) -> Any:
+    """Convert NaN values to None.
+
+    Parameters
+    ----------
+    value: any
+        Cell value.
+
+    Returns
+    -------
+    any
+    """
+    if isinstance(value, int) or isinstance(value, float):
+        return None if math.isnan(value) else value
+    return value
+
 
 def rowindex_readorder(df: pd.DataFrame) -> List[int]:
     """Get read order for rows in a pandas data frame based on their index.

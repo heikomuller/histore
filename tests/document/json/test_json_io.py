@@ -75,17 +75,18 @@ def test_read_from_invalid_file(tmpdir):
         JsonReader(filename=filename)
 
 
-def test_read_write_document(tmpdir):
+@pytest.mark.parametrize('compression', ['gzip', None])
+def test_read_write_document(compression, tmpdir):
     """Test reading and writing a Json document."""
     filename = os.path.join(tmpdir, 'output.json')
     input = [
         ['Alice', 23, 178.67, util.to_datetime('2020-01-15')],
         ['Bob', 43, 165.30, util.to_datetime('2020-03-31')]
     ]
-    with JsonWriter(filename=filename) as writer:
+    with JsonWriter(filename=filename, compression=compression) as writer:
         for row in input:
             writer.write(row)
-    reader = JsonReader(filename=filename)
+    reader = JsonReader(filename=filename, compression=compression)
     rows = list()
     while reader.has_next():
         rows.append(next(reader))

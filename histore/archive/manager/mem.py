@@ -9,10 +9,9 @@
 
 from typing import Callable, Dict, Optional, Union
 
-from histore.archive.base import Archive, InputDocument, to_document
-from histore.archive.manager.base import ArchiveManager, PrimaryKey, get_key_columns
+from histore.archive.base import Archive, InputDocument, PrimaryKey
+from histore.archive.manager.base import ArchiveManager
 from histore.archive.manager.descriptor import ArchiveDescriptor
-from histore.archive.store.mem.base import VolatileArchiveStore
 from histore.document.base import InputDescriptor
 
 import histore.util as util
@@ -98,33 +97,24 @@ class VolatileArchiveManager(ArchiveManager):
         # Ensure that the archive name is unique.
         if self.get_by_name(name) is not None:
             raise ValueError("archive '{}' already exists".format(name))
-        # Get serializer dictionary if a function was given.
-        serializer = serializer() if serializer is not None and callable(serializer) else serializer
         # Create an unique identifier for the new archive.
         identifier = util.get_unique_identifier()
-        # Load initial snapshot if given.
-        if doc is not None:
-            doc = to_document(doc)
-            # Get the expected identifier for the primary key columns.
-            primary_key = get_key_columns(columns=doc.columns, primary_key=primary_key)
-            archive = Archive(store=VolatileArchiveStore(primary_key=primary_key))
-            archive.commit(
-                doc=doc,
-                descriptor=snapshot,
-                sorted=sorted,
-                buffersize=buffersize,
-                validate=validate
-            )
-        elif primary_key is not None:
-            raise ValueError('missing snapshot document')
-        else:
-            archive = Archive()
+        # Create in-memory archive. This will load the initial snapshot if a
+        # document is given.
+        archive = Archive(
+            doc=doc,
+            primary_key=primary_key,
+            descriptor=snapshot,
+            sorted=sorted,
+            buffersize=buffersize,
+            validate=validate
+        )
         # Create the descriptor for the new archive.
         descriptor = ArchiveDescriptor.create(
             identifier=identifier,
             name=name,
             description=description,
-            primary_key=primary_key
+            primary_key=archive.store.primary_key()
         )
         self._archives[identifier] = archive
         self._descriptors[identifier] = descriptor

@@ -215,9 +215,9 @@ class Document(InputStream, metaclass=ABCMeta):
 @dataclass
 class InputDescriptor:
     """Descriptor for archive snapshot input documents."""
-    # Timestamp when the snapshot was first valid.
-    valid_time: Optional[datetime] = None
     # Optional user-provided description for the snapshot.
     description: Optional[str] = ''
+    # Timestamp when the snapshot was first valid.
+    valid_time: Optional[datetime] = None
     # Optional metadata defining the action that created the snapshot.
     action: Optional[Dict] = None

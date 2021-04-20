@@ -8,18 +8,11 @@
 """Abstract class for managers that maintain a set of archives."""
 
 from abc import ABCMeta, abstractmethod
-from collections import defaultdict
 from typing import Callable, Dict, List, Optional, Union
 
-from histore.archive.base import Archive, InputDocument
+from histore.archive.base import Archive, InputDocument, PrimaryKey
 from histore.archive.manager.descriptor import ArchiveDescriptor
-from histore.archive.schema import ArchiveSchema
 from histore.document.base import InputDescriptor
-from histore.document.schema import Schema
-
-
-# Primary key of a dataset.
-PrimaryKey = Union[str, List[str]]
 
 
 class ArchiveManager(metaclass=ABCMeta):
@@ -193,53 +186,3 @@ class ArchiveManager(metaclass=ABCMeta):
         ValueError
         """
         raise NotImplementedError()  # pragma: no cover
-
-
-# -- Helper Functions ---------------------------------------------------------
-
-def get_key_columns(columns: Schema, primary_key: PrimaryKey) -> List[int]:
-    """Get identifier for primary key columns.
-
-    Uses the archive schema merge method to get the identifiable columns for the
-    given schema. Then returns the identifier for the columns that match the
-    primary key columns.
-
-    Note that the primary key specification cannot reference columns that have
-    non-unique names. If a primary key column occurs more than once in the
-    resulting schema an error is raised. An error is also raised if the primary
-    key references a column that does not exist.
-
-    If the list of primary key columns is None or empty the result is None.
-
-    Parameters
-    ----------
-    columns: list of string
-        Schema for the input document.
-    primary_key: list of string
-        Names of primary key columns. May be None.
-
-    Returns
-    -------
-    list of int
-    """
-    # Return None if the list of primary key columns is None or empty.
-    if not primary_key:
-        return None
-    # Ensure that the primary key is a list.
-    primary_key = primary_key if isinstance(primary_key, list) else [primary_key]
-    # Get the identifiable columns for the document schema. Create a mapping
-    # from the column name to the identifier(s).
-    schema, _ = ArchiveSchema().merge(columns=columns, version=0)
-    columns = defaultdict(list)
-    for col in schema.at_version(0):
-        columns[col].append(col.colid)
-    # Generate the list of primary key column identifier.
-    pk = list()
-    for name in primary_key:
-        col = columns.get(name)
-        if not col:
-            raise ValueError("unknown column '{}'".format(col))
-        elif len(col) > 1:
-            raise ValueError("not a unique key column '{}'".format(col))
-        pk.append(col[0])
-    return pk

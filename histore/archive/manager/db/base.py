@@ -15,9 +15,9 @@ from typing import Callable, Dict, Optional, Union
 import os
 import shutil
 
-from histore.archive.base import InputDocument, to_document
+from histore.archive.base import InputDocument, PrimaryKey, get_key_columns, to_document
 from histore.archive.base import Archive as PersistentArchive
-from histore.archive.manager.base import ArchiveManager, PrimaryKey, get_key_columns
+from histore.archive.manager.base import ArchiveManager
 from histore.archive.manager.db.database import DB
 from histore.archive.manager.db.model import Archive, ArchiveKey
 from histore.archive.manager.descriptor import ArchiveDescriptor
@@ -228,7 +228,8 @@ class DBArchiveManager(ArchiveManager):
                 return
             # Remove the archive base directory and the entry in the database.
             archdir = self._archive_dir(identifier)
-            shutil.rmtree(archdir)
+            if os.path.isdir(archdir):
+                shutil.rmtree(archdir)
             session.delete(archive)
 
     def get(self, identifier: str) -> PersistentArchive:

@@ -16,8 +16,8 @@ import csv
 import pandas as pd
 import sys
 
-from histore import PersistentArchiveManager
 from histore.archive.manager.base import ArchiveManager
+from histore.archive.manager.persist import PersistentArchiveManager
 
 import histore.config as config
 import histore.util as util

@@ -77,7 +77,7 @@ def commit_snapshot(
         quoting=csv.QUOTE_MINIMAL,
         compression='gzip' if gzip else None
     )
-    s = store.commit(df, snapshot=InputDescriptor(description=comment))
+    s = store.commit(df, descriptor=InputDescriptor(description=comment))
     click.echo('Snapshot {} created.'.format(s.version))
 
 

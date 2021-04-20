@@ -13,10 +13,9 @@ import json
 import os
 import shutil
 
-from histore.archive.base import Archive, InputDocument, to_document
-from histore.archive.manager.base import ArchiveManager, PrimaryKey, get_key_columns
+from histore.archive.base import Archive, InputDocument, PersistentArchive, PrimaryKey
+from histore.archive.manager.base import ArchiveManager
 from histore.archive.manager.descriptor import ArchiveDescriptor
-from histore.archive.manager.descriptor import decoder_from_string, encoder_from_string, serializer_from_dict
 from histore.archive.store.fs.base import ArchiveFileStore
 from histore.document.base import InputDescriptor
 
@@ -154,39 +153,29 @@ class FileSystemArchiveManager(ArchiveManager):
         # Ensure that the archive name is unique.
         if self.get_by_name(name) is not None:
             raise ValueError("archive '{}' already exists".format(name))
-        # Get serializer dictionary if a function was given.
-        serializer = serializer() if serializer is not None and callable(serializer) else serializer
         # Create an unique identifier for the new archive.
         identifier = util.get_unique_identifier()
-        # Load initial snapshot if given.
-        if doc is not None:
-            # Get the expected identifier for the primary key columns.
-            doc = to_document(doc)
-            primary_key = get_key_columns(columns=doc.columns, primary_key=primary_key)
-            store = ArchiveFileStore(
-                basedir=self._archive_dir(identifier),
-                replace=True,
-                serializer=serializer_from_dict(serializer),
-                encoder=encoder_from_string(encoder),
-                decoder=decoder_from_string(decoder),
-                primary_key=primary_key
-            )
-            archive = Archive(store=store)
-            archive.commit(
-                doc=doc,
-                descriptor=snapshot,
-                sorted=sorted,
-                buffersize=buffersize,
-                validate=validate
-            )
-        elif primary_key is not None:
-            raise ValueError('missing snapshot document')
+        # Create persistent archive. This will load the initial snapshot if a
+        # document is given.
+        archive = PersistentArchive(
+            basedir=self._archive_dir(identifier),
+            create=True,
+            serializer=serializer,
+            encoder=encoder,
+            decoder=decoder,
+            descriptor=snapshot,
+            doc=doc,
+            primary_key=primary_key,
+            sorted=sorted,
+            buffersize=buffersize,
+            validate=validate
+        )
         # Create the descriptor for the new archive.
         descriptor = ArchiveDescriptor.create(
             identifier=identifier,
             name=name,
             description=description,
-            primary_key=primary_key,
+            primary_key=archive.store.primary_key(),
             encoder=encoder,
             decoder=decoder,
             serializer=serializer
@@ -206,7 +195,8 @@ class FileSystemArchiveManager(ArchiveManager):
         """
         if self.contains(identifier):
             archdir = self._archive_dir(identifier)
-            shutil.rmtree(archdir)
+            if os.path.isdir(archdir):
+                shutil.rmtree(archdir)
             del self._archives[identifier]
             self.write()
 

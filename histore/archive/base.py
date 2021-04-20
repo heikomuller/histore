@@ -7,15 +7,18 @@
 
 """Archives are collections of snapshots of an evolving dataset."""
 
-from typing import List, Optional, Tuple, Union
+from collections import defaultdict
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 
+from histore.archive.manager.descriptor import decoder_from_string, encoder_from_string, serializer_from_dict
 from histore.archive.provenance.archive import SnapshotDiff
 from histore.archive.reader import ArchiveReader, SnapshotReader
 from histore.archive.schema import ArchiveSchema
 from histore.archive.snapshot import Snapshot, SnapshotListing
 from histore.archive.store.base import ArchiveStore
+from histore.archive.store.fs.base import ArchiveFileStore
 from histore.archive.store.mem.base import VolatileArchiveStore
 from histore.archive.writer import ValidatingArchiveWriter
 from histore.document.base import Document, InputDescriptor, InputStream
@@ -23,12 +26,15 @@ from histore.document.csv.base import CSVFile
 from histore.document.df import DataFrameDocument
 from histore.document.operator import DatasetOperator
 from histore.document.reader import AnnotatedDocumentReader, DefaultDocumentReader
+from histore.document.schema import Schema
 
 import histore.archive.merge as nested_merge
 
 
 """Type aliases for archive API methods."""
 InputDocument = Union[pd.DataFrame, str, InputStream, Document]
+# Primary key of a dataset.
+PrimaryKey = Union[str, List[str]]
 
 
 class Archive(object):
@@ -37,16 +43,76 @@ class Archive(object):
     such that the archive object does not have to deal with the different ways
     in which archives are managed by different systems.
     """
-    def __init__(self, store: Optional[ArchiveStore] = None):
+    def __init__(
+        self, store: Optional[ArchiveStore] = None, doc: Optional[InputDocument] = None,
+        primary_key: Optional[PrimaryKey] = None, descriptor: Optional[InputDescriptor] = None,
+        sorted: Optional[bool] = False, buffersize: Optional[float] = None,
+        validate: Optional[bool] = False
+    ):
         """Initialize the associated archive store.
+
+        If the archive store is None a volatile store is used as the default. In
+        this case the user can provide informaiton for a first document (and its
+        primary key) that will be committed into the new archive.
 
         Parameters
         ----------
         store: histore.archive.store.base.ArchiveStore, default=None
             Associated archive store that is used to maintain all archive
             information. Uses the volatile in-memory store by default.
+        doc: histore.archive.base.InputDocument, default=None
+            Input document representing the initial dataset snapshot that is
+            being loaded into the archive.
+        primary_key: string or list, default=None
+            Column(s) that are used to generate identifier for snapshot rows.
+        descriptor: histore.document.base.InputDescriptor, default=None
+            Optional metadata for the created snapshot.
+        sorted: bool, default=False
+            Flag indicating if the document is sorted by the optional primary
+            key attributes. Ignored if the archive is not keyed.
+        buffersize: float, default=None
+            Maximum size (in bytes) for the memory buffer when sorting the
+            input document.
+        validate: bool, default=False
+            Validate that the resulting archive is in proper order before
+            committing the action.
         """
-        self.store = store if store is not None else VolatileArchiveStore()
+        if store is not None:
+            # If a archive store is given the user cannot provide a document with
+            # a primary key.
+            self.store = store
+            if doc is not None:
+                if primary_key is not None:
+                    raise ValueError('cannot load initial dataset with primary key')
+                # Load the document.
+                self.commit(
+                    doc=doc,
+                    descriptor=descriptor,
+                    sorted=sorted,
+                    buffersize=buffersize,
+                    validate=validate
+                )
+        else:
+            # Create a volatile archive store. If a document is provided this
+            # will be committed as the first snapshot.
+            if doc is not None:
+                doc = to_document(doc)
+                # Get the expected identifier for the primary key columns.
+                primary_key = get_key_columns(columns=doc.columns, primary_key=primary_key)
+                store = VolatileArchiveStore(primary_key=primary_key)
+                archive = Archive(store=store)
+                archive.commit(
+                    doc=doc,
+                    descriptor=descriptor,
+                    sorted=sorted,
+                    buffersize=buffersize,
+                    validate=validate
+                )
+            elif primary_key is not None:
+                raise ValueError('missing snapshot document')
+            else:
+                store = VolatileArchiveStore()
+            self.store = store
 
     def apply(
         self, operators: Union[DatasetOperator, List[DatasetOperator]],
@@ -431,7 +497,165 @@ class Archive(object):
         )
 
 
+class PersistentArchive(Archive):
+    """Archive that persists all dataset snapshots in files on the file system.
+    All the data is maintained within a given directory on the file system.
+    This class is a wrapper for an archive with a persistent archive store. It
+    uses the default file system store.
+    """
+    def __init__(
+        self, store: Optional[ArchiveStore] = None, basedir: Optional[str] = None,
+        create: Optional[bool] = False, encoder: Optional[str] = None,
+        decoder: Optional[str] = None, serializer: Union[Dict, Callable] = None,
+        doc: Optional[InputDocument] = None, primary_key: Optional[PrimaryKey] = None,
+        descriptor: Optional[InputDescriptor] = None, sorted: Optional[bool] = False,
+        buffersize: Optional[float] = None, validate: Optional[bool] = False
+    ):
+        """Initialize the associated archive store.
+
+        If the archive store is None a volatile store is used as the default. In
+        this case the user can provide informaiton for a first document (and its
+        primary key) that will be committed into the new archive.
+
+        Parameters
+        ----------
+        store: histore.archive.store.base.ArchiveStore, default=None
+            Associated archive store that is used to maintain all archive
+            information. Uses the volatile in-memory store by default.
+        basedir: string
+            Path to the base directory for archive files. If the directory does
+            not exist it will be created.
+        create: boolean, default=False
+            Do not read existing files in the base directory to initialize the
+            archive. Treat the archive as being empty instead if True.
+        encoder: string, default=None
+            Full package path for the Json encoder class that is used by the
+            persistent archive.
+        decoder: string, default=None
+            Full package path for the Json decoder function that is used by the
+            persistent archive.
+        serializer: dict or callable, default=None
+            Dictionary or callable that returns a dictionary that contains the
+            specification for the serializer. The serializer specification is
+            a dictionary with the following elements:
+            - ``clspath``: Full package target path for the serializer class
+                           that is instantiated.
+            - ``kwargs`` : Additional arguments that are passed to the
+                           constructor of the created serializer instance.
+            Only ``clspath`` is required.
+        doc: histore.archive.base.InputDocument, default=None
+            Input document representing the initial dataset snapshot that is
+            being loaded into the archive.
+        primary_key: string or list, default=None
+            Column(s) that are used to generate identifier for snapshot rows.
+        descriptor: histore.document.base.InputDescriptor, default=None
+            Optional metadata for the created snapshot.
+        sorted: bool, default=False
+            Flag indicating if the document is sorted by the optional primary
+            key attributes. Ignored if the archive is not keyed.
+        buffersize: float, default=None
+            Maximum size (in bytes) for the memory buffer when sorting the
+            input document.
+        validate: bool, default=False
+            Validate that the resulting archive is in proper order before
+            committing the action.
+        """
+        if store is not None:
+            # If a archive store is given the user cannot provide a document with
+            # a primary key.
+            self.store = store
+            if doc is not None:
+                if primary_key is not None:
+                    raise ValueError('cannot load initial dataset with primary key')
+                # Load the document.
+                self.commit(
+                    doc=doc,
+                    descriptor=descriptor,
+                    sorted=sorted,
+                    buffersize=buffersize,
+                    validate=validate
+                )
+        else:
+            # Create a volatile archive store. If a document is provided this
+            # will be committed as the first snapshot.
+            if doc is not None:
+                doc = to_document(doc)
+                # Get the expected identifier for the primary key columns.
+                primary_key = get_key_columns(columns=doc.columns, primary_key=primary_key)
+                # Get serializer dictionary if a function was given.
+                serializer = serializer() if serializer is not None and callable(serializer) else serializer
+                store = ArchiveFileStore(
+                    basedir=basedir,
+                    replace=create,
+                    serializer=serializer_from_dict(serializer),
+                    encoder=encoder_from_string(encoder),
+                    decoder=decoder_from_string(decoder),
+                    primary_key=primary_key
+                )
+                archive = Archive(store=store)
+                archive.commit(
+                    doc=doc,
+                    descriptor=descriptor,
+                    sorted=sorted,
+                    buffersize=buffersize,
+                    validate=validate
+                )
+            elif primary_key is not None:
+                raise ValueError('missing snapshot document')
+            else:
+                store = VolatileArchiveStore()
+            self.store = store
+
+
 # -- Helper Functions ---------------------------------------------------------
+
+def get_key_columns(columns: Schema, primary_key: PrimaryKey) -> List[int]:
+    """Get identifier for primary key columns.
+
+    Uses the archive schema merge method to get the identifiable columns for the
+    given schema. Then returns the identifier for the columns that match the
+    primary key columns.
+
+    Note that the primary key specification cannot reference columns that have
+    non-unique names. If a primary key column occurs more than once in the
+    resulting schema an error is raised. An error is also raised if the primary
+    key references a column that does not exist.
+
+    If the list of primary key columns is None or empty the result is None.
+
+    Parameters
+    ----------
+    columns: list of string
+        Schema for the input document.
+    primary_key: list of string
+        Names of primary key columns. May be None.
+
+    Returns
+    -------
+    list of int
+    """
+    # Return None if the list of primary key columns is None or empty.
+    if not primary_key:
+        return None
+    # Ensure that the primary key is a list.
+    primary_key = primary_key if isinstance(primary_key, list) else [primary_key]
+    # Get the identifiable columns for the document schema. Create a mapping
+    # from the column name to the identifier(s).
+    schema, _ = ArchiveSchema().merge(columns=columns, version=0)
+    columns = defaultdict(list)
+    for col in schema.at_version(0):
+        columns[col].append(col.colid)
+    # Generate the list of primary key column identifier.
+    pk = list()
+    for name in primary_key:
+        col = columns.get(name)
+        if not col:
+            raise ValueError("unknown column '{}'".format(col))
+        elif len(col) > 1:
+            raise ValueError("not a unique key column '{}'".format(col))
+        pk.append(col[0])
+    return pk
+
 
 def to_document(doc: InputDocument) -> Union[Document, InputStream]:
     """Ensure that a given input document is either an instance of class

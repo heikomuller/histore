@@ -9,7 +9,7 @@
 
 import pytest
 
-from histore.archive.manager.base import get_key_columns
+from histore.archive.base import get_key_columns
 from histore.document.schema import Column
 
 
