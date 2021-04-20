@@ -1,0 +1,404 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>histore.archive.row module &mdash; History Store for Data Frames 0.4.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="histore.archive.schema module" href="histore.archive.schema.html" />
+    <link rel="prev" title="histore.archive.reader module" href="histore.archive.reader.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> History Store for Data Frames
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">HISTORE - Data Frame History Store</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documents.html">Snapshot Documents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialize.html">Json Serialization of Archives</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">histore</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="histore.html">histore package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="histore.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="histore.archive.html">histore.archive package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.cli.html">histore.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.document.html">histore.document package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.tests.html">histore.tests package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="histore.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">History Store for Data Frames</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="modules.html">histore</a> &raquo;</li>
+        
+          <li><a href="histore.html">histore package</a> &raquo;</li>
+        
+          <li><a href="histore.archive.html">histore.archive package</a> &raquo;</li>
+        
+      <li>histore.archive.row module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/source/api/histore.archive.row.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-histore.archive.row">
+<span id="histore-archive-row-module"></span><h1>histore.archive.row module<a class="headerlink" href="#module-histore.archive.row" title="Permalink to this headline">¶</a></h1>
+<p>Rows in an archived dataset. Each row has a timestamp, the index positions
+of the row in the history of the dataset, and the cell values in the row
+history.</p>
+<dl class="py class">
+<dt id="histore.archive.row.ArchiveRow">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.archive.row.</span></code><code class="sig-name descname"><span class="pre">ArchiveRow</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rowid</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="histore.key.html#histore.key.KeyValue" title="histore.key.KeyValue"><span class="pre">histore.key.KeyValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="histore.archive.value.html#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue"><span class="pre">histore.archive.value.ArchiveValue</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">cells</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="histore.archive.value.html#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue"><span class="pre">histore.archive.value.ArchiveValue</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="histore.archive.timestamp.html#histore.archive.timestamp.Timestamp" title="histore.archive.timestamp.Timestamp"><span class="pre">histore.archive.timestamp.Timestamp</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.row.ArchiveRow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Each row in an archived dataset has a unique row identifier. The row
+maintains the history of index positions that it had, and the history of
+all cell values.</p>
+<dl class="py method">
+<dt id="histore.archive.row.ArchiveRow.at_version">
+<code class="sig-name descname"><span class="pre">at_version</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raise_error</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#histore.archive.row.ArchiveRow.at_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get cell values and the index position for the row in the given
+version of the dataset. Returns the index position of the row and a
+list of cell values for all columns in the given list. The order of
+returned values matches the order of columns in the argument.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> (<em>int</em>) – Unique version identifier.</p></li>
+<li><p><strong>columns</strong> (<em>list(int)</em>) – List of columns for which values are returned at the given version.</p></li>
+<li><p><strong>raise_error</strong> (<em>bool, default=True</em>) – Flag that determines the behavior for cases where there is no value
+for the given version. If the flag is True an error is raised. If
+the flag is False None is returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>int, list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.row.ArchiveRow.comp">
+<code class="sig-name descname"><span class="pre">comp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="histore.key.html#histore.key.KeyValue" title="histore.key.KeyValue"><span class="pre">histore.key.KeyValue</span></a><span class="p"><span class="pre">,</span> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="histore.key.html#histore.key.KeyValue" title="histore.key.KeyValue"><span class="pre">histore.key.KeyValue</span></a><span class="p"><span class="pre">,</span> </span><span class="p"><span class="pre">…</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.row.ArchiveRow.comp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compare the identifier of the archive row to the given row key. The
+result is:</p>
+<ul class="simple">
+<li><dl class="simple">
+<dt>-1 if the archive key is lower that the given key or if the given</dt><dd><p>key is None,</p>
+</dd>
+</dl>
+</li>
+<li><p>0 if both keys are equal, or</p></li>
+<li><p>1 if the archive key is greater than the given key.</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>key</strong> (<em>histore.key.KeyValue, or tuple</em>) – Key value of a document row.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.row.ArchiveRow.diff">
+<code class="sig-name descname"><span class="pre">diff</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="histore.archive.provenance.base.html#histore.archive.provenance.base.ProvOp" title="histore.archive.provenance.base.ProvOp"><span class="pre">histore.archive.provenance.base.ProvOp</span></a><a class="headerlink" href="#histore.archive.row.ArchiveRow.diff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get provenance information representing the difference for this
+row between the original version and a new version.</p>
+<p>The three main types of changes that the row can experience are:</p>
+<ul class="simple">
+<li><p>InsertRow: The row did not exists in the original version but in the
+new version.</p></li>
+<li><p>DeleteRow: The row did exist in the original version but not in the
+new version.</p></li>
+<li><dl class="simple">
+<dt>UpdateRow: Row updates can be comprised of two types of changes:</dt><dd><ol class="lowerroman simple">
+<li><p>The row position changed</p></li>
+<li><p>One or more row values were updated</p></li>
+</ol>
+</dd>
+</dl>
+</li>
+</ul>
+<p>If the row has no changes between both versions the result is None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>original_version</strong> (<em>int</em>) – Unique identifier for the original version.</p></li>
+<li><p><strong>new_version</strong> (<em>int</em>) – Unique identifier for the version that the original version is
+compared against.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>histore.archive.provenance.row.RowOp</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.row.ArchiveRow.extend">
+<code class="sig-name descname"><span class="pre">extend</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.row.ArchiveRow" title="histore.archive.row.ArchiveRow"><span class="pre">histore.archive.row.ArchiveRow</span></a><a class="headerlink" href="#histore.archive.row.ArchiveRow.extend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extend the timestamp of the row and all cell values and the index
+position that were valid at the given version of origin.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> (<em>int</em>) – Unique identifier of the new version.</p></li>
+<li><p><strong>origin</strong> (<em>int</em>) – Identifier of the version of origin.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.row.ArchiveRow" title="histore.archive.row.ArchiveRow">histore.archive.row.ArchiveRow</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.row.ArchiveRow.merge">
+<code class="sig-name descname"><span class="pre">merge</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Dict</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pos</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.row.ArchiveRow" title="histore.archive.row.ArchiveRow"><span class="pre">histore.archive.row.ArchiveRow</span></a><a class="headerlink" href="#histore.archive.row.ArchiveRow.merge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new version of the dataset row for a given set of cell
+values and a specified index position.</p>
+<p>Values is a dictionary that maps column identifier to cell values in
+the new row. Columns that are not present in the dictionary have been
+deleted.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>values</strong> (<em>dict</em>) – Cell values in the new row. The dictionary is a mapping from column
+identifier to cell values.</p></li>
+<li><p><strong>pos</strong> (<em>int</em>) – Index position of the row in the dataset snapshot.</p></li>
+<li><p><strong>version</strong> (<em>int</em>) – Identifier of the new row version.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.row.ArchiveRow" title="histore.archive.row.ArchiveRow">histore.archive.row.ArchiveRow</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.row.ArchiveRow.rollback">
+<code class="sig-name descname"><span class="pre">rollback</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.row.ArchiveRow" title="histore.archive.row.ArchiveRow"><span class="pre">histore.archive.row.ArchiveRow</span></a><a class="headerlink" href="#histore.archive.row.ArchiveRow.rollback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rollback the timestamps of the row.</p>
+<p>Truncates the timestamp of all cell values and the row positions.
+Returns a new row or None if the row did not exist prior or at the
+given rollback version.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>version</strong> (<em>int</em>) – Unique identifier of the rollback version.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.row.ArchiveRow" title="histore.archive.row.ArchiveRow">histore.archive.row.ArchiveRow</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="histore.archive.schema.html" class="btn btn-neutral float-right" title="histore.archive.schema module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="histore.archive.reader.html" class="btn btn-neutral float-left" title="histore.archive.reader module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020-2021, Heiko Mueller.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

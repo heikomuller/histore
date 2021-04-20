@@ -1,0 +1,300 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>HISTORE - Data Frame History Store &mdash; History Store for Data Frames 0.4.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Snapshot Documents" href="documents.html" />
+    <link rel="prev" title="Welcome to History Store for Data Frames’s documentation!" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> History Store for Data Frames
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">HISTORE - Data Frame History Store</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#examples">Examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#example-using-volatile-archive">Example using Volatile Archive</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#example-using-persistent-archive">Example using Persistent Archive</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="documents.html">Snapshot Documents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="serialize.html">Json Serialization of Archives</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/modules.html">histore</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">History Store for Data Frames</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>HISTORE - Data Frame History Store</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../_sources/source/readme.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="histore-data-frame-history-store">
+<h1>HISTORE - Data Frame History Store<a class="headerlink" href="#histore-data-frame-history-store" title="Permalink to this headline">¶</a></h1>
+<p><strong>History Store</strong> (HISTORE) is a Pyhton package for maintaining snapshots of evolving data sets. This package provides an implementation of the core functionality that was implemented in the <a class="reference external" href="http://xarch.sourceforge.net/">XML Archiver (XArch)</a>. The package is a lightweight implementation that is intended for maintaining data set snapshots that are represented as pandas data frames.</p>
+<p><strong>HISTORE</strong> is based on a nested merge approach that efficiently stores multiple dataset snapshots in a compact archive <a class="reference external" href="https://dl.acm.org/citation.cfm?id=974752">[Buneman, Khanna, Tajima, Tan. 2004]</a>. The library allows one to create new archives, to merge new data set snapshots into an existing archive, and to retrieve data set snapshots from the archive.</p>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>Install <code class="docutils literal notranslate"><span class="pre">histore</span></code> from the  <a class="reference external" href="https://pypi.org/">Python Package Index (PyPI)</a> using <code class="docutils literal notranslate"><span class="pre">pip</span></code> with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip install histore
+</pre></div>
+</div>
+</div>
+<div class="section" id="examples">
+<h2>Examples<a class="headerlink" href="#examples" title="Permalink to this headline">¶</a></h2>
+<p><strong>HISTORE</strong> maintains data set versions (snapshots) in an archive. A separate archive is created for each data set. The package currently provides two different types of archive: a volatile archive that maintains all data set snapshots in main-memory and a persistent archive that writes data set snapshots to disk.</p>
+<div class="section" id="example-using-volatile-archive">
+<h3>Example using Volatile Archive<a class="headerlink" href="#example-using-volatile-archive" title="Permalink to this headline">¶</a></h3>
+<p>Start by creating a new archive. For each archive, a optional primary key (list of column names) can be specified. If a primary key is given, the values in the key attributes are used as row keys when data set snapshots are merged into the archive. If no primary key is specified the row index of the data frame is used to match rows during the merge phase.</p>
+<p>For archives that have a primary key, the initial dataset snapshot (or at least the dataset schema) needs to be given when creating the archive.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span> <span class="c1"># Create a new archive that merges snapshots</span>
+ <span class="c1"># based on a primary key attribute</span>
+
+ <span class="kn">import</span> <span class="nn">histore</span> <span class="k">as</span> <span class="nn">hs</span>
+ <span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="c1"># First version</span>
+ <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+     <span class="n">data</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;Alice&#39;</span><span class="p">,</span> <span class="mi">32</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;Bob&#39;</span><span class="p">,</span> <span class="mi">45</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;Claire&#39;</span><span class="p">,</span> <span class="mi">27</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;Dave&#39;</span><span class="p">,</span> <span class="mi">23</span><span class="p">]],</span>
+     <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="s1">&#39;Age&#39;</span><span class="p">]</span>
+ <span class="p">)</span>
+ <span class="n">archive</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">Archive</span><span class="p">(</span><span class="n">doc</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="n">descriptor</span><span class="o">=</span><span class="n">hs</span><span class="o">.</span><span class="n">Descriptor</span><span class="p">(</span><span class="s1">&#39;First snapshot&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>Add the first two data set versions to the archive:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Second version: Change age for Alice and Bob</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span>
+    <span class="n">data</span><span class="o">=</span><span class="p">[[</span><span class="s1">&#39;Alice&#39;</span><span class="p">,</span> <span class="mi">33</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;Bob&#39;</span><span class="p">,</span> <span class="mi">44</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;Claire&#39;</span><span class="p">,</span> <span class="mi">27</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;Dave&#39;</span><span class="p">,</span> <span class="mi">23</span><span class="p">]],</span>
+    <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">,</span> <span class="s1">&#39;Age&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="n">archive</span><span class="o">.</span><span class="n">commit</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">descriptor</span><span class="o">=</span><span class="n">hs</span><span class="o">.</span><span class="n">Descriptor</span><span class="p">(</span><span class="s1">&#39;Alice is 33 and Bob 44&#39;</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>List information about all snapshots in the archive. This also shows how to use the checkout method to retrieve a particular data set version:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Print all data frame versions</span>
+<span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">archive</span><span class="o">.</span><span class="n">snapshots</span><span class="p">():</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">archive</span><span class="o">.</span><span class="n">checkout</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">version</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;(</span><span class="si">{}</span><span class="s1">) </span><span class="si">{}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">version</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">description</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The result should look like this:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp gp-VirtualEnv">(0)</span> <span class="go">First snapshot</span>
+
+<span class="go">     Name  Age</span>
+<span class="go">0   Alice   32</span>
+<span class="go">1     Bob   45</span>
+<span class="go">2  Claire   27</span>
+<span class="go">3    Dave   23</span>
+
+<span class="gp gp-VirtualEnv">(1)</span> <span class="go">Alice is 33 and Bob 44</span>
+
+<span class="go">     Name  Age</span>
+<span class="go">0   Alice   33</span>
+<span class="go">1     Bob   44</span>
+<span class="go">2  Claire   27</span>
+<span class="go">3    Dave   23</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="example-using-persistent-archive">
+<h3>Example using Persistent Archive<a class="headerlink" href="#example-using-persistent-archive" title="Permalink to this headline">¶</a></h3>
+<p>To create persistent archive that maintains all data on disk use the <code class="docutils literal notranslate"><span class="pre">PersistentArchive</span></code> class:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">archive</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">PersistentArchive</span><span class="p">(</span><span class="n">basedir</span><span class="o">=</span><span class="s1">&#39;path/to/archive/dir&#39;</span><span class="p">,</span> <span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="n">df</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>The persistent archive maintains the data set snapshots in two files that are created in the directory that is given as the <code class="docutils literal notranslate"><span class="pre">basedir</span></code> argument.</p>
+<p>For more examples see the notebooks in the <a class="reference external" href="https://github.com/heikomuller/histore/tree/pandas/examples">examples folder</a>.</p>
+</div>
+</div>
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="documents.html" class="btn btn-neutral float-right" title="Snapshot Documents" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="../index.html" class="btn btn-neutral float-left" title="Welcome to History Store for Data Frames’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020-2021, Heiko Mueller.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

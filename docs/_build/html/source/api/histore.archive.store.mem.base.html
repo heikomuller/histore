@@ -1,0 +1,370 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>histore.archive.store.mem.base module &mdash; History Store for Data Frames 0.4.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="histore.archive.store.mem.reader module" href="histore.archive.store.mem.reader.html" />
+    <link rel="prev" title="histore.archive.store.mem package" href="histore.archive.store.mem.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> History Store for Data Frames
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">HISTORE - Data Frame History Store</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documents.html">Snapshot Documents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialize.html">Json Serialization of Archives</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">histore</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="histore.html">histore package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="histore.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="histore.archive.html">histore.archive package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.cli.html">histore.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.document.html">histore.document package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.tests.html">histore.tests package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="histore.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">History Store for Data Frames</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="modules.html">histore</a> &raquo;</li>
+        
+          <li><a href="histore.html">histore package</a> &raquo;</li>
+        
+          <li><a href="histore.archive.html">histore.archive package</a> &raquo;</li>
+        
+          <li><a href="histore.archive.store.html">histore.archive.store package</a> &raquo;</li>
+        
+          <li><a href="histore.archive.store.mem.html">histore.archive.store.mem package</a> &raquo;</li>
+        
+      <li>histore.archive.store.mem.base module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/source/api/histore.archive.store.mem.base.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-histore.archive.store.mem.base">
+<span id="histore-archive-store-mem-base-module"></span><h1>histore.archive.store.mem.base module<a class="headerlink" href="#module-histore.archive.store.mem.base" title="Permalink to this headline">¶</a></h1>
+<p>Implementation of a basic archive store that maintains all data in main
+memory. Archive information is not persisted.</p>
+<dl class="py class">
+<dt id="histore.archive.store.mem.base.VolatileArchiveStore">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.archive.store.mem.base.</span></code><code class="sig-name descname"><span class="pre">VolatileArchiveStore</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">primary_key</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.store.mem.base.VolatileArchiveStore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="histore.archive.store.base.html#histore.archive.store.base.ArchiveStore" title="histore.archive.store.base.ArchiveStore"><code class="xref py py-class docutils literal notranslate"><span class="pre">histore.archive.store.base.ArchiveStore</span></code></a></p>
+<p>Archive store that keeps all archive related information in main memory.
+The store is volatile as no information is persisted on disk.</p>
+<dl class="py method">
+<dt id="histore.archive.store.mem.base.VolatileArchiveStore.commit">
+<code class="sig-name descname"><span class="pre">commit</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="histore.archive.schema.html#histore.archive.schema.ArchiveSchema" title="histore.archive.schema.ArchiveSchema"><span class="pre">histore.archive.schema.ArchiveSchema</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="histore.archive.store.mem.writer.html#histore.archive.store.mem.writer.ArchiveBuffer" title="histore.archive.store.mem.writer.ArchiveBuffer"><span class="pre">histore.archive.store.mem.writer.ArchiveBuffer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">snapshots</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="histore.archive.snapshot.html#histore.archive.snapshot.SnapshotListing" title="histore.archive.snapshot.SnapshotListing"><span class="pre">histore.archive.snapshot.SnapshotListing</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.store.mem.base.VolatileArchiveStore.commit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Commit an updated dataset archive.</p>
+<p>The modified components of the archive are given as the three
+arguments of this method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>schema</strong> (<em>histore.archive.schema.ArchiveSchema</em>) – Schema history for the new archive version.</p></li>
+<li><p><strong>writer</strong> (<em>histore.archive.store.mem.writer.ArchiveBuffer</em>) – Buffer containing the modified archive rows.</p></li>
+<li><p><strong>snapshots</strong> (<em>histore.archive.snapshot.SnapshotListing</em>) – Snapshot listing for the modified archive.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.store.mem.base.VolatileArchiveStore.get_reader">
+<code class="sig-name descname"><span class="pre">get_reader</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="histore.archive.store.mem.reader.html#histore.archive.store.mem.reader.BufferedReader" title="histore.archive.store.mem.reader.BufferedReader"><span class="pre">histore.archive.store.mem.reader.BufferedReader</span></a><a class="headerlink" href="#histore.archive.store.mem.base.VolatileArchiveStore.get_reader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the row reader for this archive.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>histore.archive.store.mem.BufferedReader</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.store.mem.base.VolatileArchiveStore.get_schema">
+<code class="sig-name descname"><span class="pre">get_schema</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="histore.archive.schema.html#histore.archive.schema.ArchiveSchema" title="histore.archive.schema.ArchiveSchema"><span class="pre">histore.archive.schema.ArchiveSchema</span></a><a class="headerlink" href="#histore.archive.store.mem.base.VolatileArchiveStore.get_schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the schema history for the archived dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="histore.archive.schema.html#histore.archive.schema.ArchiveSchema" title="histore.archive.schema.ArchiveSchema">histore.archive.schema.ArchiveSchema</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.store.mem.base.VolatileArchiveStore.get_snapshots">
+<code class="sig-name descname"><span class="pre">get_snapshots</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="histore.archive.snapshot.html#histore.archive.snapshot.SnapshotListing" title="histore.archive.snapshot.SnapshotListing"><span class="pre">histore.archive.snapshot.SnapshotListing</span></a><a class="headerlink" href="#histore.archive.store.mem.base.VolatileArchiveStore.get_snapshots" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get listing of all snapshots in the archive.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="histore.archive.snapshot.html#histore.archive.snapshot.SnapshotListing" title="histore.archive.snapshot.SnapshotListing">histore.archive.snapshot.SnapshotListing</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.store.mem.base.VolatileArchiveStore.get_writer">
+<code class="sig-name descname"><span class="pre">get_writer</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="histore.archive.store.mem.writer.html#histore.archive.store.mem.writer.ArchiveBuffer" title="histore.archive.store.mem.writer.ArchiveBuffer"><span class="pre">histore.archive.store.mem.writer.ArchiveBuffer</span></a><a class="headerlink" href="#histore.archive.store.mem.base.VolatileArchiveStore.get_writer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a a new archive buffer to maintain rows for a new archive
+version.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>histore.archive.store.mem.ArchiveBuffer</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.store.mem.base.VolatileArchiveStore.is_empty">
+<code class="sig-name descname"><span class="pre">is_empty</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.store.mem.base.VolatileArchiveStore.is_empty" title="Permalink to this definition">¶</a></dt>
+<dd><p>True if the archive does not contain any snapshots yet.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.store.mem.base.VolatileArchiveStore.primary_key">
+<code class="sig-name descname"><span class="pre">primary_key</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#histore.archive.store.mem.base.VolatileArchiveStore.primary_key" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the list of identifier for the primary key column(s).</p>
+<p>Returns None if the archive is not keyed by a primary key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>list of int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.store.mem.base.VolatileArchiveStore.rollback">
+<code class="sig-name descname"><span class="pre">rollback</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="histore.archive.schema.html#histore.archive.schema.ArchiveSchema" title="histore.archive.schema.ArchiveSchema"><span class="pre">histore.archive.schema.ArchiveSchema</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">writer</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="histore.archive.store.mem.writer.html#histore.archive.store.mem.writer.ArchiveBuffer" title="histore.archive.store.mem.writer.ArchiveBuffer"><span class="pre">histore.archive.store.mem.writer.ArchiveBuffer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.store.mem.base.VolatileArchiveStore.rollback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Store the archive after it has been rolled back to a previous
+version.</p>
+<p>The archive schema and archive writer contain the modified schema and
+rows after the rollback.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>schema</strong> (<em>histore.archive.schema.ArchiveSchema</em>) – Schema history for the previous archive version.</p></li>
+<li><p><strong>writer</strong> (<em>histore.archive.store.mem.writer.ArchiveBuffer</em>) – Instance of the archive writer class returned by this store that
+was used to output the rows of the previous archive version.</p></li>
+<li><p><strong>version</strong> (<em>int</em>) – Unique version identifier for the rollback snapshot.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="histore.archive.store.mem.reader.html" class="btn btn-neutral float-right" title="histore.archive.store.mem.reader module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="histore.archive.store.mem.html" class="btn btn-neutral float-left" title="histore.archive.store.mem package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020-2021, Heiko Mueller.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

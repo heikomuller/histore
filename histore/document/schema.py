@@ -96,8 +96,8 @@ def column_index(schema: Schema, columns: Columns):
     The result is a list of column index positions.
 
     Raises errors if invalid columns positions or unknown column names are
-
     provided.
+
     Parameters
     ----------
     schema: list(string)
@@ -108,6 +108,7 @@ def column_index(schema: Schema, columns: Columns):
     Returns
     -------
     (list, list)
+
     Raises
     ------
     ValueError

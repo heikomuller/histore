@@ -1,0 +1,433 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>histore.archive.timestamp module &mdash; History Store for Data Frames 0.4.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="histore.archive.value module" href="histore.archive.value.html" />
+    <link rel="prev" title="histore.archive.snapshot module" href="histore.archive.snapshot.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> History Store for Data Frames
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">HISTORE - Data Frame History Store</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documents.html">Snapshot Documents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialize.html">Json Serialization of Archives</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">histore</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="histore.html">histore package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="histore.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="histore.archive.html">histore.archive package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.cli.html">histore.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.document.html">histore.document package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.tests.html">histore.tests package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="histore.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">History Store for Data Frames</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="modules.html">histore</a> &raquo;</li>
+        
+          <li><a href="histore.html">histore package</a> &raquo;</li>
+        
+          <li><a href="histore.archive.html">histore.archive package</a> &raquo;</li>
+        
+      <li>histore.archive.timestamp module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/source/api/histore.archive.timestamp.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-histore.archive.timestamp">
+<span id="histore-archive-timestamp-module"></span><h1>histore.archive.timestamp module<a class="headerlink" href="#module-histore.archive.timestamp" title="Permalink to this headline">¶</a></h1>
+<p>Timestamps are sequences of snapshot (version) identifier that define when
+a node was part of the archived document.</p>
+<dl class="py class">
+<dt id="histore.archive.timestamp.TimeInterval">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.archive.timestamp.</span></code><code class="sig-name descname"><span class="pre">TimeInterval</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">start</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">end</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.timestamp.TimeInterval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Interval of integer numbers. Defines that start and end of the interval.
+Ensures that start is lower or equal that end.</p>
+<dl class="py method">
+<dt id="histore.archive.timestamp.TimeInterval.contains">
+<code class="sig-name descname"><span class="pre">contains</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interval</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.timestamp.TimeInterval.contains" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true if this interval contains the given interval or value.</p>
+<p>Raises ValueError if both arguments are None or not None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>interval</strong> (<em>histore.archive.timestamp.TimeInterval, optional</em>) – Interval of version numbers.</p></li>
+<li><p><strong>version</strong> (<em>int, optional</em>) – Single version number</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.timestamp.TimeInterval.is_equal">
+<code class="sig-name descname"><span class="pre">is_equal</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interval</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.timestamp.TimeInterval.is_equal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the two intervals have equal start and end values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>interval</strong> (<em>histore.archive.timestamp.TimeInterval</em>) – Interval of version numbers.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.timestamp.TimeInterval.overlap">
+<code class="sig-name descname"><span class="pre">overlap</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interval</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.timestamp.TimeInterval.overlap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Test if this interval overlaps with the given interval. To intervals
+overlap if they have at least one version in common.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>interval</strong> (<em>histore.archive.timestamp.TimeInterval</em>) – Interval of version numbers.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="histore.archive.timestamp.Timestamp">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.archive.timestamp.</span></code><code class="sig-name descname"><span class="pre">Timestamp</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">intervals</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#histore.archive.timestamp.TimeInterval" title="histore.archive.timestamp.TimeInterval"><span class="pre">histore.archive.timestamp.TimeInterval</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.timestamp.Timestamp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A timestamp is a sequence of integer numbers represented as a list of
+integer intervals.</p>
+<dl class="py method">
+<dt id="histore.archive.timestamp.Timestamp.append">
+<code class="sig-name descname"><span class="pre">append</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.timestamp.Timestamp" title="histore.archive.timestamp.Timestamp"><span class="pre">histore.archive.timestamp.Timestamp</span></a><a class="headerlink" href="#histore.archive.timestamp.Timestamp.append" title="Permalink to this definition">¶</a></dt>
+<dd><p>Append the given version to the timestamp. Returns a new modified
+timestamp. Raises ValueError if the given value is lower or equal to
+the last version in the sequence.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>version</strong> (<em>int</em>) – Version identifier.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.timestamp.Timestamp" title="histore.archive.timestamp.Timestamp">histore.archive.timestamp.Timestamp</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.timestamp.Timestamp.contains">
+<code class="sig-name descname"><span class="pre">contains</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.archive.timestamp.Timestamp.contains" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the timestamp contains the given value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>version</strong> (<em>int</em>) – Version identifier.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.timestamp.Timestamp.from_string">
+<em class="property"><span class="pre">static</span> </em><code class="sig-name descname"><span class="pre">from_string</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.timestamp.Timestamp" title="histore.archive.timestamp.Timestamp"><span class="pre">histore.archive.timestamp.Timestamp</span></a><a class="headerlink" href="#histore.archive.timestamp.Timestamp.from_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a timestamp instance from a string representation as
+generated by the __str__ method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>text</strong> (<em>string</em>)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.timestamp.Timestamp" title="histore.archive.timestamp.Timestamp">histore.archive.timestamp.Timestamp</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.timestamp.Timestamp.is_empty">
+<code class="sig-name descname"><span class="pre">is_empty</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.archive.timestamp.Timestamp.is_empty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the timestamp is empty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.timestamp.Timestamp.is_equal">
+<code class="sig-name descname"><span class="pre">is_equal</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#histore.archive.timestamp.Timestamp" title="histore.archive.timestamp.Timestamp"><span class="pre">histore.archive.timestamp.Timestamp</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.archive.timestamp.Timestamp.is_equal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True if the two timestamps are equal, i.e., represent the
+same sequence of snapshots. Given that intervals cannot be consecutive,
+equality means (i) same number of intervals, and (ii) corresponding
+intervals have same start/end values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>timestamp</strong> (<em>histore.archive.timestamp.Timestamp</em>)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.timestamp.Timestamp.last_version">
+<code class="sig-name descname"><span class="pre">last_version</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">int</span><a class="headerlink" href="#histore.archive.timestamp.Timestamp.last_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the last version in the timestamp. If the timestamp is empty the
+result is None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.timestamp.Timestamp.rollback">
+<code class="sig-name descname"><span class="pre">rollback</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.timestamp.Timestamp" title="histore.archive.timestamp.Timestamp"><span class="pre">histore.archive.timestamp.Timestamp</span></a><a class="headerlink" href="#histore.archive.timestamp.Timestamp.rollback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove all versions after the given version from the timestamp.</p>
+<p>Returns a modifed timestamp.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>version</strong> (<em>int</em>) – Last version in the rolled back timestamp. The result will not
+contain version numbers that are greater than the given version.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.timestamp.Timestamp" title="histore.archive.timestamp.Timestamp">histore.archive.timestamp.Timestamp</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="histore.archive.value.html" class="btn btn-neutral float-right" title="histore.archive.value module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="histore.archive.snapshot.html" class="btn btn-neutral float-left" title="histore.archive.snapshot module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020-2021, Heiko Mueller.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -89,9 +89,8 @@ class ArchiveColumn(object):
         - DeleteColumn: The column did exist in the original version but not in
           the new version.
         - UpdateColumn: Column updates can be comprised of two types of
-          changes:
-            (i) The column position changed
-            (ii) The column name changed
+          changes: (i) The column position changed, or (ii) the column name
+          changed.
 
         If the column has no changes between both versions the result is None.
 

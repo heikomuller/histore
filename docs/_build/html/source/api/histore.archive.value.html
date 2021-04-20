@@ -1,0 +1,623 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>histore.archive.value module &mdash; History Store for Data Frames 0.4.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="histore.archive.writer module" href="histore.archive.writer.html" />
+    <link rel="prev" title="histore.archive.timestamp module" href="histore.archive.timestamp.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> History Store for Data Frames
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">HISTORE - Data Frame History Store</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documents.html">Snapshot Documents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialize.html">Json Serialization of Archives</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">histore</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="histore.html">histore package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="histore.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="histore.archive.html">histore.archive package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.cli.html">histore.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.document.html">histore.document package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.tests.html">histore.tests package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="histore.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">History Store for Data Frames</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="modules.html">histore</a> &raquo;</li>
+        
+          <li><a href="histore.html">histore package</a> &raquo;</li>
+        
+          <li><a href="histore.archive.html">histore.archive package</a> &raquo;</li>
+        
+      <li>histore.archive.value module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/source/api/histore.archive.value.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-histore.archive.value">
+<span id="histore-archive-value-module"></span><h1>histore.archive.value module<a class="headerlink" href="#module-histore.archive.value" title="Permalink to this headline">¶</a></h1>
+<p>Values in a database archive. Represent cells in dataset rows as well as
+information about the dataset schema (i.e., column name and position). Archived
+values may either have multiple timestamped values, e.g., the different values
+in a row cell over the history of the data set, or there is only one single
+value, e.g., if the cell never changed over the history of the dataset.</p>
+<dl class="py class">
+<dt id="histore.archive.value.ArchiveValue">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.archive.value.</span></code><code class="sig-name descname"><span class="pre">ArchiveValue</span></code><a class="headerlink" href="#histore.archive.value.ArchiveValue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>The archive value represents the history of a cell in a tabular dataset.</p>
+<dl class="py method">
+<dt id="histore.archive.value.ArchiveValue.at_version">
+<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">at_version</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raise_error</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.value.ArchiveValue.at_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get cell value for the given version. Raises ValueError if the cell
+does not have a value for the given version and the raise error flag is
+set tot True. If the flag is false None is returned instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> (<em>int</em>) – Unique version identifier.</p></li>
+<li><p><strong>raise_error</strong> (<em>bool, default=True</em>) – Flag that determines the behavior for cases where there is no value
+for the given version. If the flag is True an error is raised. If
+the flag is False None is returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>scalar</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.ArchiveValue.diff">
+<code class="sig-name descname"><span class="pre">diff</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="histore.archive.provenance.value.html#histore.archive.provenance.value.UpdateValue" title="histore.archive.provenance.value.UpdateValue"><span class="pre">histore.archive.provenance.value.UpdateValue</span></a><a class="headerlink" href="#histore.archive.value.ArchiveValue.diff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get provenance information representing the difference for this
+value between the original version and a new version. If the value
+was the same for both versions the result is None.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>original_version</strong> (<em>int</em>) – Unique identifier for the original version.</p></li>
+<li><p><strong>new_version</strong> (<em>int</em>) – Unique identifier for the version that the original version is
+compared against.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="histore.archive.provenance.value.html#histore.archive.provenance.value.UpdateValue" title="histore.archive.provenance.value.UpdateValue">histore.archive.provenance.value.UpdateValue</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.ArchiveValue.extend">
+<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">extend</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue"><span class="pre">histore.archive.value.ArchiveValue</span></a><a class="headerlink" href="#histore.archive.value.ArchiveValue.extend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extend the timestamp of the value that was valid at the given source
+version with the new version identifier. If no value was valid at the
+given version of origin the value is returned unchanged.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> (<em>int</em>) – Unique identifier of the new version.</p></li>
+<li><p><strong>origin</strong> (<em>int</em>) – Unique identifier of the version for which the valid values
+timestamp is being extended.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue">histore.archive.value.ArchiveValue</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.ArchiveValue.is_multi_version">
+<code class="sig-name descname"><span class="pre">is_multi_version</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.archive.value.ArchiveValue.is_multi_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper method to get the type of an archive value. Values can either
+be single version values or multi-version values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.ArchiveValue.is_single_version">
+<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">is_single_version</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.archive.value.ArchiveValue.is_single_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper method to get the type of an archive value. Values can either
+be single version values or multi-version values.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.ArchiveValue.merge">
+<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">merge</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue"><span class="pre">histore.archive.value.ArchiveValue</span></a><a class="headerlink" href="#histore.archive.value.ArchiveValue.merge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add value for the given version into the cell history. Returns a
+modified copy of the value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>scalar</em>) – Scalar cell value.</p></li>
+<li><p><strong>version</strong> (<em>int</em>) – Unique version identifier.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>hisotre.archive.value.ArchiveValue</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.ArchiveValue.rollback">
+<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">rollback</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue"><span class="pre">histore.archive.value.ArchiveValue</span></a><a class="headerlink" href="#histore.archive.value.ArchiveValue.rollback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rollback the timestamps of all value(s) that were valid at or before
+the given version.</p>
+<p>The operation is used when rolling back an archive to a given version.
+This will remove all value versions from the value history that only
+existsed after the given version.</p>
+<p>Returns a new value. The result is None if the value did not exists at
+all at or before the given version.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>version</strong> (<em>int</em>) – Unique identifier of the rollback version.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue">histore.archive.value.ArchiveValue</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="histore.archive.value.MultiVersionValue">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.archive.value.</span></code><code class="sig-name descname"><span class="pre">MultiVersionValue</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">values</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#histore.archive.value.SingleVersionValue" title="histore.archive.value.SingleVersionValue"><span class="pre">histore.archive.value.SingleVersionValue</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.value.MultiVersionValue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">histore.archive.value.ArchiveValue</span></code></a></p>
+<p>A multi-versiond archive value has multiple different values over the
+history of the dataset. Each value is associated with its own timestamp.</p>
+<dl class="py method">
+<dt id="histore.archive.value.MultiVersionValue.at_version">
+<code class="sig-name descname"><span class="pre">at_version</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raise_error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.value.MultiVersionValue.at_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get value for the given version. Raises ValueError if the value does
+not have an entry that was valid for the given version.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> (<em>int</em>) – Unique version identifier.</p></li>
+<li><p><strong>raise_error</strong> (<em>bool, default=True</em>) – Flag that determines the behavior for cases where there is no value
+for the given version. If the flag is True an error is raised. If
+the flag is False None is returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>scalar</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.MultiVersionValue.extend">
+<code class="sig-name descname"><span class="pre">extend</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.value.MultiVersionValue.extend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extend the timestamp of the value that was valid at the given source
+version with the new version identifier. If no value was valid at the
+given version of origin the value is returned unchanged.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> (<em>int</em>) – Unique identifier of the new version.</p></li>
+<li><p><strong>origin</strong> (<em>int</em>) – Unique identifier of the version for which the valid values
+timestamp is being extended.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue">histore.archive.value.ArchiveValue</a></p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.MultiVersionValue.is_single_version">
+<code class="sig-name descname"><span class="pre">is_single_version</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.value.MultiVersionValue.is_single_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return False for the single version value class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.MultiVersionValue.merge">
+<code class="sig-name descname"><span class="pre">merge</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.value.MultiVersionValue.merge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add value for the given version into the cell history. Returns a
+modified copy of the value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>scalar</em>) – Scalar cell value.</p></li>
+<li><p><strong>version</strong> (<em>int</em>) – Unique version identifier.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>hisotre.archive.value.MultiVersionValue</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.MultiVersionValue.rollback">
+<code class="sig-name descname"><span class="pre">rollback</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue"><span class="pre">histore.archive.value.ArchiveValue</span></a><a class="headerlink" href="#histore.archive.value.MultiVersionValue.rollback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Truncate the timestamps of all value(s) that were valid at or before
+the given version.</p>
+<p>Returns a new value or None if none of the value versions existed at or
+before the rollback version.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>version</strong> (<em>int</em>) – Unique identifier of the rollback version.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue">histore.archive.value.ArchiveValue</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="histore.archive.value.SingleVersionValue">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.archive.value.</span></code><code class="sig-name descname"><span class="pre">SingleVersionValue</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="histore.archive.timestamp.html#histore.archive.timestamp.Timestamp" title="histore.archive.timestamp.Timestamp"><span class="pre">histore.archive.timestamp.Timestamp</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_timestamp</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.value.SingleVersionValue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue"><code class="xref py py-class docutils literal notranslate"><span class="pre">histore.archive.value.ArchiveValue</span></code></a></p>
+<p>Single archive value that has never changed over to history of the
+dataset that contains it.</p>
+<dl class="py method">
+<dt id="histore.archive.value.SingleVersionValue.at_version">
+<code class="sig-name descname"><span class="pre">at_version</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raise_error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.value.SingleVersionValue.at_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get value for the given version. If the given version is not
+included in the timestamp of the value an error is raised (if the raise
+error flag is True) or None is returned (otherwise).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> (<em>int</em>) – Unique version identifier.</p></li>
+<li><p><strong>raise_error</strong> (<em>bool, default=True</em>) – Flag that determines the behavior for cases where there is no value
+for the given version. If the flag is True an error is raised. If
+the flag is False None is returned.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>scalar</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.SingleVersionValue.extend">
+<code class="sig-name descname"><span class="pre">extend</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">origin</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.value.SingleVersionValue.extend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extend the timestamp of the value with the given version identifier.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> (<em>int</em>) – Unique identifier of the new version.</p></li>
+<li><p><strong>origin</strong> (<em>int, default=None</em>) – Unique identifier of the version for which the valid values
+timestamp is being extended.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue">histore.archive.value.ArchiveValue</a></p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.SingleVersionValue.is_single_version">
+<code class="sig-name descname"><span class="pre">is_single_version</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.value.SingleVersionValue.is_single_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True for the single version value class.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.SingleVersionValue.merge">
+<code class="sig-name descname"><span class="pre">merge</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.value.SingleVersionValue.merge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add value for the given version into the cell history. Depending on
+whether the value is different from previous cell value this either
+returns the current object itself with an extended timestamp or a new
+multi-valued object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>scalar</em>) – Scalar cell value.</p></li>
+<li><p><strong>version</strong> (<em>int</em>) – Unique version identifier.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>hisotre.archive.value.ArchiveValue</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.value.SingleVersionValue.rollback">
+<code class="sig-name descname"><span class="pre">rollback</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue"><span class="pre">histore.archive.value.ArchiveValue</span></a><a class="headerlink" href="#histore.archive.value.SingleVersionValue.rollback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Truncate the timestamp of this value to the given version.</p>
+<p>Returns a modified value or None if the value did not exist at or prior
+to the given version (i.e., the truncated timestamp is empty).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>version</strong> (<em>int</em>) – Unique identifier of the rollback version.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.value.ArchiveValue" title="histore.archive.value.ArchiveValue">histore.archive.value.ArchiveValue</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="histore.archive.writer.html" class="btn btn-neutral float-right" title="histore.archive.writer module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="histore.archive.timestamp.html" class="btn btn-neutral float-left" title="histore.archive.timestamp module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020-2021, Heiko Mueller.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

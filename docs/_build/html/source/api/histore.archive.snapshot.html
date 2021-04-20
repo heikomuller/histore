@@ -1,0 +1,421 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
+  <title>histore.archive.snapshot module &mdash; History Store for Data Frames 0.4.0 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="histore.archive.timestamp module" href="histore.archive.timestamp.html" />
+    <link rel="prev" title="histore.archive.schema module" href="histore.archive.schema.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> History Store for Data Frames
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../readme.html">HISTORE - Data Frame History Store</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../documents.html">Snapshot Documents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../serialize.html">Json Serialization of Archives</a></li>
+</ul>
+<p class="caption"><span class="caption-text">API Reference:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">histore</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="histore.html">histore package</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="histore.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="histore.archive.html">histore.archive package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.cli.html">histore.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.document.html">histore.document package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="histore.tests.html">histore.tests package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="histore.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">History Store for Data Frames</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="modules.html">histore</a> &raquo;</li>
+        
+          <li><a href="histore.html">histore package</a> &raquo;</li>
+        
+          <li><a href="histore.archive.html">histore.archive package</a> &raquo;</li>
+        
+      <li>histore.archive.snapshot module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="../../_sources/source/api/histore.archive.snapshot.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-histore.archive.snapshot">
+<span id="histore-archive-snapshot-module"></span><h1>histore.archive.snapshot module<a class="headerlink" href="#module-histore.archive.snapshot" title="Permalink to this headline">¶</a></h1>
+<p>Classes to maintain information about dataset snapshots in an archive.</p>
+<dl class="py class">
+<dt id="histore.archive.snapshot.Snapshot">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.archive.snapshot.</span></code><code class="sig-name descname"><span class="pre">Snapshot</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">valid_time</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">datetime.datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">transaction_time</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">datetime.datetime</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">action</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.snapshot.Snapshot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="histore.document.base.html#histore.document.base.InputDescriptor" title="histore.document.base.InputDescriptor"><code class="xref py py-class docutils literal notranslate"><span class="pre">histore.document.base.InputDescriptor</span></code></a></p>
+<p>Descriptor for archive snapshots. Contains all the meta-data about a
+single snapshot in a dataset archive.</p>
+<dl class="py method">
+<dt id="histore.archive.snapshot.Snapshot.created_at">
+<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">created_at</span></code><a class="headerlink" href="#histore.archive.snapshot.Snapshot.created_at" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shortcut for transaction timestamp.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>datetime.datetime</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="histore.archive.snapshot.SnapshotListing">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.archive.snapshot.</span></code><code class="sig-name descname"><span class="pre">SnapshotListing</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">snapshots</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#histore.archive.snapshot.Snapshot" title="histore.archive.snapshot.Snapshot"><span class="pre">histore.archive.snapshot.Snapshot</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.snapshot.SnapshotListing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Listing of snapshot descriptors for snapshots in an archive. Ensures
+that the order of snapshots reflects the order of their version numbers
+and valid times.</p>
+<dl class="py method">
+<dt id="histore.archive.snapshot.SnapshotListing.append">
+<code class="sig-name descname"><span class="pre">append</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">descriptor</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="histore.document.base.html#histore.document.base.InputDescriptor" title="histore.document.base.InputDescriptor"><span class="pre">histore.document.base.InputDescriptor</span></a><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.snapshot.SnapshotListing" title="histore.archive.snapshot.SnapshotListing"><span class="pre">histore.archive.snapshot.SnapshotListing</span></a><a class="headerlink" href="#histore.archive.snapshot.SnapshotListing.append" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a new version to the given listing. This will return a modified
+version listing with the new snapshot as the last element.</p>
+<p>Ensures that the version identifier matches the value that is returned
+by the next_version method. If this is not the case a ValueError will
+be raised. If the valid time is not given the transaction time is used
+as valid time.</p>
+<p>Raises a valueError if the new snapshot violates the order of valid
+times in the list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> (<em>int</em>) – Unique version identifier for the new snapshot.</p></li>
+<li><p><strong>descriptor</strong> (<em>histore.document.base.InputDescriptor, default=None</em>) – Descriptor for the input document that created the snapshot.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.snapshot.SnapshotListing" title="histore.archive.snapshot.SnapshotListing">histore.archive.snapshot.SnapshotListing</a></p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>ValueError</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.snapshot.SnapshotListing.at_time">
+<code class="sig-name descname"><span class="pre">at_time</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ts</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">datetime.datetime</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.snapshot.Snapshot" title="histore.archive.snapshot.Snapshot"><span class="pre">histore.archive.snapshot.Snapshot</span></a><a class="headerlink" href="#histore.archive.snapshot.SnapshotListing.at_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the snapshot that was valid at the given time. A snapshot is
+considered valid starting at its valit_time until the next timestamp.
+The last snapshot in the list is considered valid until infinity.</p>
+<p>Returns None if the given timestamp is before the valid time of the
+first snapshot.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>ts</strong> (<em>datetime.datetime</em>) – Timestamp in UTC time.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.snapshot.Snapshot" title="histore.archive.snapshot.Snapshot">histore.archive.snapshot.Snapshot</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.snapshot.SnapshotListing.get">
+<code class="sig-name descname"><span class="pre">get</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.snapshot.Snapshot" title="histore.archive.snapshot.Snapshot"><span class="pre">histore.archive.snapshot.Snapshot</span></a><a class="headerlink" href="#histore.archive.snapshot.SnapshotListing.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the snapshot for a given version number. Raises a KeyError if
+no snapshot with the given version exists.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>version</strong> (<em>int</em>) – Unique version identifier for the returned snapshot.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.snapshot.Snapshot" title="histore.archive.snapshot.Snapshot">histore.archive.snapshot.Snapshot</a></p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><strong>KeyError</strong> – </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.snapshot.SnapshotListing.has_version">
+<code class="sig-name descname"><span class="pre">has_version</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.archive.snapshot.SnapshotListing.has_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the given version identifier references an existing
+snapshot in the listing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>version</strong> (<em>int</em>) – Unique version identifier.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.snapshot.SnapshotListing.is_empty">
+<code class="sig-name descname"><span class="pre">is_empty</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.archive.snapshot.SnapshotListing.is_empty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shortcut to test if the list of snapshots is empty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.snapshot.SnapshotListing.last_snapshot">
+<code class="sig-name descname"><span class="pre">last_snapshot</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.snapshot.Snapshot" title="histore.archive.snapshot.Snapshot"><span class="pre">histore.archive.snapshot.Snapshot</span></a><a class="headerlink" href="#histore.archive.snapshot.SnapshotListing.last_snapshot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shortcut to get the last snapshot in the list. The result is None if
+the listing is empty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p><a class="reference internal" href="#histore.archive.snapshot.Snapshot" title="histore.archive.snapshot.Snapshot">histore.archive.snapshot.Snapshot</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.snapshot.SnapshotListing.next_version">
+<code class="sig-name descname"><span class="pre">next_version</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">int</span><a class="headerlink" href="#histore.archive.snapshot.SnapshotListing.next_version" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the unique version identifier for the next archive version. This
+operation should not change the internal state. It is assumed that the
+version is used to merge a new archive snapshot. A new snapshot with
+the returned version identifier will be commited (via the append
+method) only if the merge is successful.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.archive.snapshot.SnapshotListing.rollback">
+<code class="sig-name descname"><span class="pre">rollback</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.archive.snapshot.SnapshotListing" title="histore.archive.snapshot.SnapshotListing"><span class="pre">histore.archive.snapshot.SnapshotListing</span></a><a class="headerlink" href="#histore.archive.snapshot.SnapshotListing.rollback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove all snapshots that come after the given version.</p>
+<p>Returns a modified snapshot listing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>version</strong> (<em>int</em>) – Unique identifier for the rollback version.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.archive.snapshot.SnapshotListing" title="histore.archive.snapshot.SnapshotListing">histore.archive.snapshot.SnapshotListing</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+        <a href="histore.archive.timestamp.html" class="btn btn-neutral float-right" title="histore.archive.timestamp module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="histore.archive.schema.html" class="btn btn-neutral float-left" title="histore.archive.schema module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &#169; Copyright 2020-2021, Heiko Mueller.
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

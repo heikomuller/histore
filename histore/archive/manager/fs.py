@@ -121,9 +121,9 @@ class FileSystemArchiveManager(ArchiveManager):
             specification for the serializer. The serializer specification is
             a dictionary with the following elements:
             - ``clspath``: Full package target path for the serializer class
-                           that is instantiated.
+            that is instantiated.
             - ``kwargs`` : Additional arguments that are passed to the
-                           constructor of the created serializer instance.
+            constructor of the created serializer instance.
             Only ``clspath`` is required.
         doc: histore.archive.base.InputDocument, default=None
             Input document representing the initial dataset snapshot that is
