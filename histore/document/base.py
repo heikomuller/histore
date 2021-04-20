@@ -23,8 +23,6 @@ from histore.document.schema import Schema
 
 
 """Type aliases."""
-# Primary key of a dataset.
-PrimaryKey = Union[str, List[str]]
 # Scalar values and dataset rows.
 Scalar = Union[int, float, str, datetime]
 DataRow = List[Scalar]

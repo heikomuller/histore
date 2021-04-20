@@ -31,13 +31,8 @@ def merge_rows(arch_reader, doc_reader, version, writer):
     while arch_row is not None and doc_row is not None:
         comp = arch_row.comp(doc_row.key)
         if comp < 0:
-            # The row is not present in the document. If the document is
-            # a partial document we need to extend the row for the given
-            # origin.
-            if partial:
-                arch_row = arch_row.extend(version=version, origin=origin)
-            # Add the row to the new archive version and progress the
-            # archive reader.
+            # The row is not present in the document. Include the row without
+            # changes to the new archive version and read the next archive row.
             writer.write_archive_row(arch_row)
             arch_row = arch_reader.next()
         elif comp > 0:
@@ -51,9 +46,7 @@ def merge_rows(arch_reader, doc_reader, version, writer):
             arch_row = arch_row.merge(
                 values=doc_row.values,
                 pos=doc_row.pos,
-                version=version,
-                unchanged_cells=unchanged_cells,
-                origin=origin
+                version=version
             )
             # Add the merged row to the new archive version and progress
             # both readers.
@@ -65,9 +58,6 @@ def merge_rows(arch_reader, doc_reader, version, writer):
     # document rows.
     # Add remaining archive rows to the new archive version.
     while arch_row is not None:
-        # Extend the row for the given origin if the document is partial.
-        if partial:
-            arch_row = arch_row.extend(version=version, origin=origin)
         writer.write_archive_row(arch_row)
         arch_row = arch_reader.next()
     # Add remaining document rows to the new archive version.

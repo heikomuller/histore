@@ -10,31 +10,36 @@
 import pandas as pd
 
 from histore.archive.base import Archive
+from histore.archive.store.fs.base import ArchiveFileStore
+from histore.archive.store.mem.base import VolatileArchiveStore
 from histore.document.schema import Column
-from histore.document.stream import StreamOperator
+from histore.document.operator import DatasetOperator
 
 
-class FuncOp(StreamOperator):
-    def __init__(self, columns, func):
-        super(FuncOp, self).__init__(columns=columns)
+class FuncOp(DatasetOperator):
+    def __init__(self, columns, func, description=None, action=None):
+        super(FuncOp, self).__init__(
+            columns=columns,
+            description=description,
+            action=action
+        )
         self.func = func
-
-    def action(self):
-        return None
 
     def eval(self, rowid, row):
         return self.func(row)
 
 
-def test_archive_apply():
+DATASET = pd.DataFrame(
+    data=[['Alice', 32], ['Bob', 45], ['Claire', 27], ['Dave', 23]],
+    columns=['Name', 'Age']
+)
+
+
+def test_archive_apply(tmpdir):
     """Test applying a sequence of operators on an archive."""
     # -- Setup ----------------------------------------------------------------
     archive = Archive()
-    df = pd.DataFrame(
-        data=[['Alice', 32], ['Bob', 45], ['Claire', 27], ['Dave', 23]],
-        columns=['Name', 'Age']
-    )
-    archive.commit(df)
+    archive.commit(DATASET)
     # -- Increment age --------------------------------------------------------
 
     def inc_age(row):
@@ -99,13 +104,18 @@ def test_archive_apply():
     columns = [Column(colid=columns[0].colid, name='Person')] + columns[1:]
     operators.append(FuncOp(columns=columns, func=rm_claire))
     operators.append(FuncOp(columns=columns, func=name_upper))
-    snapshots = archive.apply(operators=operators)
-    df = archive.checkout(version=snapshots[0].version)
-    assert list(df['Age']) == [33, 46, 28, 24]
-    df = archive.checkout(version=snapshots[1].version)
-    assert list(df['Age']) == [33, 46, 28, 24]
-    assert list(df['Height']) == [180, 175, 170, 165]
-    df = archive.checkout(version=snapshots[2].version)
-    assert list(df['Person']) == ['Alice', 'Bob', 'Dave']
-    df = archive.checkout(version=snapshots[3].version)
-    assert list(df['Person']) == ['ALICE', 'BOB', 'DAVE']
+    # Repeat the full process for both, the volatile archive and a persistent
+    # archive.
+    for store in [VolatileArchiveStore(), ArchiveFileStore(basedir=tmpdir, replace=True)]:
+        archive = Archive(store=store)
+        archive.commit(DATASET)
+        snapshots = archive.apply(operators=operators, validate=True)
+        df = archive.checkout(version=snapshots[0].version)
+        assert list(df['Age']) == [33, 46, 28, 24]
+        df = archive.checkout(version=snapshots[1].version)
+        assert list(df['Age']) == [33, 46, 28, 24]
+        assert list(df['Height']) == [180, 175, 170, 165]
+        df = archive.checkout(version=snapshots[2].version)
+        assert list(df['Person']) == ['Alice', 'Bob', 'Dave']
+        df = archive.checkout(version=snapshots[3].version)
+        assert list(df['Person']) == ['ALICE', 'BOB', 'DAVE']

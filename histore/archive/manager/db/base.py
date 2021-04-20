@@ -21,8 +21,7 @@ from histore.archive.manager.db.database import DB
 from histore.archive.manager.db.model import Archive, ArchiveKey
 from histore.archive.manager.descriptor import ArchiveDescriptor
 from histore.archive.manager.descriptor import decoder_from_string, encoder_from_string, serializer_from_dict
-from histore.document.base import PrimaryKey
-from histore.document.snapshot import InputDescriptor
+from histore.document.base import PrimaryKey, InputDescriptor
 
 import histore.config as config
 import histore.util as util
@@ -142,7 +141,7 @@ class DBArchiveManager(ArchiveManager):
             being loaded into the archive.
         primary_key: string or list, default=None
             Column(s) that are used to generate identifier for snapshot rows.
-        snapshot: histore.document.snapshot.InputDescriptor, default=None
+        snapshot: histore.document.base.InputDescriptor, default=None
             Optional metadata for the created snapshot.
         sorted: bool, default=False
             Flag indicating if the document is sorted by the optional primary

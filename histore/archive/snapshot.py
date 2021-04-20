@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from histore.document.snapshot import InputDescriptor
+from histore.document.base import InputDescriptor
 
 import histore.util as util
 
@@ -163,7 +163,7 @@ class SnapshotListing(object):
         ----------
         version: int
             Unique version identifier for the new snapshot.
-        descriptor: histore.document.snapshot.InputDescriptor, default=None
+        descriptor: histore.document.base.InputDescriptor, default=None
             Descriptor for the input document that created the snapshot.
 
         Returns

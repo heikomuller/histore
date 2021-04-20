@@ -13,16 +13,15 @@ from histore.key import NumberKey
 from histore.archive.row import ArchiveRow
 from histore.archive.timestamp import Timestamp
 from histore.archive.value import SingleVersionValue
-from histore.document.base import DocumentConsumer
 from histore.document.row import DocumentRow
 
 
-class ArchiveWriter(DocumentConsumer, metaclass=ABCMeta):
+class ArchiveWriter(metaclass=ABCMeta):
     """The abstract archive writer class defines the methods for adding rows
     to an output archive. The writer maintains an internal counter to assign
     unique identifier to document rows.
     """
-    def __init__(self, row_counter):
+    def __init__(self, row_counter: int):
         """Initialize the counter that is used to generate unique row
         identifier.
 
@@ -35,22 +34,8 @@ class ArchiveWriter(DocumentConsumer, metaclass=ABCMeta):
         """
         self.row_counter = row_counter
 
-    def consume_document_row(self, row: DocumentRow, version: int):
-        """Add a given document row from an input stream to a new archive
-        version.
-
-        Parameters
-        ----------
-        row: histore.document.row.DocumentRow
-            Row from an input stream (snapshot) that is being added to the
-            archive snapshot for the given version.
-        version: int
-            Unique identifier for the new snapshot version.
-        """
-        self.write_document_row(row=row, version=version)
-
     @abstractmethod
-    def write_archive_row(self, row):  # pragma: no cover
+    def write_archive_row(self, row: ArchiveRow):
         """Add the given row to a new archive version.
 
         Parameters
@@ -58,7 +43,7 @@ class ArchiveWriter(DocumentConsumer, metaclass=ABCMeta):
         row: histore.archive.row.ArchiveRow
             Row in a new version of a dataset archive.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def write_document_row(self, row: DocumentRow, version: int):
         """Add a given document row to a new archive version with the given
@@ -93,3 +78,59 @@ class ArchiveWriter(DocumentConsumer, metaclass=ABCMeta):
         # Increment the row counter and add the new row to the archive.
         self.row_counter += 1
         self.write_archive_row(arch_row)
+
+
+class ValidatingArchiveWriter(ArchiveWriter):
+    """Wrapper for another archive writer. Ensures that archive rows are
+    ordered in descending order of their key values. Raises a ValueError
+    if an attempt is made to write rows that are not in order.
+    """
+    def __init__(self, writer: ArchiveWriter):
+        """Initialize the wrapped archive writer that is used to write archive
+        rows.
+
+        Parameters
+        ----------
+        writer: histore.archive.writer.ArchiveWriter
+            Writer for archive rows.
+        """
+        self.writer = writer
+        self._prev = None
+
+    @property
+    def row_counter(self) -> int:
+        """Counter for archive rows.
+
+        Returns
+        -------
+        int
+        """
+        return self.writer.row_counter
+
+    @row_counter.setter
+    def row_counter(self, val: int):
+        """Update the row counter for the associated writer.
+
+        Parameters
+        ----------
+        val: int
+            Updated row counter value.
+        """
+        self.writer.row_counter = val
+
+    def write_archive_row(self, row: ArchiveRow):
+        """Add the given row to a new archive version.
+
+        Raises a ValueError if the row key is lower than the key of the
+        previous row that was written.
+
+        Parameters
+        ----------
+        row: histore.archive.row.ArchiveRow
+            Row in a new version of a dataset archive.
+        """
+        if self._prev is not None and row.key < self._prev:
+            msg = "row {} with key '{}' is out of order for previous key '{}'"
+            raise ValueError(msg.format(row.rowid, row.key, self._prev))
+        self._prev = row.key
+        self.writer.write_archive_row(row)

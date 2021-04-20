@@ -9,10 +9,10 @@
 
 import pytest
 
-from histore.key import NumberKey, StringKey
 from histore.archive.row import ArchiveRow
 from histore.archive.timestamp import Timestamp, TimeInterval
 from histore.archive.value import MultiVersionValue, SingleVersionValue
+from histore.key import NumberKey, StringKey
 
 
 def test_compare_row_keys():
@@ -96,6 +96,7 @@ def test_extend_archive_row():
     )
     assert pos == 0
     assert values == [None, None, None]
+    assert row == row.extend(version=7, origin=6)
 
 
 def test_merge_archive_rows():
@@ -123,28 +124,24 @@ def test_merge_archive_rows():
     pos, values = row.at_version(version=3, columns=[1, 2, 3])
     assert pos == 1
     assert values == ['B', 1, 'b']
-    # Fourth version change col 1 from source = 3
+    # Fourth version deletes column 3.
     row = row.merge(
         pos=2,
-        values={1: 'C'},
-        version=4,
-        unchanged_cells=[2, 3],
-        origin=3
+        values={1: 'C', 2: 1},
+        version=4
     )
-    pos, values = row.at_version(version=4, columns=[1, 2, 3])
+    pos, values = row.at_version(version=4, columns=[1, 2])
     assert pos == 2
-    assert values == ['C', 1, 'b']
-    # Fifth version change col 2 with source 2
+    assert values == ['C', 1]
+    # Fifth version introduces a new column 4.
     row = row.merge(
         pos=2,
-        values={2: 0},
-        version=5,
-        unchanged_cells=[1, 3],
-        origin=2
+        values={1: 'C', 2: 0, 4: 'x'},
+        version=5
     )
-    pos, values = row.at_version(version=5, columns=[1, 2, 3])
+    pos, values = row.at_version(version=5, columns=[1, 2, 4])
     assert pos == 2
-    assert values == ['A', 0, 'a']
+    assert values == ['C', 0, 'x']
 
 
 def test_row_provenance():

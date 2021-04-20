@@ -6,10 +6,13 @@
 # file LICENSE for full license details.
 
 from abc import ABCMeta, abstractmethod
-from typing import Callable, List
+from typing import Callable, List, Optional, Tuple
 
-from histore.document.base import Document, DocumentIterator
+import pandas as pd
+
+from histore.document.base import Document, DocumentIterator, RowIndex, DataRow
 from histore.document.schema import Column
+from histore.document.sort import SortEngine
 
 
 class ArchiveReader(metaclass=ABCMeta):
@@ -60,7 +63,7 @@ class SnapshotIterator(DocumentIterator):
     for reading. Dataset reader should be able to read the same dataset
     multiple times.
     """
-    def __init__(self, reader: ArchiveReader, version: int, schema: List[Column]):
+    def __init__(self, reader: ArchiveReader, version: int, schema: List[Column], is_keyed: bool):
         """Initialize the archive reader.
 
         Parameters
@@ -71,33 +74,15 @@ class SnapshotIterator(DocumentIterator):
             Unique version identifier for the read snapshot.
         schema: list of histore.document.schema.Column
             Schema for the read snapshot.
+        is_keyed: bool
+            Flag indicating whether the archive snapshots are keyed by a primary
+            key or not. The type of archive key determines the value for the
+            row index when reading the document.
         """
         self.reader = reader
         self.version = version
         self.colids = [c.colid for c in schema]
-
-    def __enter__(self):
-        """Enter method for the context manager."""
-        return self
-
-    def __exit__(self, exc_type, exc_value, traceback):
-        """Close the associated archive reader when the context manager exits."""
-        self.close()
-        return False
-
-    def __iter__(self):
-        """Return object for row iteration."""
-        return self
-
-    def __next__(self):
-        """Return next row from the archive reader."""
-        while self.reader.has_next():
-            row = self.reader.next()
-            if row.timestamp.contains(self.version):
-                _, vals = row.at_version(self.version, self.colids)
-                return row.rowid, vals
-        self.close()
-        raise StopIteration()
+        self.is_keyed = is_keyed
 
     def close(self):
         """Close the associated archive reader and set it to None (to avoid
@@ -107,10 +92,42 @@ class SnapshotIterator(DocumentIterator):
             self.reader.close()
             self.reader = None
 
+    def has_next(self) -> bool:
+        """Test if the iterator has more rows to read. If the result is True
+        then the next() method will return the next row. Otherwise, the next()
+        method will raise a StopIteration error.
+
+        Returns
+        -------
+        bool
+        """
+        return self.reader.has_next()
+
+    def next(self) -> Tuple[int, RowIndex, DataRow]:
+        """Read the next row in the document.
+
+        Returns the row position, row index and the list of cell values for each
+        of the document columns. Raises a StopIteration error if an attempt is
+        made to read past the end of the document.
+
+        Returns
+        -------
+        tuple of int, histore.document.base.RowIndex, histore.document.base.DataRow
+        """
+        """Return next row from the archive reader."""
+        while self.reader.has_next():
+            row = self.reader.next()
+            if row.timestamp.contains(self.version):
+                pos, vals = row.at_version(self.version, self.colids)
+                rowidx = row.rowid if self.is_keyed else row.key.value
+                return pos, rowidx, vals
+        self.close()
+        raise StopIteration()
+
 
 class SnapshotReader(Document):
     """Stream reader for rows in a dataset archive snapshot."""
-    def __init__(self, reader: Callable, version: int, schema: List[Column]):
+    def __init__(self, reader: Callable, version: int, schema: List[Column], is_keyed: bool):
         """Initialize the function to open the archive reader and information
         about the read snapshot.
 
@@ -122,10 +139,19 @@ class SnapshotReader(Document):
             Unique version identifier for the read snapshot.
         schema: list of histore.document.schema.Column
             Schema for the read snapshot.
+        is_keyed: bool
+            Flag indicating whether the archive snapshots are keyed by a primary
+            key or not. The type of archive key determines the value for the
+            row index when reading the document.
         """
         self.reader = reader
         self.version = version
         self.schema = schema
+        self.is_keyed = is_keyed
+
+    def close(self):
+        """Close the archive reader when the snapshot reader is closed."""
+        self.reader.close()
 
     @property
     def columns(self) -> List[Column]:
@@ -148,8 +174,41 @@ class SnapshotReader(Document):
         return SnapshotIterator(
             reader=self.reader(),
             version=self.version,
-            schema=self.schema
+            schema=self.schema,
+            is_keyed=self.is_keyed
         )
+
+    def read_df(self) -> pd.DataFrame:
+        """Create data frame from the document rows.
+
+        Returns
+        -------
+        pd.DataFrame
+        """
+        data, index = list(), list()
+        for rowid, row in self.iterrows():
+            index.append(rowid)
+            data.append(row)
+        return pd.DataFrame(data=data, index=index, columns=self.columns, dtype=object)
+
+    def sorted(self, keys: List[int], buffersize: Optional[float] = None) -> Document:
+        """Sort the document rows based on the values in the key columns.
+
+        Key columns are specified by their index position. Returns a new
+        document.
+
+        Parameters
+        ----------
+        keys: list of int
+            Index position of sort columns.
+        buffersize: float, default=None
+            Maximum size (in bytes) of file blocks that are kept in main-memory.
+
+        Returns
+        -------
+        histore.document.base.Document
+        """
+        return SortEngine(buffersize=buffersize).sorted(doc=self, keys=keys)
 
 
 # -- Helper Methods -----------------------------------------------------------

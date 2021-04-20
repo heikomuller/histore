@@ -14,12 +14,14 @@ different files are created.
 - rows.dat: Data fie containing the archive rows.
 """
 
+from typing import Callable, List, Optional
+
 import json
 import os
 import shutil
 
 from histore.archive.schema import ArchiveSchema
-from histore.archive.serialize.default import DefaultSerializer
+from histore.archive.serialize.default import ArchiveSerializer, DefaultSerializer
 from histore.archive.snapshot import SnapshotListing
 from histore.archive.store.base import ArchiveStore
 from histore.archive.store.fs.reader import ArchiveFileReader
@@ -42,8 +44,10 @@ class ArchiveFileStore(ArchiveStore):
     faster access.
     """
     def __init__(
-        self, basedir, replace=False, serializer=None, compression=None,
-        encoder=None, decoder=None
+        self, basedir: str, primary_key: Optional[List[int]] = None,
+        replace: Optional[bool] = False, serializer: Optional[ArchiveSerializer] = None,
+        compression: Optional[str] = None, encoder: Optional[json.JSONEncoder] = None,
+        decoder: Optional[Callable] = None
     ):
         """Initialize the archive archive components.
 
@@ -52,6 +56,8 @@ class ArchiveFileStore(ArchiveStore):
         basedir: string
             Path to the base directory for archive files. If the directory does
             not exist it will be created.
+        primary_key: list of int, default=None
+            List of identifier for primary key columns.
         replace: boolean, default=False
             Do not read existing files in the base directory to initialize the
             archive. Treat the archive as being empty instead if True.
@@ -67,6 +73,7 @@ class ArchiveFileStore(ArchiveStore):
             Custom decoder function when reading archive rows from file.
         """
         self.basedir = util.createdir(basedir)
+        self._primary_key = primary_key
         self.serializer = serializer if serializer else DefaultSerializer()
         self.compression = compression
         self.encoder = encoder if encoder is not None else DefaultEncoder
@@ -170,7 +177,7 @@ class ArchiveFileStore(ArchiveStore):
         """
         return self.snapshots
 
-    def get_writer(self) -> ArchiveFileWriter:
+    def get_writer(self, validate: Optional[bool] = None) -> ArchiveFileWriter:
         """Get a a new archive buffer to maintain rows for a new archive
         version.
 
@@ -187,6 +194,17 @@ class ArchiveFileStore(ArchiveStore):
             compression=self.compression,
             encoder=self.encoder
         )
+
+    def primary_key(self) -> List[int]:
+        """Get the list of identifier for the primary key column(s).
+
+        Returns None if the archive is not keyed by a primary key.
+
+        Returns
+        -------
+        list of int
+        """
+        return self._primary_key
 
     def rollback(self, schema: ArchiveSchema, writer: ArchiveFileWriter, version: int):
         """Store the archive after it has been rolled back to a previous

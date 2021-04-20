@@ -15,7 +15,7 @@ import pandas as pd
 import sys
 
 from histore.cli.archive import get_manager
-from histore.document.snapshot import InputDescriptor
+from histore.document.base import InputDescriptor
 
 import histore.util as util
 

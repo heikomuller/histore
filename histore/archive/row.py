@@ -11,7 +11,7 @@ history.
 """
 
 from __future__ import annotations
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 from histore.key import KeyValue
 from histore.archive.provenance.base import ProvOp
@@ -228,22 +228,13 @@ class ArchiveRow(object):
             timestamp=self.timestamp.append(version)
         )
 
-    def merge(
-        self, values: Dict, pos: int, version: int,
-        unchanged_cells: Optional[Set] = None, origin: Optional[int] = None
-    ) -> ArchiveRow:
+    def merge(self, values: Dict, pos: int, version: int,) -> ArchiveRow:
         """Create a new version of the dataset row for a given set of cell
-        values and a specified index position. The set of extend cells
-        identifies those columns that are not present in the value dictionary
-        but that remain valid in the new version with respect to the given
-        source version (origin).
+        values and a specified index position.
 
         Values is a dictionary that maps column identifier to cell values in
-        the new row. Columns that are not present in the dictionary the have
-        either be deleted or remain unchanged. In the latter case, these
-        columns are included in the set of unchanged columns. Columns that
-        are unchanged are keep the value that they had in the given source
-        version (origin).
+        the new row. Columns that are not present in the dictionary have been
+        deleted.
 
         Parameters
         ----------
@@ -254,14 +245,6 @@ class ArchiveRow(object):
             Index position of the row in the dataset snapshot.
         version: int
             Identifier of the new row version.
-        unchanged_cells: set, default=None
-            Set of identifier for columns whose cell values are not included in
-            the values dictionary but that remain unchanged with respect to the
-            specified source version (origin).
-        origin: int, default=None
-            Version that the row values originate from. Cells that remain
-            unchanged have the timestamp extended for the version that was
-            present at the version of origin.
 
         Returns
         -------
@@ -279,18 +262,10 @@ class ArchiveRow(object):
                     timestamp=Timestamp(version=version)
                 )
             history[colid] = cell
-        # For missing columns either add them as they are (e.g., if the column
-        # has been deleted) or if they are included in the unchanged set append
-        # the new version to the timestamp for the value that was valid at the
-        # source version.
-        unchanged = unchanged_cells if unchanged_cells is not None else set()
+        # For missing columns add them as they are (e.g., if the column
+        # has been deleted).
         for colid, cell in self.cells.items():
             if colid not in history:
-                if colid in unchanged:
-                    cell = cell.extend(
-                        version=version,
-                        origin=origin
-                    )
                 history[colid] = cell
         # Return a modified archive row.
         return ArchiveRow(

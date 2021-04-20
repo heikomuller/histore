@@ -10,7 +10,7 @@
 import pandas as pd
 import pytest
 
-from histore.document.df import DataFrameDocument
+from histore.document.df import DataFrameDocument, rowindex_readorder
 
 
 @pytest.fixture
@@ -42,6 +42,29 @@ def test_dataframe_iterate(dataset):
         _, rowidx, values = reader.next()
         rows.append((rowidx, values))
     assert rows == [(0, ['alice', 26]), (1, ['claire', 19]), (2, ['bob', 34])]
+
+
+def test_dataframe_positions():
+    """Ensure that row positions are correctly maintained when iterating over
+    an un-keyed data frame document.
+    """
+    df = pd.DataFrame(
+        data=[['Dave', 33], ['Claire', 27], ['Bob', 44], ['Alice', 32]],
+        index=[3, 2, 1, 0],
+        columns=['Name', 'Age'],
+        dtype=object
+    )
+    positions = rowindex_readorder(df=df)
+    assert positions == [3, 2, 1, 0]
+    # Read document.
+    doc = DataFrameDocument(df=df)
+    reader = doc.open()
+    positions = list()
+    while reader.has_next():
+        pos, _, _ = reader.next()
+        positions.append(pos)
+    reader.close()
+    assert positions == [3, 2, 1, 0]
 
 
 def test_dataframe_read(dataset):

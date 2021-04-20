@@ -18,8 +18,8 @@ from histore.archive.manager.db.database import DB, TEST_URL
 from histore.archive.manager.fs import FileSystemArchiveManager
 from histore.archive.manager.persist import PersistentArchiveManager
 from histore.archive.serialize.base import DEFAULT
+from histore.document.base import InputDescriptor
 from histore.document.schema import Column
-from histore.document.snapshot import InputDescriptor
 
 import histore.config as config
 import histore.util as util

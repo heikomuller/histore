@@ -10,7 +10,7 @@
 import pytest
 
 from histore.archive.manager.mem import VolatileArchiveManager
-from histore.document.snapshot import InputDescriptor
+from histore.document.base import InputDescriptor
 
 import histore.util as util
 

@@ -7,11 +7,45 @@
 
 """Fixtures for archive store unit tests."""
 
-import pandas as pd
 import pytest
+
+from histore.archive.row import ArchiveRow
+from histore.archive.schema import ArchiveSchema
+from histore.archive.timestamp import Timestamp
+from histore.archive.value import SingleVersionValue
+from histore.key import NumberKey
 
 
 @pytest.fixture
-def empty_dataset():
-    """Get an empty dataset with two columns."""
-    return pd.DataFrame(data=[], columns=['Name', 'Age'])
+def archives():
+    ts = Timestamp(version=0)
+    schema_v1, _ = ArchiveSchema().merge(columns=['A', 'B'], version=0)
+    # First version
+    row1_v1 = ArchiveRow(
+        rowid=0,
+        key=NumberKey(0),
+        pos=SingleVersionValue(value=0, timestamp=ts),
+        cells={
+            0: SingleVersionValue(value='a', timestamp=ts),
+            1: SingleVersionValue(value='b', timestamp=ts)
+        },
+        timestamp=ts
+    )
+    # Second version.
+    schema_v2, _ = schema_v1.merge(columns=['A', 'B'], version=1)
+    row1_v2 = row1_v1.merge(pos=0, values={1: 'a', 2: 'c'}, version=1)
+    ts = Timestamp(version=1)
+    row2_v2 = ArchiveRow(
+        rowid=1,
+        key=NumberKey(1),
+        pos=SingleVersionValue(value=1, timestamp=ts),
+        cells={
+            0: SingleVersionValue(value='d', timestamp=ts),
+            1: SingleVersionValue(value='e', timestamp=ts)
+        },
+        timestamp=ts
+    )
+    return {
+        1: (schema_v1, [row1_v1], 0),
+        2: (schema_v2, [row1_v2, row2_v2], 1)
+    }

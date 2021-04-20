@@ -9,6 +9,8 @@
 memory. Archive information is not persisted.
 """
 
+from typing import List, Optional
+
 from histore.archive.schema import ArchiveSchema
 from histore.archive.snapshot import SnapshotListing
 from histore.archive.store.base import ArchiveStore
@@ -20,12 +22,19 @@ class VolatileArchiveStore(ArchiveStore):
     """Archive store that keeps all archive related information in main memory.
     The store is volatile as no information is persisted on disk.
     """
-    def __init__(self):
-        """Initialize the archive archive components."""
+    def __init__(self, primary_key: Optional[List[int]] = None):
+        """Initialize the archive archive components.
+
+        Parameters
+        ----------
+        primary_key: list of int, default=None
+            List of identifier for primary key columns.
+        """
         self.rows = list()
         self.schema = ArchiveSchema()
         self.snapshots = SnapshotListing()
         self.row_counter = 0
+        self._primary_key = primary_key
 
     def commit(
         self, schema: ArchiveSchema, writer: ArchiveBuffer,
@@ -95,6 +104,17 @@ class VolatileArchiveStore(ArchiveStore):
         histore.archive.store.mem.ArchiveBuffer
         """
         return ArchiveBuffer(row_counter=self.row_counter)
+
+    def primary_key(self) -> List[int]:
+        """Get the list of identifier for the primary key column(s).
+
+        Returns None if the archive is not keyed by a primary key.
+
+        Returns
+        -------
+        list of int
+        """
+        return self._primary_key
 
     def rollback(self, schema: ArchiveSchema, writer: ArchiveBuffer, version: int):
         """Store the archive after it has been rolled back to a previous

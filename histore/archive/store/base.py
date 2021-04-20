@@ -10,6 +10,7 @@ object and the way in which archives are managed and maintained.
 """
 
 from abc import ABCMeta, abstractmethod
+from typing import List, Optional
 
 from histore.archive.reader import ArchiveReader
 from histore.archive.schema import ArchiveSchema
@@ -90,6 +91,18 @@ class ArchiveStore(metaclass=ABCMeta):
         Returns
         -------
         histore.archive.writer.ArchiveWriter
+        """
+        raise NotImplementedError()  # pragma: no cover
+
+    @abstractmethod
+    def primary_key(self) -> List[int]:
+        """Get the list of identifier for the primary key column(s).
+
+        Returns None if the archive is not keyed by a primary key.
+
+        Returns
+        -------
+        list of int
         """
         raise NotImplementedError()  # pragma: no cover
 

@@ -66,9 +66,13 @@ class DataFrameIterator(DocumentIterator):
             # Raise error if the end of the data frame has been reached.
             raise StopIteration()
         rowidx = self._df.index[origpos]
+        # By definition, a row with an index that is None or has a negative
+        # value will be treated as a new row.
+        if rowidx is None or rowidx < 0:
+            rowidx = -1
         values = list(self._df.iloc[origpos])
         self._readindex += 1
-        return rowpos, rowidx, values
+        return origpos, rowidx, values
 
 
 class DataFrameDocument(Document):

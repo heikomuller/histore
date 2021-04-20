@@ -71,4 +71,4 @@ class ArchiveFileReader(ArchiveReader):
         """
         if not self.reader.has_next():
             return None
-        return self.serializer.deserialize_row(self.reader.next())
+        return self.serializer.deserialize_row(self.reader.__next__())
