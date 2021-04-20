@@ -50,6 +50,12 @@ DF4mod = pd.DataFrame(
     columns=['Name', 'Age'],
     dtype=object
 )
+DF5 = pd.DataFrame(
+    data=[['Alice', 32], ['Claire', 27], ['Bob', 44]],
+    index=[0, 2, 1],
+    columns=['Name', 'Age'],
+    dtype=object
+)
 
 
 # -- Unit tests ---------------------------------------------------------------
@@ -101,13 +107,15 @@ def test_commit_unkeyed_persistent(validate, tmpdir):
     s1 = archive.commit(DF1, validate=validate)
     s2 = archive.commit(DF2, validate=validate)
     s3 = archive.commit(DF3, validate=validate)
-    archive.commit(DF4, validate=validate)
+    s4 = archive.commit(DF4, validate=validate)
+    archive.commit(DF5, validate=validate)
     reader = archive.reader()
     validate_unkeyed_rowindex_archive(reader)
     pd.testing.assert_frame_equal(archive.checkout(version=s1.version), DF1)
     pd.testing.assert_frame_equal(archive.checkout(version=s2.version), DF2)
     pd.testing.assert_frame_equal(archive.checkout(version=s3.version), DF3)
-    pd.testing.assert_frame_equal(archive.checkout(), DF4mod)
+    pd.testing.assert_frame_equal(archive.checkout(version=s4.version), DF4mod)
+    pd.testing.assert_frame_equal(archive.checkout(), DF5)
     # -- Error case for checkout ----------------------------------------------
     with pytest.raises(ValueError):
         archive.checkout(version=1000)
@@ -120,13 +128,15 @@ def test_commit_unkeyed_volatile(validate):
     s1 = archive.commit(DF1, validate=validate)
     s2 = archive.commit(DF2, validate=validate)
     s3 = archive.commit(DF3, validate=validate)
-    archive.commit(DF4, validate=validate)
+    s4 = archive.commit(DF4, validate=validate)
+    archive.commit(DF5, validate=validate)
     reader = archive.reader()
     validate_unkeyed_rowindex_archive(reader)
     pd.testing.assert_frame_equal(archive.checkout(version=s1.version), DF1)
     pd.testing.assert_frame_equal(archive.checkout(version=s2.version), DF2)
     pd.testing.assert_frame_equal(archive.checkout(version=s3.version), DF3)
-    pd.testing.assert_frame_equal(archive.checkout(), DF4mod)
+    pd.testing.assert_frame_equal(archive.checkout(version=s4.version), DF4mod)
+    pd.testing.assert_frame_equal(archive.checkout(), DF5)
     # -- Error case for checkout ----------------------------------------------
     with pytest.raises(ValueError):
         archive.checkout(version=1000)
@@ -154,7 +164,7 @@ def validate_keyed_rowindex_archive(reader):
 def validate_unkeyed_rowindex_archive(reader):
     rows = {row.rowid: row for row in reader}
     assert len(rows) == 5
-    ts = Timestamp(intervals=TimeInterval(0, 3))
+    ts = Timestamp(intervals=TimeInterval(0, 4))
     for i in range(3):
         assert rows[i].timestamp.is_equal(ts)
     assert rows[3].timestamp.is_equal(Timestamp(intervals=TimeInterval(0, 2)))

@@ -15,13 +15,15 @@ from typing import Callable, Dict, Optional, Union
 import os
 import shutil
 
-from histore.archive.base import InputDocument, PersistentArchive
-from histore.archive.manager.base import ArchiveManager
+from histore.archive.base import InputDocument, to_document
+from histore.archive.base import Archive as PersistentArchive
+from histore.archive.manager.base import ArchiveManager, PrimaryKey, get_key_columns
 from histore.archive.manager.db.database import DB
 from histore.archive.manager.db.model import Archive, ArchiveKey
 from histore.archive.manager.descriptor import ArchiveDescriptor
 from histore.archive.manager.descriptor import decoder_from_string, encoder_from_string, serializer_from_dict
-from histore.document.base import PrimaryKey, InputDescriptor
+from histore.archive.store.fs.base import ArchiveFileStore
+from histore.document.base import InputDescriptor
 
 import histore.config as config
 import histore.util as util
@@ -177,21 +179,25 @@ class DBArchiveManager(ArchiveManager):
                 )
                 # Load initial snapshot if given.
                 if doc is not None:
-                    arch = PersistentArchive(
+                    doc = to_document(doc)
+                    # Get the expected identifier for the primary key columns.
+                    primary_key = get_key_columns(columns=doc.columns, primary_key=primary_key)
+                    store = ArchiveFileStore(
                         basedir=self._archive_dir(identifier),
-                        doc=doc,
-                        primary_key=primary_key,
-                        snapshot=snapshot,
-                        sorted=sorted,
-                        buffersize=buffersize,
-                        validate=validate,
+                        replace=True,
                         serializer=serializer_from_dict(serializer),
                         encoder=encoder_from_string(encoder),
-                        decoder=decoder_from_string(decoder)
+                        decoder=decoder_from_string(decoder),
+                        primary_key=primary_key
                     )
-                    # Get list of column identifier for primary key attributes
-                    # after the snapshot was loaded.
-                    primary_key = arch.primary_key
+                    arch = PersistentArchive(store=store)
+                    arch.commit(
+                        doc=doc,
+                        descriptor=snapshot,
+                        sorted=sorted,
+                        buffersize=buffersize,
+                        validate=validate
+                    )
                 elif primary_key is not None:
                     raise ValueError('missing snapshot document')
                 if primary_key is not None:
@@ -222,8 +228,7 @@ class DBArchiveManager(ArchiveManager):
                 return
             # Remove the archive base directory and the entry in the database.
             archdir = self._archive_dir(identifier)
-            if os.path.isdir(archdir):
-                shutil.rmtree(archdir)
+            shutil.rmtree(archdir)
             session.delete(archive)
 
     def get(self, identifier: str) -> PersistentArchive:
@@ -253,13 +258,15 @@ class DBArchiveManager(ArchiveManager):
                 raise ValueError('unknown archive {}'.format(identifier))
             # Get the archive descriptor and close the database connection.
             desc = archive.descriptor()
-        return PersistentArchive(
+        store = ArchiveFileStore(
             basedir=self._archive_dir(identifier),
-            primary_key=desc.primary_key(),
+            replace=False,
             serializer=desc.serializer(),
             encoder=desc.encoder(),
-            decoder=desc.decoder()
+            decoder=desc.decoder(),
+            primary_key=desc.primary_key()
         )
+        return PersistentArchive(store=store)
 
     def rename(self, identifier: str, name: str):
         """Rename the specified archive. Raises a ValueError if the identifier

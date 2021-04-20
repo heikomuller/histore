@@ -9,10 +9,11 @@
 
 from typing import Callable, Dict, Optional, Union
 
-from histore.archive.base import Archive, InputDocument
-from histore.archive.manager.base import ArchiveManager
+from histore.archive.base import Archive, InputDocument, to_document
+from histore.archive.manager.base import ArchiveManager, PrimaryKey, get_key_columns
 from histore.archive.manager.descriptor import ArchiveDescriptor
-from histore.document.base import PrimaryKey, InputDescriptor
+from histore.archive.store.mem.base import VolatileArchiveStore
+from histore.document.base import InputDescriptor
 
 import histore.util as util
 
@@ -102,20 +103,28 @@ class VolatileArchiveManager(ArchiveManager):
         # Create an unique identifier for the new archive.
         identifier = util.get_unique_identifier()
         # Load initial snapshot if given.
-        archive = Archive(
-            doc=doc,
-            primary_key=primary_key,
-            snapshot=snapshot,
-            sorted=sorted,
-            buffersize=buffersize,
-            validate=validate
-        )
+        if doc is not None:
+            doc = to_document(doc)
+            # Get the expected identifier for the primary key columns.
+            primary_key = get_key_columns(columns=doc.columns, primary_key=primary_key)
+            archive = Archive(store=VolatileArchiveStore(primary_key=primary_key))
+            archive.commit(
+                doc=doc,
+                descriptor=snapshot,
+                sorted=sorted,
+                buffersize=buffersize,
+                validate=validate
+            )
+        elif primary_key is not None:
+            raise ValueError('missing snapshot document')
+        else:
+            archive = Archive()
         # Create the descriptor for the new archive.
         descriptor = ArchiveDescriptor.create(
             identifier=identifier,
             name=name,
             description=description,
-            primary_key=archive.primary_key
+            primary_key=primary_key
         )
         self._archives[identifier] = archive
         self._descriptors[identifier] = descriptor

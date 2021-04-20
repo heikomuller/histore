@@ -13,11 +13,12 @@ import json
 import os
 import shutil
 
-from histore.archive.base import InputDocument, PersistentArchive
-from histore.archive.manager.base import ArchiveManager
+from histore.archive.base import Archive, InputDocument, to_document
+from histore.archive.manager.base import ArchiveManager, PrimaryKey, get_key_columns
 from histore.archive.manager.descriptor import ArchiveDescriptor
 from histore.archive.manager.descriptor import decoder_from_string, encoder_from_string, serializer_from_dict
-from histore.document.base import PrimaryKey, InputDescriptor
+from histore.archive.store.fs.base import ArchiveFileStore
+from histore.document.base import InputDescriptor
 
 import histore.config as config
 import histore.util as util
@@ -99,7 +100,7 @@ class FileSystemArchiveManager(ArchiveManager):
         """Create a new archive object under a given unique name.
 
         For archives that are keyed by a primary key, the input document for
-        the first dataset snapshot  has to be provided. This snapshot will be
+        the first dataset snapshot has to be provided. This snapshot will be
         loaded into the archive.
 
         Raises a ValueError if an archive with the given name exists.
@@ -159,21 +160,25 @@ class FileSystemArchiveManager(ArchiveManager):
         identifier = util.get_unique_identifier()
         # Load initial snapshot if given.
         if doc is not None:
-            archive = PersistentArchive(
+            # Get the expected identifier for the primary key columns.
+            doc = to_document(doc)
+            primary_key = get_key_columns(columns=doc.columns, primary_key=primary_key)
+            store = ArchiveFileStore(
                 basedir=self._archive_dir(identifier),
-                doc=doc,
-                primary_key=primary_key,
-                snapshot=snapshot,
-                sorted=sorted,
-                buffersize=buffersize,
-                validate=validate,
+                replace=True,
                 serializer=serializer_from_dict(serializer),
                 encoder=encoder_from_string(encoder),
-                decoder=decoder_from_string(decoder)
+                decoder=decoder_from_string(decoder),
+                primary_key=primary_key
             )
-            # Get list of column identifier for primary key attributes after
-            # the snapshot was loaded.
-            primary_key = archive.primary_key
+            archive = Archive(store=store)
+            archive.commit(
+                doc=doc,
+                descriptor=snapshot,
+                sorted=sorted,
+                buffersize=buffersize,
+                validate=validate
+            )
         elif primary_key is not None:
             raise ValueError('missing snapshot document')
         # Create the descriptor for the new archive.
@@ -201,12 +206,11 @@ class FileSystemArchiveManager(ArchiveManager):
         """
         if self.contains(identifier):
             archdir = self._archive_dir(identifier)
-            if os.path.isdir(archdir):
-                shutil.rmtree(archdir)
+            shutil.rmtree(archdir)
             del self._archives[identifier]
             self.write()
 
-    def get(self, identifier: str) -> PersistentArchive:
+    def get(self, identifier: str) -> Archive:
         """Get the archive that is associated with the given identifier. Raises
         a ValueError if the identifier is unknown.
 
@@ -226,13 +230,15 @@ class FileSystemArchiveManager(ArchiveManager):
         desc = self._archives.get(identifier)
         if desc is None:
             raise ValueError('unknown archive {}'.format(identifier))
-        return PersistentArchive(
+        store = ArchiveFileStore(
             basedir=self._archive_dir(identifier),
-            primary_key=desc.primary_key(),
+            replace=False,
             serializer=desc.serializer(),
             encoder=desc.encoder(),
-            decoder=desc.decoder()
+            decoder=desc.decoder(),
+            primary_key=desc.primary_key()
         )
+        return Archive(store=store)
 
     def rename(self, identifier: str, name: str):
         """Rename the specified archive. Raises a ValueError if the identifier

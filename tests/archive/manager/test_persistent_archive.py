@@ -11,7 +11,8 @@ import os
 import pandas as pd
 import pytest
 
-from histore.archive.base import PersistentArchive
+from histore.archive.manager.persist import PersistentArchiveManager
+from histore.document.base import InputDescriptor
 from histore.document.csv.base import CSVFile
 
 
@@ -30,22 +31,25 @@ WATERSHED_1 = os.path.join(DIR, '../../.files/y43c-5n92.tsv.gz')
 @pytest.mark.parametrize('replace', [True, False])
 def test_watershed_archive(doc, replace, tmpdir):
     """Test merging snapshots of the NYC Watershed data into an archive."""
-    archive = PersistentArchive(
-        basedir=str(tmpdir),
-        primary_key=['Site', 'Date'],
+    manager = PersistentArchiveManager(basedir=tmpdir, create=True)
+    descriptor = manager.create(
+        name='watershed',
         doc=doc,
-        replace=replace
+        primary_key=['Site', 'Date'],
+        snapshot=InputDescriptor(description='First snapshot', action={'type': 'LOAD'}),
+        description='Watershed Archive'
     )
+    archive = manager.get(descriptor.identifier())
     s = archive.snapshots().last_snapshot()
     diff = archive.diff(s.version - 1, s.version)
     assert len(diff.schema().insert()) == 10
     assert len(diff.rows().insert()) == 1793
     # -- Recreate the archive instance.
-    archive = PersistentArchive(
-        basedir=str(tmpdir),
-        primary_key=[0, 1],
-        replace=False
-    )
+    manager = PersistentArchiveManager(basedir=tmpdir, create=False)
+    archive = manager.get(descriptor.identifier())
+    s = archive.snapshots().last_snapshot()
+    assert s.description == 'First snapshot'
+    assert s.action == {'type': 'LOAD'}
     s = archive.commit(doc)
     diff = archive.diff(s.version - 1, s.version)
     assert len(diff.schema().insert()) == 0

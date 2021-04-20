@@ -15,6 +15,17 @@ from histore.document.base import InputDescriptor
 import histore.util as util
 
 
+def test_create_archive_manager():
+    """Test error when creating archive with primary key but no document."""
+    manager = VolatileArchiveManager()
+    with pytest.raises(ValueError):
+        manager.create(
+            name='First archive',
+            description='My first archive',
+            primary_key='SSN'
+        )
+
+
 def test_volatile_archive_manager(dataset):
     """Test functionality of the volatile archive manager."""
     manager = VolatileArchiveManager()

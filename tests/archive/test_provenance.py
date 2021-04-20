@@ -14,6 +14,7 @@ import pytest
 from histore.archive.provenance.base import Provenance, ProvOp
 from histore.archive.provenance.column import UpdateColumn
 from histore.archive.provenance.row import UpdateRow
+from histore.archive.provenance.value import UpdateValue
 
 
 def test_empty_provenance_trace():
@@ -35,6 +36,8 @@ def test_invalid_update_column():
     """Test error when instantiating update column without name and position
     arguments.
     """
+    prov = UpdateColumn(key=0, name='A')
+    assert prov.is_update()
     with pytest.raises(ValueError):
         UpdateColumn(key=0)
 
@@ -43,5 +46,7 @@ def test_invalid_update_row():
     """Test error when instantiating update row without cells and position
     arguments.
     """
+    prov = UpdateRow(key=0, position=UpdateValue(0, 1))
+    assert prov.is_update()
     with pytest.raises(ValueError):
         UpdateRow(key=0)

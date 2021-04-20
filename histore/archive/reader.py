@@ -150,8 +150,8 @@ class SnapshotReader(Document):
         self.is_keyed = is_keyed
 
     def close(self):
-        """Close the archive reader when the snapshot reader is closed."""
-        self.reader.close()
+        """There are no resources that need to be released."""
+        pass
 
     @property
     def columns(self) -> List[Column]:

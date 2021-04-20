@@ -78,7 +78,24 @@ def test_create_archive(ManagerCls, kwargs, dataset, tmpdir):
     manager = ManagerCls(**kwargs)
     assert len(manager.archives()) == 1
     archive = manager.get(descriptor.identifier())
+    assert archive.store.primary_key() == [0]
     assert archive is not None
+    # -- Error when creating archive with same name.
+    with pytest.raises(ValueError):
+        manager.create(
+            name='First archive',
+            description='My first archive',
+            primary_key='SSN',
+            encoder='histore.tests.encode.TestEncoder',
+            decoder='histore.tests.encode.test_decoder',
+            serializer=DEFAULT,
+            doc=dataset,
+            snapshot=InputDescriptor(
+                valid_time=now,
+                description='First snapshot',
+                action={'x': 1}
+            )
+        )
     # Delete the archive
     manager.delete(descriptor.identifier())
     assert len(manager.archives()) == 0
@@ -88,12 +105,22 @@ def test_create_archive(ManagerCls, kwargs, dataset, tmpdir):
         manager.get(descriptor.identifier())
 
 
-def test_create_archive_error(tmpdir):
+@pytest.mark.parametrize(
+    'ManagerCls,kwargs',
+    [
+        (FileSystemArchiveManager, dict()),
+        (DBArchiveManager, dict({'db': DB(connect_url=TEST_URL)}))
+    ]
+)
+def test_create_archive_error(ManagerCls, kwargs, tmpdir):
     """Test error when creating and archive with primary key but no initial
     snapshot document.
     """
-    # -- Create empty manager instance ----------------------------------------
-    manager = FileSystemArchiveManager(basedir=tmpdir, create=True)
+    # -- Setup ----------------------------------------------------------------
+    kwargs['basedir'] = str(tmpdir)
+    kwargs['create'] = True
+    manager = ManagerCls(**kwargs)
+    # -- Error for invalid parameters -----------------------------------------
     with pytest.raises(ValueError):
         manager.create(
             name='First archive',
@@ -103,6 +130,24 @@ def test_create_archive_error(tmpdir):
             serializer=DEFAULT,
             primary_key='SSN'
         )
+
+
+@pytest.mark.parametrize(
+    'ManagerCls,kwargs',
+    [
+        (FileSystemArchiveManager, dict()),
+        (DBArchiveManager, dict({'db': DB(connect_url=TEST_URL)}))
+    ]
+)
+def test_create_manager(ManagerCls, kwargs, tmpdir):
+    """Test creating an archive manager in a non-existing base directory."""
+    # -- Create empty manager instance ----------------------------------------
+    # -- Setup ----------------------------------------------------------------
+    basedir = os.path.join(tmpdir, 'archives')
+    kwargs['basedir'] = basedir
+    kwargs['create'] = True
+    ManagerCls(**kwargs)
+    assert os.path.isdir(basedir)
 
 
 @pytest.mark.parametrize(

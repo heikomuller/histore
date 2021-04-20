@@ -44,6 +44,7 @@ def test_archive_descriptor():
     assert descriptor.name() == 'My Archive'
     assert descriptor.description() == 'This is my archive'
     assert descriptor.primary_key() == [0]
+    assert descriptor.created_at() is not None
     dt_now = descriptor.encoder()().default(datetime.now())
     assert '$dt' in dt_now
     assert descriptor.decoder()(dt_now) == dt_now['$dt']
@@ -67,6 +68,7 @@ def test_archive_descriptor():
     assert descriptor.name() == 'My Archive'
     assert descriptor.description() == 'This is my archive'
     assert descriptor.primary_key() == [0]
+    assert descriptor.created_at() is not None
     dt_now = descriptor.encoder()().default(datetime.now())
     assert '$dt' in dt_now
     assert descriptor.decoder()(dt_now) == dt_now['$dt']

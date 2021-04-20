@@ -125,3 +125,23 @@ def test_rollback_single_value():
     assert value.timestamp.contains(2)
     assert not value.timestamp.contains(3)
     assert value.rollback(0) is None
+
+
+def test_value_repr():
+    """Test string representations for archive values."""
+    value = SingleVersionValue(
+        value=1,
+        timestamp=Timestamp(intervals=[TimeInterval(start=1, end=3)])
+    )
+    assert str(value) == '(1 [1-3])'
+    value = MultiVersionValue([
+        SingleVersionValue(
+            value=1,
+            timestamp=Timestamp(intervals=[TimeInterval(start=2, end=3)])
+        ),
+        SingleVersionValue(
+            value=2,
+            timestamp=Timestamp(intervals=[TimeInterval(start=4, end=5)])
+        )
+    ])
+    assert str(value) == '((1 [2-3]), (2 [4-5]))'

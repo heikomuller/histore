@@ -39,7 +39,7 @@ class RowProvDescribe(ProvDescriptor):
         for upd_row in provenance.update():
             if upd_row.updated_position():
                 moved_rows += 1
-            if upd_row.updated_cells():
+            else:
                 updated_rows += 1
                 updated_values += len(upd_row.updated_cells())
         print('Inserted Rows    : {}'.format(len(provenance.insert())))

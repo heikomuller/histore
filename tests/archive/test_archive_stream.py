@@ -34,6 +34,22 @@ DF3 = pd.DataFrame(
 )
 
 
+def test_iterate_over_stream():
+    """Test getting a sorted document form an stream reader."""
+    archive = Archive()
+    archive.commit(doc=DataFrameDocument(df=DF1))
+    rows = list()
+    with archive.stream(version=0).open() as reader:
+        while reader.has_next():
+            rows.append(reader.next())
+    assert rows == [
+        (0, 0, ['Alice', 32]),
+        (1, 1, ['Bob', 45]),
+        (2, 2, ['Claire', 27]),
+        (3, 3, ['Alice', 23])
+    ]
+
+
 def test_stream_keyed_archive(tmpdir):
     """Test committing snaposhots into an unkeyed archive."""
     # -- Setup - Create archive in main memory --------------------------------
@@ -41,7 +57,7 @@ def test_stream_keyed_archive(tmpdir):
     for df in [DF1, DF2, DF3]:
         doc = DataFrameDocument(df=df)
         archive.commit(doc)
-    # -- Stream first snapshot ------------------------------------------------
+    # -- Stream snapshots -----------------------------------------------------
     stream = archive.stream(version=0)
     assert stream.columns == ['Name', 'Age']
     with stream.open() as s:
@@ -58,6 +74,30 @@ def test_stream_keyed_archive(tmpdir):
         archive.stream(version=5)
 
 
+def test_stream_to_data_frame():
+    """Test reading a data frame from an unkeyed archive."""
+    # -- Setup - Create archive in main memory --------------------------------
+    archive = Archive()
+    for df in [DF1, DF2, DF3]:
+        doc = DataFrameDocument(df=df)
+        archive.commit(doc)
+    # -- Read dataframes for first two snapshots ------------------------------
+    #
+    # The snapshots are only identical if the data frames where sorted by the
+    # data frame index. Thus, the third snapshot will return a data frame in
+    # different order.
+    pd.testing.assert_frame_equal(archive.stream(version=0).read_df(), DF1)
+    pd.testing.assert_frame_equal(archive.stream(version=1).read_df(), DF2)
+
+
+def test_stream_sorted():
+    """Test getting a sorted document form an stream reader."""
+    archive = Archive()
+    archive.commit(doc=DataFrameDocument(df=DF1))
+    names = list(archive.stream(version=0).sorted(keys=[0]).read_df()['Name'])
+    assert names == ['Alice', 'Alice', 'Bob', 'Claire']
+
+
 def test_stream_unkeyed_archive():
     """Test committing snaposhots into an unkeyed archive."""
     # -- Setup - Create archive in main memory --------------------------------
@@ -65,7 +105,7 @@ def test_stream_unkeyed_archive():
     for df in [DF1, DF2, DF3]:
         doc = DataFrameDocument(df=df)
         archive.commit(doc)
-    # -- Stream first snapshot ------------------------------------------------
+    # -- Stream snapshots -----------------------------------------------------
     stream = archive.stream(version=0)
     assert stream.columns == ['Name', 'Age']
     with stream.open() as s:
