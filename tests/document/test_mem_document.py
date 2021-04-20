@@ -9,7 +9,7 @@
 
 import pytest
 
-from histore.document.mem import InMemoryDocument
+from histore.document.mem import InMemoryDocument, Schema
 
 
 @pytest.fixture
@@ -37,6 +37,16 @@ def test_document_iterrows(document):
         (3, ['Dave', 28, 'Sales']),
         (2, ['Claire', 33, 'Finance'])
     ]
+
+
+def test_empty_document():
+    """Test the reader for an empty document."""
+    doc = Schema(columns=['Name', 'Age'])
+    assert doc.columns == ['Name', 'Age']
+    rows = list()
+    for rowidx, row in doc.iterrows():
+        rows.append((rowidx, row))
+    assert rows == []
 
 
 def test_error_read_after_close(document):

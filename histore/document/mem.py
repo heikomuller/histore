@@ -136,3 +136,16 @@ class InMemoryDocument(Document):
             columns=self.columns,
             rows=sorted(self.rows, key=lambda row: util.keyvalue(row[2], keys))
         )
+
+
+class Schema(InMemoryDocument):
+    """Empty document that only defines the document schema."""
+    def __init__(self, columns: DocumentSchema):
+        """Initialize document schema.
+
+        Parameters
+        ----------
+        columns: list
+            List of column names.
+        """
+        super(Schema, self).__init__(columns=columns, rows=[])

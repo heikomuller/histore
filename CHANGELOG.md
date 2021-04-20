@@ -76,3 +76,4 @@
 * Use user's cache directory as the default parent directory for archive managers.
 * Remove option for partial merge.
 * Rename type-hint ``Schema`` to ``DocumentSchema``.
+* Add empty document class ``histore.document.mem.Schema``.
