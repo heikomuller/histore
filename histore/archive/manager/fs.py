@@ -195,8 +195,7 @@ class FileSystemArchiveManager(ArchiveManager):
         """
         if self.contains(identifier):
             archdir = self._archive_dir(identifier)
-            if os.path.isdir(archdir):
-                shutil.rmtree(archdir)
+            shutil.rmtree(archdir)
             del self._archives[identifier]
             self.write()
 

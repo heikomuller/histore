@@ -576,7 +576,7 @@ class PersistentArchive(Archive):
                     validate=validate
                 )
         else:
-            # Create a volatile archive store. If a document is provided this
+            # Create a persistent archive store. If a document is provided this
             # will be committed as the first snapshot.
             if doc is not None:
                 doc = to_document(doc)
@@ -603,7 +603,13 @@ class PersistentArchive(Archive):
             elif primary_key is not None:
                 raise ValueError('missing snapshot document')
             else:
-                store = VolatileArchiveStore()
+                store = ArchiveFileStore(
+                    basedir=basedir,
+                    replace=create,
+                    serializer=serializer_from_dict(serializer),
+                    encoder=encoder_from_string(encoder),
+                    decoder=decoder_from_string(decoder)
+                )
             self.store = store
 
 

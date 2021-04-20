@@ -33,6 +33,7 @@ import histore.util as util
 
 
 """Element labels for metadata serialization."""
+META_PRIMARYKEY = 'primaryKey'
 META_SCHEMA = 'schema'
 META_SNAPSHOTS = 'snapshots'
 META_ROWCOUNT = 'rowcount'
@@ -90,16 +91,23 @@ class ArchiveFileStore(ArchiveStore):
                 doc = json.load(f, object_hook=self.decoder)
             # Deserialize schema columns.
             columns = list()
-            for c in doc[META_SCHEMA]:
+            for c in doc.get(META_SCHEMA, []):
                 columns.append(self.serializer.deserialize_column(c))
             self.schema = ArchiveSchema(columns=columns)
             # Deserialize snapshot descriptors
             snapshots = list()
-            for s in doc[META_SNAPSHOTS]:
+            for s in doc.get(META_SNAPSHOTS, []):
                 snapshots.append(self.serializer.deserialize_snapshot(s))
             self.snapshots = SnapshotListing(snapshots=snapshots)
             # Deserialize row counter.
-            self.row_counter = doc[META_ROWCOUNT]
+            self.row_counter = doc.get(META_ROWCOUNT, 0)
+            # Overwrite primary key if it is present in the metadata file.
+            if self._primary_key:
+                doc[META_PRIMARYKEY] = self._primary_key
+                with open(self.tmpmetafile, 'w') as f:
+                    json.dump(doc, f, cls=self.encoder)
+            else:
+                self._primary_key = doc[META_PRIMARYKEY]
         else:
             # Create an empty archive.
             self.schema = ArchiveSchema()
@@ -109,6 +117,9 @@ class ArchiveFileStore(ArchiveStore):
             for f in [self.datafile, self.metafile]:
                 if os.path.isfile(f):
                     os.remove(f)
+            # Write primary key to metadata file.
+            with open(self.metafile, 'w') as f:
+                json.dump({META_PRIMARYKEY: self._primary_key}, f)
 
     def commit(
         self, schema: ArchiveSchema, writer: ArchiveFileWriter,
@@ -248,7 +259,8 @@ class ArchiveFileStore(ArchiveStore):
         doc = {
             META_SCHEMA: [encoder.serialize_column(c) for c in schema],
             META_SNAPSHOTS: [encoder.serialize_snapshot(s) for s in snapshots],
-            META_ROWCOUNT: writer.row_counter
+            META_ROWCOUNT: writer.row_counter,
+            META_PRIMARYKEY: self._primary_key
         }
         with open(self.tmpmetafile, 'w') as f:
             json.dump(doc, f, cls=self.encoder)

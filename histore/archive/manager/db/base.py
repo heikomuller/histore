@@ -228,8 +228,7 @@ class DBArchiveManager(ArchiveManager):
                 return
             # Remove the archive base directory and the entry in the database.
             archdir = self._archive_dir(identifier)
-            if os.path.isdir(archdir):
-                shutil.rmtree(archdir)
+            shutil.rmtree(archdir)
             session.delete(archive)
 
     def get(self, identifier: str) -> PersistentArchive:
