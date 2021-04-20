@@ -67,7 +67,7 @@
 * Add more compact archive serialization option.
 * Add option to select archive serializer (\#27).
 * Add option to commit dataset snapshot from a data stream.
-* Add `histore.archive.reader.SnapshotReader` (a `histore.document.base.DataReader` implementation) to read dataset snapshots.
+* Add `histore.archive.reader.SnapshotReader` (a `histore.document.base.Document` implementation) to read dataset snapshots.
 * Add close method to `histore.archive.reader.ArchiveReader` interface.
 * Change behavior of `histore.document.schema.to_schema()` to take existing Column objects into account.
 * Direct update of archive snapshots via `apply()` and `histore.document.operator.DatasetOperator`.
