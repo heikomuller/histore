@@ -62,10 +62,10 @@
 * Disable type inference when checking out dataset snapshot as data frame (\#24).
 
 
-### 0.4.0 - TBD
+### 0.4.0 - 2021-04-21
 
 * Add more compact archive serialization option.
-* Add option to select archive serializer (\#27)
+* Add option to select archive serializer (\#27).
 * Add option to commit dataset snapshot from a data stream.
 * Add `histore.archive.reader.SnapshotReader` (a `histore.document.base.DataReader` implementation) to read dataset snapshots.
 * Add close method to `histore.archive.reader.ArchiveReader` interface.
@@ -74,4 +74,4 @@
 * Require archives to be created from initial snapshot if primary key is used.
 * Add `histore.document.json.base.JsonDocument` to read serialized Json documents.
 * Use user's cache directory as the default parent directory for archive managers.
-* Remove option for partial merge
+* Remove option for partial merge.
