@@ -39,7 +39,7 @@ def test_iterate_over_stream():
     archive = Archive()
     archive.commit(doc=DataFrameDocument(df=DF1))
     rows = list()
-    with archive.stream(version=0).open() as reader:
+    with archive.open(version=0).open() as reader:
         for row in reader:
             rows.append(row)
     assert rows == [
@@ -58,20 +58,20 @@ def test_stream_keyed_archive(tmpdir):
         doc = DataFrameDocument(df=df)
         archive.commit(doc)
     # -- Stream snapshots -----------------------------------------------------
-    stream = archive.stream(version=0)
+    stream = archive.open(version=0)
     assert stream.columns == ['Name', 'Age']
     with stream.open() as s:
         values = ([(rowidx, values) for _, rowidx, values in s])
         assert values == [(0, ['Alice', 23]), (1, ['Alice', 32]), (2, ['Bob', 45]), (3, ['Claire', 27])]
-    with archive.stream(version=1).open() as s:
+    with archive.open(version=1).open() as s:
         values = ([(rowidx, values) for _, rowidx, values in s])
         assert values == [(1, ['Alice', 32]), (4, ['Bob', 44]), (3, ['Claire', 27]), (5, ['Dave', 23])]
-    with archive.stream().open() as s:
+    with archive.open().open() as s:
         values = ([(rowidx, values) for _, rowidx, values in s])
         assert values == [(1, ['Alice', 32]), (4, ['Bob', 44]), (3, ['Claire', 27]), (6, ['Dave', 33])]
     # -- Error cases ----------------------------------------------------------
     with pytest.raises(ValueError):
-        archive.stream(version=5)
+        archive.open(version=5)
 
 
 def test_stream_to_data_frame():
@@ -86,15 +86,15 @@ def test_stream_to_data_frame():
     # The snapshots are only identical if the data frames where sorted by the
     # data frame index. Thus, the third snapshot will return a data frame in
     # different order.
-    pd.testing.assert_frame_equal(archive.stream(version=0).to_df(), DF1)
-    pd.testing.assert_frame_equal(archive.stream(version=1).to_df(), DF2)
+    pd.testing.assert_frame_equal(archive.open(version=0).to_df(), DF1)
+    pd.testing.assert_frame_equal(archive.open(version=1).to_df(), DF2)
 
 
 def test_stream_sorted():
     """Test getting a sorted document form an stream reader."""
     archive = Archive()
     archive.commit(doc=DataFrameDocument(df=DF1))
-    names = list(archive.stream(version=0).sorted(keys=[0]).to_df()['Name'])
+    names = list(archive.open(version=0).sorted(keys=[0]).to_df()['Name'])
     assert names == ['Alice', 'Alice', 'Bob', 'Claire']
 
 
@@ -106,17 +106,17 @@ def test_stream_unkeyed_archive():
         doc = DataFrameDocument(df=df)
         archive.commit(doc)
     # -- Stream snapshots -----------------------------------------------------
-    stream = archive.stream(version=0)
+    stream = archive.open(version=0)
     assert stream.columns == ['Name', 'Age']
     with stream.open() as s:
         values = ([(rowidx, values) for _, rowidx, values in s])
         assert values == [(0, ['Alice', 32]), (1, ['Bob', 45]), (2, ['Claire', 27]), (3, ['Alice', 23])]
-    with archive.stream(version=1).open() as s:
+    with archive.open(version=1).open() as s:
         values = ([(rowidx, values) for _, rowidx, values in s])
         assert values == [(0, ['Alice', 32]), (1, ['Bob', 44]), (2, ['Claire', 27]), (3, ['Dave', 23])]
-    with archive.stream().open() as s:
+    with archive.open().open() as s:
         values = ([(rowidx, values) for _, rowidx, values in s])
         assert values == [(0, ['Alice', 32]), (1, ['Bob', 44]), (2, ['Claire', 27]), (3, ['Dave', 33])]
     # -- Error cases ----------------------------------------------------------
     with pytest.raises(ValueError):
-        archive.stream(version=5)
+        archive.open(version=5)

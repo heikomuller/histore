@@ -402,6 +402,33 @@ class Archive(object):
         """
         return self.store.is_empty()
 
+    def open(self, version: Optional[int] = None) -> SnapshotReader:
+        """Get a stream reader for a dataset snapshot.
+
+        Parameters
+        ----------
+        version: int, default=None
+            Unique version identifier. By default the last version is used.
+
+        Returns
+        -------
+        histore.archive.reader.SnapshotReader
+        """
+        # Use the last snapshot as default if no version is specified.
+        if version is None:
+            version = self.snapshots().last_snapshot().version
+        # Ensure that the version exists in the snapshot index.
+        if not self.snapshots().has_version(version):
+            raise ValueError('unknown version {}'.format(version))
+        # Get dataset schema at the given version.
+        columns = self.schema().at_version(version)
+        return SnapshotReader(
+            reader=self.reader,
+            version=version,
+            schema=columns,
+            is_keyed=self.store.primary_key() is not None
+        )
+
     def reader(self) -> ArchiveReader:
         """Get the row reader for this archive.
 
@@ -461,33 +488,6 @@ class Archive(object):
         histore.archive.snapshot.SnapshotListing
         """
         return self.store.get_snapshots()
-
-    def stream(self, version: Optional[int] = None) -> SnapshotReader:
-        """Get a stream reader for a dataset snapshot.
-
-        Parameters
-        ----------
-        version: int, default=None
-            Unique version identifier. By default the last version is used.
-
-        Returns
-        -------
-        histore.archive.reader.SnapshotReader
-        """
-        # Use the last snapshot as default if no version is specified.
-        if version is None:
-            version = self.snapshots().last_snapshot().version
-        # Ensure that the version exists in the snapshot index.
-        if not self.snapshots().has_version(version):
-            raise ValueError('unknown version {}'.format(version))
-        # Get dataset schema at the given version.
-        columns = self.schema().at_version(version)
-        return SnapshotReader(
-            reader=self.reader,
-            version=version,
-            schema=columns,
-            is_keyed=self.store.primary_key() is not None
-        )
 
 
 class PersistentArchive(Archive):
