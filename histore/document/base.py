@@ -31,35 +31,6 @@ RowIndex = Union[Scalar, Tuple[Scalar, ...]]
 
 # -- Input Documents ----------------------------------------------------------
 
-class InputStream(metaclass=ABCMeta):
-    """Abstract class for data input streams. An input stream contains informaton
-    about the schema of the stream rows. The input stream is an iterator over
-    rows in the dataset.
-    """
-    def __init__(self, columns: Schema):
-        """Initialize the list of columns in the stream schema.
-
-        Parameters
-        ----------
-        columns: list of string, default=None
-            List of column names in the schema of the data stream rows.
-        """
-        self.columns = columns
-
-    @abstractmethod
-    def iterrows(self) -> Iterator[Tuple[RowIndex, DataRow]]:
-        """Simulate the iterrows() function of a pandas DataFrame.
-
-        Returns an iterator that yields pairs of row index and row value lists
-        for each row in the streamed data frame.
-
-        Returns
-        -------
-        iterator
-        """
-        raise NotImplementedError()  # pragma: no cover
-
-
 class DocumentIterator(metaclass=ABCMeta):
     """Iterator over rows in a document. Each row is represented as a list of
     cell values for the document columns. Cell values are expected to be scalar
@@ -129,11 +100,11 @@ class DocumentIterator(metaclass=ABCMeta):
         raise NotImplementedError()  # pragma: no cover
 
 
-class Document(InputStream, metaclass=ABCMeta):
+class Document(metaclass=ABCMeta):
     """The abstract document class maintains the document schema and provides
     access to the document rows via a document iterator.
     """
-    def __init__(self, columns: Schema):
+    def __init__(self, columns: DocumentSchema):
         """Initialize the document schema.
 
         Parameters
@@ -144,7 +115,7 @@ class Document(InputStream, metaclass=ABCMeta):
             values in each row is expected to correspond to their respective
             column in this list.
         """
-        super(Document, self).__init__(columns=columns)
+        self.columns = columns
 
     @abstractmethod
     def close(self):

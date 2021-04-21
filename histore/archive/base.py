@@ -21,7 +21,7 @@ from histore.archive.store.base import ArchiveStore
 from histore.archive.store.fs.base import ArchiveFileStore
 from histore.archive.store.mem.base import VolatileArchiveStore
 from histore.archive.writer import ValidatingArchiveWriter
-from histore.document.base import Document, InputDescriptor, InputStream
+from histore.document.base import Document, InputDescriptor
 from histore.document.csv.base import CSVFile
 from histore.document.df import DataFrameDocument
 from histore.document.operator import DatasetOperator
@@ -32,7 +32,7 @@ import histore.archive.merge as nested_merge
 
 
 """Type aliases for archive API methods."""
-InputDocument = Union[pd.DataFrame, str, InputStream, Document]
+InputDocument = Union[pd.DataFrame, str, Document]
 # Primary key of a dataset.
 PrimaryKey = Union[str, List[str]]
 
@@ -280,7 +280,7 @@ class Archive(object):
 
         Parameters
         ----------
-        doc: histore.archive.base.InputDocument, or string
+        doc: histore.archive.base.InputDocument.
             Input document representing the dataset snapshot that is being
             merged into the archive.
         descriptor: histore.document.base.InputDescriptor, default=None
@@ -663,9 +663,8 @@ def get_key_columns(columns: DocumentSchema, primary_key: PrimaryKey) -> List[in
     return pk
 
 
-def to_document(doc: InputDocument) -> Union[Document, InputStream]:
-    """Ensure that a given input document is either an instance of class
-    Document or InputStream.
+def to_document(doc: InputDocument) -> Document:
+    """Ensure that a given input document is an instance of class Document .
 
     Parameters
     ----------
@@ -675,7 +674,7 @@ def to_document(doc: InputDocument) -> Union[Document, InputStream]:
 
     Returns
     -------
-    histore.document.base.Document of histore.document.stream.InputStream
+    histore.document.base.Document
     """
     if isinstance(doc, pd.DataFrame):
         # If the given document is a pandas DataFrame we need to wrap it in
