@@ -186,9 +186,53 @@ committed to an archive. A document primarily serves two purposes: (1) it
 contains the document schema (a list of column names), and (2) it supports
 reading the document rows.</p>
 <dl class="py class">
+<dt id="histore.document.base.DefaultDocument">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.document.base.</span></code><code class="sig-name descname"><span class="pre">DefaultDocument</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="histore.document.schema.html#histore.document.schema.Column" title="histore.document.schema.Column"><span class="pre">histore.document.schema.Column</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.document.base.DefaultDocument" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#histore.document.base.Document" title="histore.document.base.Document"><code class="xref py py-class docutils literal notranslate"><span class="pre">histore.document.base.Document</span></code></a></p>
+<p>Document that provides default implementation for the to_df() and
+sorted() methods of the Document class.</p>
+<dl class="py method">
+<dt id="histore.document.base.DefaultDocument.sorted">
+<code class="sig-name descname"><span class="pre">sorted</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffersize</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.document.base.Document" title="histore.document.base.Document"><span class="pre">histore.document.base.Document</span></a><a class="headerlink" href="#histore.document.base.DefaultDocument.sorted" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort the document rows based on the values in the key columns.</p>
+<p>Key columns are specified by their index position. Returns a new
+document.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>keys</strong> (<em>list of int</em>) – Index position of sort columns.</p></li>
+<li><p><strong>buffersize</strong> (<em>float, default=None</em>) – Maximum size (in bytes) of file blocks that are kept in main-memory.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p><a class="reference internal" href="#histore.document.base.Document" title="histore.document.base.Document">histore.document.base.Document</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.document.base.DefaultDocument.to_df">
+<code class="sig-name descname"><span class="pre">to_df</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="headerlink" href="#histore.document.base.DefaultDocument.to_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create data frame from the document rows.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="histore.document.base.Document">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.document.base.</span></code><code class="sig-name descname"><span class="pre">Document</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="histore.document.schema.html#histore.document.schema.Column" title="histore.document.schema.Column"><span class="pre">histore.document.schema.Column</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.document.base.Document" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#histore.document.base.InputStream" title="histore.document.base.InputStream"><code class="xref py py-class docutils literal notranslate"><span class="pre">histore.document.base.InputStream</span></code></a></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>The abstract document class maintains the document schema and provides
 access to the document rows via a document iterator.</p>
 <dl class="py method">
@@ -230,20 +274,6 @@ for each row in the streamed data frame.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="histore.document.base.Document.read_df">
-<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">read_df</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="headerlink" href="#histore.document.base.Document.read_df" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create data frame from the document rows.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>pd.DataFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt id="histore.document.base.Document.sorted">
 <em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">sorted</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffersize</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.document.base.Document" title="histore.document.base.Document"><span class="pre">histore.document.base.Document</span></a><a class="headerlink" href="#histore.document.base.Document.sorted" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sort the document rows based on the values in the key columns.</p>
@@ -261,6 +291,20 @@ document.</p>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p><a class="reference internal" href="#histore.document.base.Document" title="histore.document.base.Document">histore.document.base.Document</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="histore.document.base.Document.to_df">
+<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">to_df</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="headerlink" href="#histore.document.base.Document.to_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create data frame from the document rows.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>pd.DataFrame</p>
 </dd>
 </dl>
 </dd></dl>
@@ -285,22 +329,6 @@ the returned row index.</p>
 <dt id="histore.document.base.DocumentIterator.close">
 <em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">close</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#histore.document.base.DocumentIterator.close" title="Permalink to this definition">¶</a></dt>
 <dd><p>Release all resources that are held by the iterator.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="histore.document.base.DocumentIterator.has_next">
-<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">has_next</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.document.base.DocumentIterator.has_next" title="Permalink to this definition">¶</a></dt>
-<dd><p>Test if the iterator has more rows to read. If the result is True
-then the next() method will return the next row. Otherwise, the next()
-method will raise a StopIteration error.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>bool</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -344,29 +372,21 @@ made to read past the end of the document.</p>
 
 </dd></dl>
 
-<dl class="py class">
-<dt id="histore.document.base.InputStream">
-<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.document.base.</span></code><code class="sig-name descname"><span class="pre">InputStream</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="histore.document.schema.html#histore.document.schema.Column" title="histore.document.schema.Column"><span class="pre">histore.document.schema.Column</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.document.base.InputStream" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
-<p>Abstract class for data input streams. An input stream contains informaton
-about the schema of the stream rows. The input stream is an iterator over
-rows in the dataset.</p>
-<dl class="py method">
-<dt id="histore.document.base.InputStream.iterrows">
-<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">iterrows</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">datetime.datetime</span><span class="p"><span class="pre">,</span> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">datetime.datetime</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="p"><span class="pre">…</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">datetime.datetime</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#histore.document.base.InputStream.iterrows" title="Permalink to this definition">¶</a></dt>
-<dd><p>Simulate the iterrows() function of a pandas DataFrame.</p>
-<p>Returns an iterator that yields pairs of row index and row value lists
-for each row in the streamed data frame.</p>
+<dl class="py function">
+<dt id="histore.document.base.document_to_df">
+<code class="sig-prename descclassname"><span class="pre">histore.document.base.</span></code><code class="sig-name descname"><span class="pre">document_to_df</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">doc</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><a class="reference internal" href="#histore.document.base.Document" title="histore.document.base.Document"><span class="pre">histore.document.base.Document</span></a></span></em><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="headerlink" href="#histore.document.base.document_to_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create data frame from the document rows.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>doc</strong> (<em>histore.document.base.Document</em>) – Input document.</p>
 </dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>iterator</p>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p></p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
 </dd>
 </dl>
-</dd></dl>
-
 </dd></dl>
 
 </div>

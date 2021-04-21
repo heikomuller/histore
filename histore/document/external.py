@@ -39,7 +39,7 @@ class ExternalDocument(Document):
         if self.delete_on_close:
             os.unlink(self.filename)
 
-    def read_df(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         """Create data frame from the document rows.
 
         Returns

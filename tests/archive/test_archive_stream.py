@@ -86,15 +86,15 @@ def test_stream_to_data_frame():
     # The snapshots are only identical if the data frames where sorted by the
     # data frame index. Thus, the third snapshot will return a data frame in
     # different order.
-    pd.testing.assert_frame_equal(archive.stream(version=0).read_df(), DF1)
-    pd.testing.assert_frame_equal(archive.stream(version=1).read_df(), DF2)
+    pd.testing.assert_frame_equal(archive.stream(version=0).to_df(), DF1)
+    pd.testing.assert_frame_equal(archive.stream(version=1).to_df(), DF2)
 
 
 def test_stream_sorted():
     """Test getting a sorted document form an stream reader."""
     archive = Archive()
     archive.commit(doc=DataFrameDocument(df=DF1))
-    names = list(archive.stream(version=0).sorted(keys=[0]).read_df()['Name'])
+    names = list(archive.stream(version=0).sorted(keys=[0]).to_df()['Name'])
     assert names == ['Alice', 'Alice', 'Bob', 'Claire']
 
 

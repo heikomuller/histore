@@ -98,7 +98,7 @@ class DataFrameDocument(Document):
         """
         return DataFrameIterator(df=self._df, readorder=self.readorder)
 
-    def read_df(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         """Return the associated data frame.
 
         Returns

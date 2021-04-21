@@ -209,20 +209,6 @@ document is closed.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="histore.document.df.DataFrameDocument.read_df">
-<code class="sig-name descname"><span class="pre">read_df</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="headerlink" href="#histore.document.df.DataFrameDocument.read_df" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the associated data frame.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>pd.DataFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt id="histore.document.df.DataFrameDocument.sorted">
 <code class="sig-name descname"><span class="pre">sorted</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffersize</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.document.df.DataFrameDocument" title="histore.document.df.DataFrameDocument"><span class="pre">histore.document.df.DataFrameDocument</span></a><a class="headerlink" href="#histore.document.df.DataFrameDocument.sorted" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sort the document rows based on the values in the key columns.</p>
@@ -245,6 +231,20 @@ Ignored. Included for API completeness.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt id="histore.document.df.DataFrameDocument.to_df">
+<code class="sig-name descname"><span class="pre">to_df</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="headerlink" href="#histore.document.df.DataFrameDocument.to_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the associated data frame.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -256,20 +256,6 @@ Ignored. Included for API completeness.</p></li>
 <dt id="histore.document.df.DataFrameIterator.close">
 <code class="sig-name descname"><span class="pre">close</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#histore.document.df.DataFrameIterator.close" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the associated data frame and read order to None.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="histore.document.df.DataFrameIterator.has_next">
-<code class="sig-name descname"><span class="pre">has_next</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.document.df.DataFrameIterator.has_next" title="Permalink to this definition">¶</a></dt>
-<dd><p>Test if the iterator has more rows to read.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>bool</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py method">

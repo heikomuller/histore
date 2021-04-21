@@ -200,20 +200,6 @@ expected to be triples of row position, row index, and cell values.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="histore.document.json.reader.JsonIterator.has_next">
-<code class="sig-name descname"><span class="pre">has_next</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.document.json.reader.JsonIterator.has_next" title="Permalink to this definition">¶</a></dt>
-<dd><p>Test if the iterator has more rows to read.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>bool</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt id="histore.document.json.reader.JsonIterator.next">
 <code class="sig-name descname"><span class="pre">next</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">datetime.datetime</span><span class="p"><span class="pre">,</span> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">datetime.datetime</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="p"><span class="pre">…</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">datetime.datetime</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#histore.document.json.reader.JsonIterator.next" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read the next row in the document.</p>
@@ -244,21 +230,6 @@ deserialization function.</p>
 <dt id="histore.document.json.reader.JsonReader.close">
 <code class="sig-name descname"><span class="pre">close</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#histore.document.json.reader.JsonReader.close" title="Permalink to this definition">¶</a></dt>
 <dd><p>Release all reseources that are associated with the reader.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="histore.document.json.reader.JsonReader.has_next">
-<code class="sig-name descname"><span class="pre">has_next</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.document.json.reader.JsonReader.has_next" title="Permalink to this definition">¶</a></dt>
-<dd><p>The next row for the reader is the current buffer value.</p>
-<p>If the buffer is empty the end of the file has been reached.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>bool</p>
-</dd>
-</dl>
 </dd></dl>
 
 </dd></dl>

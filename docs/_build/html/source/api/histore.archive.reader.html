@@ -194,26 +194,10 @@ their identifier.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="histore.archive.reader.ArchiveReader.has_next">
-<em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">has_next</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.reader.ArchiveReader.has_next" title="Permalink to this definition">¶</a></dt>
-<dd><p>Test if the reader has more rows to read. If True the next() method
-will return the next row. Otherwise, the next() method will return
-None.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>bool</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt id="histore.archive.reader.ArchiveReader.next">
 <em class="property"><span class="pre">abstract</span> </em><code class="sig-name descname"><span class="pre">next</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.reader.ArchiveReader.next" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read the next row in the dataset archive. Returns None if the end of
-the archive rows has been reached.</p>
+<dd><p>Read the next row in the dataset archive.</p>
+<p>Returns None if the end of the archive rows has been reached.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p></p>
@@ -241,22 +225,6 @@ repeated attempts to close it multiple times).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="histore.archive.reader.SnapshotIterator.has_next">
-<code class="sig-name descname"><span class="pre">has_next</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.archive.reader.SnapshotIterator.has_next" title="Permalink to this definition">¶</a></dt>
-<dd><p>Test if the iterator has more rows to read. If the result is True
-then the next() method will return the next row. Otherwise, the next()
-method will raise a StopIteration error.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>bool</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt id="histore.archive.reader.SnapshotIterator.next">
 <code class="sig-name descname"><span class="pre">next</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">datetime.datetime</span><span class="p"><span class="pre">,</span> </span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">datetime.datetime</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="p"><span class="pre">…</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span> </span><span class="pre">float</span><span class="p"><span class="pre">,</span> </span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><span class="pre">datetime.datetime</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><a class="headerlink" href="#histore.archive.reader.SnapshotIterator.next" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read the next row in the document.</p>
@@ -278,26 +246,12 @@ made to read past the end of the document.</p>
 <dl class="py class">
 <dt id="histore.archive.reader.SnapshotReader">
 <em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.archive.reader.</span></code><code class="sig-name descname"><span class="pre">SnapshotReader</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reader</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Callable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">schema</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="histore.document.schema.html#histore.document.schema.Column" title="histore.document.schema.Column"><span class="pre">histore.document.schema.Column</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_keyed</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.reader.SnapshotReader" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="histore.document.base.html#histore.document.base.Document" title="histore.document.base.Document"><code class="xref py py-class docutils literal notranslate"><span class="pre">histore.document.base.Document</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="histore.document.base.html#histore.document.base.DefaultDocument" title="histore.document.base.DefaultDocument"><code class="xref py py-class docutils literal notranslate"><span class="pre">histore.document.base.DefaultDocument</span></code></a></p>
 <p>Stream reader for rows in a dataset archive snapshot.</p>
 <dl class="py method">
 <dt id="histore.archive.reader.SnapshotReader.close">
 <code class="sig-name descname"><span class="pre">close</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#histore.archive.reader.SnapshotReader.close" title="Permalink to this definition">¶</a></dt>
 <dd><p>There are no resources that need to be released.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="histore.archive.reader.SnapshotReader.columns">
-<em class="property"><span class="pre">property</span> </em><code class="sig-name descname"><span class="pre">columns</span></code><a class="headerlink" href="#histore.archive.reader.SnapshotReader.columns" title="Permalink to this definition">¶</a></dt>
-<dd><p>Synonym to get list of columns in the reader schema.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>list of histore.document.schema.Column</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -311,42 +265,6 @@ snapshot.</p>
 </dd>
 <dt class="field-even">Return type</dt>
 <dd class="field-even"><p><a class="reference internal" href="#histore.archive.reader.SnapshotIterator" title="histore.archive.reader.SnapshotIterator">histore.archive.reader.SnapshotIterator</a></p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="histore.archive.reader.SnapshotReader.read_df">
-<code class="sig-name descname"><span class="pre">read_df</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="headerlink" href="#histore.archive.reader.SnapshotReader.read_df" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create data frame from the document rows.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>pd.DataFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt id="histore.archive.reader.SnapshotReader.sorted">
-<code class="sig-name descname"><span class="pre">sorted</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffersize</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="histore.document.base.html#histore.document.base.Document" title="histore.document.base.Document"><span class="pre">histore.document.base.Document</span></a><a class="headerlink" href="#histore.archive.reader.SnapshotReader.sorted" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sort the document rows based on the values in the key columns.</p>
-<p>Key columns are specified by their index position. Returns a new
-document.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>keys</strong> (<em>list of int</em>) – Index position of sort columns.</p></li>
-<li><p><strong>buffersize</strong> (<em>float, default=None</em>) – Maximum size (in bytes) of file blocks that are kept in main-memory.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p></p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p><a class="reference internal" href="histore.document.base.html#histore.document.base.Document" title="histore.document.base.Document">histore.document.base.Document</a></p>
 </dd>
 </dl>
 </dd></dl>

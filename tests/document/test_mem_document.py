@@ -60,9 +60,9 @@ def test_error_read_after_close(document):
     document.close()
 
 
-def test_read_df(document):
+def test_to_df(document):
     """Test reading the document as a data frame."""
-    df = document.read_df()
+    df = document.to_df()
     assert df.shape == (4, 3)
     assert list(df.index) == [0, 1, 3, 2]
 

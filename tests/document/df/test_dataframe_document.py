@@ -63,10 +63,10 @@ def test_dataframe_positions():
 def test_dataframe_read(dataset):
     """Test reading a data frame from a DataFrame document."""
     doc = DataFrameDocument(df=dataset)
-    df = doc.read_df()
+    df = doc.to_df()
     pd.testing.assert_frame_equal(df, dataset)
     doc.close()
-    assert doc.read_df() is None
+    assert doc.to_df() is None
 
 
 def test_data_frame_with_new_rows():

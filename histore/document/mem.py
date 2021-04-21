@@ -95,7 +95,7 @@ class InMemoryDocument(Document):
         """
         return InMemoryDocumentIterator(rows=self.rows)
 
-    def read_df(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         """Create data frame from the document rows.
 
         Returns

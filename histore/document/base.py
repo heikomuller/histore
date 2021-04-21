@@ -139,7 +139,7 @@ class Document(metaclass=ABCMeta):
         raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def read_df(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         """Create data frame from the document rows.
 
         Returns
@@ -183,7 +183,7 @@ class DefaultDocument(Document):
         """
         super(DefaultDocument, self).__init__(columns=columns)
 
-    def read_df(self) -> pd.DataFrame:
+    def to_df(self) -> pd.DataFrame:
         """Create data frame from the document rows.
 
         Returns

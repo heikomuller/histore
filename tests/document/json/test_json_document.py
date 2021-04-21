@@ -78,7 +78,7 @@ def test_empty_document(tmpdir):
 
 def test_read_data_frame(json_file):
     """Test reading the default JSON document as as data frame."""
-    df = JsonDocument(filename=json_file).read_df()
+    df = JsonDocument(filename=json_file).to_df()
     assert list(df.columns) == ['Name', 'Age']
     assert df.shape == (3, 2)
 

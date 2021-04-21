@@ -211,20 +211,6 @@ original position of the row in a sorted document.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="histore.document.mem.InMemoryDocument.read_df">
-<code class="sig-name descname"><span class="pre">read_df</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="headerlink" href="#histore.document.mem.InMemoryDocument.read_df" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create data frame from the document rows.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>pd.DataFrame</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
 <dt id="histore.document.mem.InMemoryDocument.sorted">
 <code class="sig-name descname"><span class="pre">sorted</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffersize</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span> <span class="o"><span class="pre">=</span></span> <span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> &#x2192; <a class="reference internal" href="#histore.document.mem.InMemoryDocument" title="histore.document.mem.InMemoryDocument"><span class="pre">histore.document.mem.InMemoryDocument</span></a><a class="headerlink" href="#histore.document.mem.InMemoryDocument.sorted" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sort the document rows based on the values in the key columns.</p>
@@ -247,6 +233,20 @@ Ignored. Included for API completeness.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt id="histore.document.mem.InMemoryDocument.to_df">
+<code class="sig-name descname"><span class="pre">to_df</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">pandas.core.frame.DataFrame</span><a class="headerlink" href="#histore.document.mem.InMemoryDocument.to_df" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create data frame from the document rows.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p></p>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -258,20 +258,6 @@ Ignored. Included for API completeness.</p></li>
 <dt id="histore.document.mem.InMemoryDocumentIterator.close">
 <code class="sig-name descname"><span class="pre">close</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#histore.document.mem.InMemoryDocumentIterator.close" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set list of rows to None.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="histore.document.mem.InMemoryDocumentIterator.has_next">
-<code class="sig-name descname"><span class="pre">has_next</span></code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; <span class="pre">bool</span><a class="headerlink" href="#histore.document.mem.InMemoryDocumentIterator.has_next" title="Permalink to this definition">¶</a></dt>
-<dd><p>Test if the iterator has more rows to read.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p></p>
-</dd>
-<dt class="field-even">Return type</dt>
-<dd class="field-even"><p>bool</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -291,6 +277,13 @@ made to read past the end of the document.</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py class">
+<dt id="histore.document.mem.Schema">
+<em class="property"><span class="pre">class</span> </em><code class="sig-prename descclassname"><span class="pre">histore.document.mem.</span></code><code class="sig-name descname"><span class="pre">Schema</span></code><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span> <span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span> </span><a class="reference internal" href="histore.document.schema.html#histore.document.schema.Column" title="histore.document.schema.Column"><span class="pre">histore.document.schema.Column</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#histore.document.mem.Schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#histore.document.mem.InMemoryDocument" title="histore.document.mem.InMemoryDocument"><code class="xref py py-class docutils literal notranslate"><span class="pre">histore.document.mem.InMemoryDocument</span></code></a></p>
+<p>Empty document that only defines the document schema.</p>
 </dd></dl>
 
 </div>

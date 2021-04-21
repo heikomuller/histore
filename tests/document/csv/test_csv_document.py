@@ -85,7 +85,7 @@ def test_read_csv_file():
 
 def test_read_data_frame():
     """Test reading a the tab-delimited document as as data frame."""
-    df = CSVFile(filename=GZIP_FILE, compressed=True).read_df()
+    df = CSVFile(filename=GZIP_FILE, compressed=True).to_df()
     assert list(df.columns) == [
         'Calendar Year',
         'Gender',

@@ -359,8 +359,6 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="source/api/histore.document.schema.html#histore.document.schema.column_ref">column_ref() (in module histore.document.schema)</a>
 </li>
-      <li><a href="source/api/histore.archive.reader.html#histore.archive.reader.SnapshotReader.columns">columns() (histore.archive.reader.SnapshotReader property)</a>
-</li>
       <li><a href="source/api/histore.archive.base.html#histore.archive.base.Archive.commit">commit() (histore.archive.base.Archive method)</a>
 
       <ul>
@@ -459,6 +457,8 @@
 </li>
       <li><a href="source/api/histore.archive.provenance.describe.html#histore.archive.provenance.describe.DefaultDescribe">DefaultDescribe (class in histore.archive.provenance.describe)</a>
 </li>
+      <li><a href="source/api/histore.document.base.html#histore.document.base.DefaultDocument">DefaultDocument (class in histore.document.base)</a>
+</li>
       <li><a href="source/api/histore.document.reader.html#histore.document.reader.DefaultDocumentReader">DefaultDocumentReader (class in histore.document.reader)</a>
 </li>
       <li><a href="source/api/histore.document.json.writer.html#histore.document.json.writer.DefaultEncoder">DefaultEncoder (class in histore.document.json.writer)</a>
@@ -556,6 +556,8 @@
       <li><a href="source/api/histore.document.base.html#histore.document.base.Document">Document (class in histore.document.base)</a>
 </li>
       <li><a href="source/api/histore.archive.schema.html#histore.archive.schema.document_schema">document_schema() (in module histore.archive.schema)</a>
+</li>
+      <li><a href="source/api/histore.document.base.html#histore.document.base.document_to_df">document_to_df() (in module histore.document.base)</a>
 </li>
       <li><a href="source/api/histore.document.base.html#histore.document.base.DocumentIterator">DocumentIterator (class in histore.document.base)</a>
 </li>
@@ -675,30 +677,6 @@
 <h2 id="H">H</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="source/api/histore.archive.reader.html#histore.archive.reader.ArchiveReader.has_next">has_next() (histore.archive.reader.ArchiveReader method)</a>
-
-      <ul>
-        <li><a href="source/api/histore.archive.reader.html#histore.archive.reader.SnapshotIterator.has_next">(histore.archive.reader.SnapshotIterator method)</a>
-</li>
-        <li><a href="source/api/histore.archive.store.fs.reader.html#histore.archive.store.fs.reader.ArchiveFileReader.has_next">(histore.archive.store.fs.reader.ArchiveFileReader method)</a>
-</li>
-        <li><a href="source/api/histore.archive.store.mem.reader.html#histore.archive.store.mem.reader.BufferedReader.has_next">(histore.archive.store.mem.reader.BufferedReader method)</a>
-</li>
-        <li><a href="source/api/histore.document.base.html#histore.document.base.DocumentIterator.has_next">(histore.document.base.DocumentIterator method)</a>
-</li>
-        <li><a href="source/api/histore.document.csv.base.html#histore.document.csv.base.CSVIterator.has_next">(histore.document.csv.base.CSVIterator method)</a>
-</li>
-        <li><a href="source/api/histore.document.csv.reader.html#histore.document.csv.reader.CSVReader.has_next">(histore.document.csv.reader.CSVReader method)</a>
-</li>
-        <li><a href="source/api/histore.document.df.html#histore.document.df.DataFrameIterator.has_next">(histore.document.df.DataFrameIterator method)</a>
-</li>
-        <li><a href="source/api/histore.document.json.reader.html#histore.document.json.reader.JsonIterator.has_next">(histore.document.json.reader.JsonIterator method)</a>
-</li>
-        <li><a href="source/api/histore.document.json.reader.html#histore.document.json.reader.JsonReader.has_next">(histore.document.json.reader.JsonReader method)</a>
-</li>
-        <li><a href="source/api/histore.document.mem.html#histore.document.mem.InMemoryDocumentIterator.has_next">(histore.document.mem.InMemoryDocumentIterator method)</a>
-</li>
-      </ul></li>
       <li><a href="source/api/histore.archive.snapshot.html#histore.archive.snapshot.SnapshotListing.has_version">has_version() (histore.archive.snapshot.SnapshotListing method)</a>
 </li>
       <li>
@@ -925,8 +903,6 @@
         <li><a href="source/api/histore.archive.store.fs.html#module-histore.archive.store.fs">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     histore.archive.store.fs.base
 
@@ -948,6 +924,8 @@
         <li><a href="source/api/histore.archive.store.fs.writer.html#module-histore.archive.store.fs.writer">module</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li>
     histore.archive.store.mem
 
@@ -1213,8 +1191,6 @@
 </li>
       <li><a href="source/api/histore.document.base.html#histore.document.base.InputDescriptor">InputDescriptor (class in histore.document.base)</a>
 </li>
-      <li><a href="source/api/histore.document.base.html#histore.document.base.InputStream">InputStream (class in histore.document.base)</a>
-</li>
       <li><a href="source/api/histore.util.html#histore.util.inputstream">inputstream() (in module histore.util)</a>
 </li>
       <li><a href="source/api/histore.archive.provenance.base.html#histore.archive.provenance.base.Provenance.insert">insert() (histore.archive.provenance.base.Provenance method)</a>
@@ -1272,11 +1248,7 @@
       <li><a href="source/api/histore.archive.provenance.base.html#histore.archive.provenance.base.ProvOp.is_update">is_update() (histore.archive.provenance.base.ProvOp method)</a>
 </li>
       <li><a href="source/api/histore.document.base.html#histore.document.base.Document.iterrows">iterrows() (histore.document.base.Document method)</a>
-
-      <ul>
-        <li><a href="source/api/histore.document.base.html#histore.document.base.InputStream.iterrows">(histore.document.base.InputStream method)</a>
 </li>
-      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -1608,18 +1580,6 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="source/api/histore.archive.reader.html#histore.archive.reader.SnapshotReader.read_df">read_df() (histore.archive.reader.SnapshotReader method)</a>
-
-      <ul>
-        <li><a href="source/api/histore.document.base.html#histore.document.base.Document.read_df">(histore.document.base.Document method)</a>
-</li>
-        <li><a href="source/api/histore.document.df.html#histore.document.df.DataFrameDocument.read_df">(histore.document.df.DataFrameDocument method)</a>
-</li>
-        <li><a href="source/api/histore.document.external.html#histore.document.external.ExternalDocument.read_df">(histore.document.external.ExternalDocument method)</a>
-</li>
-        <li><a href="source/api/histore.document.mem.html#histore.document.mem.InMemoryDocument.read_df">(histore.document.mem.InMemoryDocument method)</a>
-</li>
-      </ul></li>
       <li><a href="source/api/histore.archive.base.html#histore.archive.base.Archive.reader">reader() (histore.archive.base.Archive method)</a>
 </li>
       <li><a href="source/api/histore.util.html#histore.util.GZipFile.readline">readline() (histore.util.GZipFile method)</a>
@@ -1686,6 +1646,8 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="source/api/histore.document.mem.html#histore.document.mem.Schema">Schema (class in histore.document.mem)</a>
+</li>
       <li><a href="source/api/histore.archive.base.html#histore.archive.base.Archive.schema">schema() (histore.archive.base.Archive method)</a>
 
       <ul>
@@ -1738,10 +1700,10 @@
 </li>
       <li><a href="source/api/histore.archive.manager.descriptor.html#histore.archive.manager.descriptor.ArchiveDescriptor.serializer">serializer() (histore.archive.manager.descriptor.ArchiveDescriptor method)</a>
 </li>
-      <li><a href="source/api/histore.archive.serialize.base.html#histore.archive.serialize.base.SERIALIZER">SERIALIZER() (in module histore.archive.serialize.base)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="source/api/histore.archive.serialize.base.html#histore.archive.serialize.base.SERIALIZER">SERIALIZER() (in module histore.archive.serialize.base)</a>
+</li>
       <li><a href="source/api/histore.archive.manager.descriptor.html#histore.archive.manager.descriptor.serializer_from_dict">serializer_from_dict() (in module histore.archive.manager.descriptor)</a>
 </li>
       <li><a href="source/api/histore.archive.manager.db.database.html#histore.archive.manager.db.database.DB.session">session() (histore.archive.manager.db.database.DB method)</a>
@@ -1764,7 +1726,7 @@
 </li>
       <li><a href="source/api/histore.config.html#histore.config.SORTBUFFER">SORTBUFFER() (in module histore.config)</a>
 </li>
-      <li><a href="source/api/histore.archive.reader.html#histore.archive.reader.SnapshotReader.sorted">sorted() (histore.archive.reader.SnapshotReader method)</a>
+      <li><a href="source/api/histore.document.base.html#histore.document.base.DefaultDocument.sorted">sorted() (histore.document.base.DefaultDocument method)</a>
 
       <ul>
         <li><a href="source/api/histore.document.base.html#histore.document.base.Document.sorted">(histore.document.base.Document method)</a>
@@ -1800,10 +1762,22 @@
 </li>
       <li><a href="source/api/histore.archive.timestamp.html#histore.archive.timestamp.Timestamp">Timestamp (class in histore.archive.timestamp)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="source/api/histore.util.html#histore.util.to_datetime">to_datetime() (in module histore.util)</a>
 </li>
+      <li><a href="source/api/histore.document.base.html#histore.document.base.DefaultDocument.to_df">to_df() (histore.document.base.DefaultDocument method)</a>
+
+      <ul>
+        <li><a href="source/api/histore.document.base.html#histore.document.base.Document.to_df">(histore.document.base.Document method)</a>
+</li>
+        <li><a href="source/api/histore.document.df.html#histore.document.df.DataFrameDocument.to_df">(histore.document.df.DataFrameDocument method)</a>
+</li>
+        <li><a href="source/api/histore.document.external.html#histore.document.external.ExternalDocument.to_df">(histore.document.external.ExternalDocument method)</a>
+</li>
+        <li><a href="source/api/histore.document.mem.html#histore.document.mem.InMemoryDocument.to_df">(histore.document.mem.InMemoryDocument method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="source/api/histore.archive.base.html#histore.archive.base.to_document">to_document() (in module histore.archive.base)</a>
 </li>
       <li><a href="source/api/histore.key.html#histore.key.to_key">to_key() (in module histore.key)</a>
