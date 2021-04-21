@@ -6,13 +6,10 @@
 # file LICENSE for full license details.
 
 from abc import ABCMeta, abstractmethod
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, List, Tuple
 
-import pandas as pd
-
-from histore.document.base import Document, DocumentIterator, RowIndex, DataRow, document_to_df
+from histore.document.base import DefaultDocument, DocumentIterator, RowIndex, DataRow
 from histore.document.schema import Column
-from histore.document.sort import SortEngine
 
 
 class ArchiveReader(metaclass=ABCMeta):
@@ -113,7 +110,7 @@ class SnapshotIterator(DocumentIterator):
         raise StopIteration()
 
 
-class SnapshotReader(Document):
+class SnapshotReader(DefaultDocument):
     """Stream reader for rows in a dataset archive snapshot."""
     def __init__(self, reader: Callable, version: int, schema: List[Column], is_keyed: bool):
         """Initialize the function to open the archive reader and information
@@ -132,24 +129,15 @@ class SnapshotReader(Document):
             key or not. The type of archive key determines the value for the
             row index when reading the document.
         """
+        super(SnapshotReader, self).__init__(columns=schema)
         self.reader = reader
-        self.version = version
         self.schema = schema
+        self.version = version
         self.is_keyed = is_keyed
 
     def close(self):
         """There are no resources that need to be released."""
         pass
-
-    @property
-    def columns(self) -> List[Column]:
-        """Synonym to get list of columns in the reader schema.
-
-        Returns
-        -------
-        list of histore.document.schema.Column
-        """
-        return self.schema
 
     def open(self) -> SnapshotIterator:
         """Open the data stream to get a iterator for the rows in the dataset
@@ -165,34 +153,6 @@ class SnapshotReader(Document):
             schema=self.schema,
             is_keyed=self.is_keyed
         )
-
-    def read_df(self) -> pd.DataFrame:
-        """Create data frame from the document rows.
-
-        Returns
-        -------
-        pd.DataFrame
-        """
-        return document_to_df(self)
-
-    def sorted(self, keys: List[int], buffersize: Optional[float] = None) -> Document:
-        """Sort the document rows based on the values in the key columns.
-
-        Key columns are specified by their index position. Returns a new
-        document.
-
-        Parameters
-        ----------
-        keys: list of int
-            Index position of sort columns.
-        buffersize: float, default=None
-            Maximum size (in bytes) of file blocks that are kept in main-memory.
-
-        Returns
-        -------
-        histore.document.base.Document
-        """
-        return SortEngine(buffersize=buffersize).sorted(doc=self, keys=keys)
 
 
 # -- Helper Methods -----------------------------------------------------------

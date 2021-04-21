@@ -169,6 +169,50 @@ class Document(metaclass=ABCMeta):
         raise NotImplementedError()  # pragma: no cover
 
 
+class DefaultDocument(Document):
+    """Document that provides default implementation for the to_df() and
+    sorted() methods of the Document class.
+    """
+    def __init__(self, columns: DocumentSchema):
+        """Initialize the document schema.
+
+        Parameters
+        ----------
+        columns: list of string
+            List of column names.
+        """
+        super(DefaultDocument, self).__init__(columns=columns)
+
+    def read_df(self) -> pd.DataFrame:
+        """Create data frame from the document rows.
+
+        Returns
+        -------
+        pd.DataFrame
+        """
+        return document_to_df(self)
+
+    def sorted(self, keys: List[int], buffersize: Optional[float] = None) -> Document:
+        """Sort the document rows based on the values in the key columns.
+
+        Key columns are specified by their index position. Returns a new
+        document.
+
+        Parameters
+        ----------
+        keys: list of int
+            Index position of sort columns.
+        buffersize: float, default=None
+            Maximum size (in bytes) of file blocks that are kept in main-memory.
+
+        Returns
+        -------
+        histore.document.base.Document
+        """
+        from histore.document.sort import SortEngine
+        return SortEngine(buffersize=buffersize).sorted(doc=self, keys=keys)
+
+
 # -- Document descriptors -----------------------------------------------------
 
 @dataclass
