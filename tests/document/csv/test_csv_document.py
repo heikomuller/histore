@@ -40,11 +40,8 @@ def test_custom_header(tmpdir):
 def test_document_iterator():
     """Test iterating over the document rows."""
     doc = CSVFile(filename=CSV_FILE)
-    row_count = 0
     with doc.open() as reader:
-        while reader.has_next():
-            reader.next()
-            row_count += 1
+        row_count = sum([1 for _ in reader])
     assert row_count == 10
 
 

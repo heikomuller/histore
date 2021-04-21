@@ -16,8 +16,8 @@ from histore.document.base import DataRow
 
 
 class CSVReader(object):
-    """Iterable reader for rows in a CSV file. Instances of this class act as a
-    context manager for an open CSV file reader.
+    """Iterable reader for rows in a CSV file. Instances of this class act as
+    an iterator for an open CSV file reader.
     """
     def __init__(
         self, filename: str, delim: Optional[str] = None, compressed: Optional[bool] = None,
@@ -52,14 +52,10 @@ class CSVReader(object):
         delim = delim if delim is not None else ','
         self.reader = csv.reader(self.file, delimiter=delim, quotechar=quotechar)
         self.none_is = none_is
-        # Read first row into the internal buffer. If the file has no data rows
-        # a StopIteration will be raised. Make sure that th buffer is not None
-        # to avoid that StopIteration is raised before the file is read.
-        self.buffer = None
-        try:
-            next(self)
-        except (StopIteration, UnicodeDecodeError):
-            self.buffer = None
+
+    def __iter__(self):
+        """Return object for row iteration."""
+        return self
 
     def close(self):
         """Close the associated file handle and set it to None (to avoid
@@ -69,15 +65,6 @@ class CSVReader(object):
             self.file.close()
             self.file = None
             self.buffer = None
-
-    def has_next(self) -> bool:
-        """Test if the iterator has more rows to read.
-
-        Returns
-        -------
-        bool
-        """
-        return self.buffer is not None
 
     def __next__(self) -> DataRow:
         """Read the next row in the document.
@@ -89,17 +76,11 @@ class CSVReader(object):
         # Read the next line into the buffer before returning the current
         # buffer result. Make sure to catch StopIteration errors if the end
         # of the file is reached.
-        result = self.buffer
         try:
             row = next(self.reader)
             if self.none_is is not None:
                 row = [v if v != self.none_is else None for v in row]
-            self.buffer = row
-        except ValueError:
-            # A ValueError is raised if the file is closed.
-            raise StopIteration()
+            return row
         except StopIteration:
-            # Catch StopIteration. This error will be raised at the following
-            # call to next.
             self.close()
-        return result
+            raise StopIteration()

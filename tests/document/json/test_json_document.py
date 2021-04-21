@@ -86,8 +86,6 @@ def test_read_data_frame(json_file):
 def test_read_document(json_file):
     """Test reading a serialized Json document."""
     doc = JsonDocument(filename=json_file)
-    rows = list()
-    reader = doc.open()
-    while reader.has_next():
-        rows.append(reader.next())
+    with doc.open() as reader:
+        rows = [row for row in reader]
     assert rows == DOCUMENT

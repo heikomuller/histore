@@ -12,7 +12,7 @@ local file system.
 import os
 import pandas as pd
 
-from histore.document.base import Document
+from histore.document.base import Document, document_to_df
 from histore.document.schema import DocumentSchema
 
 
@@ -46,8 +46,4 @@ class ExternalDocument(Document):
         -------
         pd.DataFrame
         """
-        data, index = list(), list()
-        for rowid, row in self.iterrows():
-            index.append(rowid)
-            data.append(row)
-        return pd.DataFrame(data=data, index=index, columns=self.columns, dtype=object)
+        return document_to_df(self)

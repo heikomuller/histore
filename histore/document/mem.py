@@ -14,7 +14,7 @@ from typing import List, Optional, Tuple
 
 import pandas as pd
 
-from histore.document.base import DataRow, Document, DocumentIterator, RowIndex
+from histore.document.base import DataRow, Document, DocumentIterator, RowIndex, document_to_df
 from histore.document.schema import DocumentSchema
 
 import histore.util as util
@@ -38,15 +38,6 @@ class InMemoryDocumentIterator(DocumentIterator):
         """Set list of rows to None."""
         self.rows = None
 
-    def has_next(self) -> bool:
-        """Test if the iterator has more rows to read.
-
-        Returns
-        -------
-        bool
-        """
-        return self._readindex < len(self.rows)
-
     def next(self) -> Tuple[int, RowIndex, DataRow]:
         """Read the next row in the document.
 
@@ -61,6 +52,9 @@ class InMemoryDocumentIterator(DocumentIterator):
         try:
             rowpos, rowidx, values = self.rows[self._readindex]
         except (IndexError, TypeError):
+            # If an attempt is made to read past the current row array length
+            # either an IndexError is raised or a TypeError if the row array
+            # has been set to None by the close method.
             raise StopIteration()
         self._readindex += 1
         return rowpos, rowidx, values
@@ -108,11 +102,7 @@ class InMemoryDocument(Document):
         -------
         pd.DataFrame
         """
-        data, index = list(), list()
-        for _, rowid, row in self.rows:
-            index.append(rowid)
-            data.append(row)
-        return pd.DataFrame(data=data, index=index, columns=self.columns, dtype=object)
+        return document_to_df(self)
 
     def sorted(self, keys: List[int], buffersize: Optional[float] = None) -> InMemoryDocument:
         """Sort the document rows based on the values in the key columns.

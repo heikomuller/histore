@@ -40,15 +40,6 @@ class DataFrameIterator(DocumentIterator):
         self._df = None
         self.readorder = None
 
-    def has_next(self) -> bool:
-        """Test if the iterator has more rows to read.
-
-        Returns
-        -------
-        bool
-        """
-        return self._readindex < len(self.readorder)
-
     def next(self) -> Tuple[int, RowIndex, DataRow]:
         """Read the next row in the document.
 

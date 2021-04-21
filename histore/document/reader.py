@@ -61,16 +61,18 @@ class DocumentReader(metaclass=ABCMeta):
         self.iterator.close()
 
     def next(self) -> DocumentRow:
-        """Read the next row in the document. Returns None if the end of the
-        document has been reached.
+        """Read the next row in the document.
+
+        Returns None if the end of the document has been reached.
 
         Returns
         -------
         histore.document.row.DocumentRow
         """
-        if not self.iterator.has_next():
+        try:
+            rowpos, rowidx, values = next(self.iterator)
+        except StopIteration:
             return None
-        rowpos, rowidx, values = self.iterator.next()
         values = {colid: val for colid, val in zip(self.columns, values)}
         key = self.annotate(rowidx, values)
         return DocumentRow(pos=rowpos, key=key, values=values)

@@ -62,7 +62,8 @@ def test_read_empty_file(tmpdir):
     """Test reading from an non existing file."""
     filename = os.path.join(tmpdir, 'output.json')
     reader = JsonReader(filename=filename)
-    assert not reader.has_next()
+    with pytest.raises(StopIteration):
+        next(reader)
     reader.close()
 
 
@@ -86,9 +87,5 @@ def test_read_write_document(compression, tmpdir):
     with JsonWriter(filename=filename, compression=compression) as writer:
         for row in input:
             writer.write(row)
-    reader = JsonReader(filename=filename, compression=compression)
-    rows = list()
-    while reader.has_next():
-        rows.append(next(reader))
-    reader.close()
+    rows = [row for row in JsonReader(filename=filename, compression=compression)]
     assert rows == input

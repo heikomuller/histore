@@ -56,7 +56,7 @@ class CSVIterator(DocumentIterator):
             none_is=none_is
         )
         # Skip the column name row.
-        if skip_header and self.reader.has_next():
+        if skip_header:
             next(self.reader)
         # Initialize the row index.
         self._rowindex = 0
@@ -64,15 +64,6 @@ class CSVIterator(DocumentIterator):
     def close(self):
         """Close the associated Json reader."""
         self.reader.close()
-
-    def has_next(self) -> bool:
-        """Test if the iterator has more rows to read.
-
-        Returns
-        -------
-        bool
-        """
-        return self.reader.has_next()
 
     def next(self) -> Tuple[int, RowIndex, DataRow]:
         """Read the next row in the document.
@@ -169,7 +160,7 @@ class CSVFile(ExternalDocument):
                 encoding=self.encoding,
                 none_is=self.none_is
             )
-            header = next(reader) if reader.has_next() else []
+            header = next(reader)
             reader.close()
         super(CSVFile, self).__init__(
             columns=header,

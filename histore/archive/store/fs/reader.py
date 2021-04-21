@@ -51,16 +51,6 @@ class ArchiveFileReader(ArchiveReader):
         """Release all reseources that are associated with the reader."""
         self.reader.close()
 
-    def has_next(self):
-        """The next row for the reader is the current buffer value. If the
-        buffer is empty there is no next row.
-
-        Returns
-        -------
-        bool
-        """
-        return self.reader.has_next()
-
     def next(self):
         """Read the next row in the dataset archive. Returns None if the end of
         the archive rows has been reached.
@@ -69,6 +59,8 @@ class ArchiveFileReader(ArchiveReader):
         -------
         histore.archive.row.ArchiveRow
         """
-        if not self.reader.has_next():
+        try:
+            return self.serializer.deserialize_row(next(self.reader))
+        except StopIteration:
+            self.close()
             return None
-        return self.serializer.deserialize_row(self.reader.__next__())

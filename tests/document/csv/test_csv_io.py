@@ -42,10 +42,7 @@ def read_file(
     the length of the file header. Returns a list with the read rows.
     """
     reader = CSVReader(filename=filename, compressed=compressed, none_is=none_is)
-    rows = list()
-    while reader.has_next():
-        rows.append(next(reader))
-    reader.close()
+    rows = [row for row in reader]
     return rows
 
 
@@ -92,18 +89,13 @@ def test_read_empty_file(tmpdir):
     """Test reading an empty file."""
     filename = os.path.join(tmpdir, 'empty.tsv')
     Path(filename).touch()
-    reader = CSVReader(filename=GZIP_FILE)
-    assert not reader.has_next()
-    reader.close()
+    assert read_file(filename) == []
 
 
 def test_read_tsv_file():
     """Test reading a compressed, tab-delimited CSV file."""
     reader = CSVReader(filename=GZIP_FILE, compressed=True, delim='\t')
-    rows = list()
-    while reader.has_next():
-        rows.append(next(reader))
-    reader.close()
+    rows = [row for row in reader]
     assert len(rows) == 11
     assert rows[0] == [
         'Calendar Year',

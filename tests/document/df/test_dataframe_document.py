@@ -36,11 +36,8 @@ def test_dataframe_document(dataset):
 def test_dataframe_iterate(dataset):
     """Test iterating through data frame rows."""
     doc = DataFrameDocument(df=dataset)
-    reader = doc.open()
-    rows = list()
-    while reader.has_next():
-        _, rowidx, values = reader.next()
-        rows.append((rowidx, values))
+    with doc.open() as reader:
+        rows = [(rowidx, values) for _, rowidx, values in reader]
     assert rows == [(0, ['alice', 26]), (1, ['claire', 19]), (2, ['bob', 34])]
 
 
@@ -58,12 +55,8 @@ def test_dataframe_positions():
     assert positions == [3, 2, 1, 0]
     # Read document.
     doc = DataFrameDocument(df=df)
-    reader = doc.open()
-    positions = list()
-    while reader.has_next():
-        pos, _, _ = reader.next()
-        positions.append(pos)
-    reader.close()
+    with doc.open() as reader:
+        positions = [pos for pos, _, _ in reader]
     assert positions == [3, 2, 1, 0]
 
 

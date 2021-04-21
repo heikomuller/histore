@@ -145,10 +145,7 @@ def test_commit_unkeyed_volatile(validate):
 # -- Helper functions ---------------------------------------------------------
 
 def validate_keyed_rowindex_archive(reader):
-    keys = list()
-    while reader.has_next():
-        row = reader.next()
-        keys.append(tuple([k.value for k in row.key]))
+    keys = [tuple([k.value for k in row.key]) for row in reader]
     assert keys == [
         ('Alice', 23),
         ('Alice', 32),

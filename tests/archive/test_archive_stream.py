@@ -40,8 +40,8 @@ def test_iterate_over_stream():
     archive.commit(doc=DataFrameDocument(df=DF1))
     rows = list()
     with archive.stream(version=0).open() as reader:
-        while reader.has_next():
-            rows.append(reader.next())
+        for row in reader:
+            rows.append(row)
     assert rows == [
         (0, 0, ['Alice', 32]),
         (1, 1, ['Bob', 45]),

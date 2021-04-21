@@ -59,7 +59,10 @@ class JsonDocument(ExternalDocument):
             compression=compression,
             decoder=decoder
         )
-        columns = next(reader) if reader.has_next() else []
+        try:
+            columns = next(reader)
+        except StopIteration:
+            columns = []
         reader.close()
         # Initialize the super class.
         super(JsonDocument, self).__init__(

@@ -23,13 +23,8 @@ def test_archive_commit(archives):
     archive.commit(schema=schema, writer=writer, snapshots=snapshots)
     assert not archive.is_empty()
     assert archive.primary_key() == [0]
-    reader = archive.get_reader()
-    row_counter = 0
-    while reader.has_next():
-        reader.next()
-        row_counter += 1
-    assert reader.next() is None
-    reader.close()
+    with archive.get_reader() as reader:
+        row_counter = sum([1 for row in reader])
     assert row_counter == 1
     assert archive.get_schema().at_version(version=version) == ['A', 'B']
 
@@ -51,24 +46,14 @@ def test_archive_rollback(archives):
         writer.write_archive_row(row)
     snapshots = archive.get_snapshots().append(version)
     archive.commit(schema=schema, writer=writer, snapshots=snapshots)
-    reader = archive.get_reader()
-    row_counter = 0
-    while reader.has_next():
-        reader.next()
-        row_counter += 1
-    assert reader.next() is None
-    reader.close()
+    with archive.get_reader() as reader:
+        row_counter = sum([1 for row in reader])
     assert row_counter == 2
     # Rollback to first snapshot.
     archive.rollback(schema=schema1, writer=writer1, version=version1)
     assert not archive.is_empty()
     assert archive.primary_key() == [0]
-    reader = archive.get_reader()
-    row_counter = 0
-    while reader.has_next():
-        reader.next()
-        row_counter += 1
-    assert reader.next() is None
-    reader.close()
+    with archive.get_reader() as reader:
+        row_counter = sum([1 for row in reader])
     assert row_counter == 1
     assert archive.get_schema().at_version(version=version1) == ['A', 'B']

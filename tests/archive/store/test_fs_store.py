@@ -29,13 +29,12 @@ def test_archive_commit(archives, tmpdir):
     archive.commit(schema=schema, writer=writer, snapshots=snapshots)
     assert not archive.is_empty()
     assert archive.primary_key() == [0]
-    reader = archive.get_reader()
     row_counter = 0
-    while reader.has_next():
-        reader.next()
-        row_counter += 1
+    with archive.get_reader() as reader:
+        for row in reader:
+            reader.next()
+            row_counter += 1
     assert reader.next() is None
-    reader.close()
     assert row_counter == 1
     assert archive.get_schema().at_version(version=version) == ['A', 'B']
     # Re-create the archive without replacing the files.
@@ -62,13 +61,11 @@ def test_archive_rollback(archives, tmpdir):
         writer.write_archive_row(row)
     snapshots = archive.get_snapshots().append(version)
     archive.commit(schema=schema, writer=writer, snapshots=snapshots)
-    reader = archive.get_reader()
     row_counter = 0
-    while reader.has_next():
-        reader.next()
-        row_counter += 1
+    with archive.get_reader() as reader:
+        for row in reader:
+            row_counter += 1
     assert reader.next() is None
-    reader.close()
     assert row_counter == 2
     # Rollback to first snapshot.
     writer1 = archive.get_writer()
@@ -77,13 +74,11 @@ def test_archive_rollback(archives, tmpdir):
     archive.rollback(schema=schema1, writer=writer1, version=version1)
     assert not archive.is_empty()
     assert archive.primary_key() == [0]
-    reader = archive.get_reader()
     row_counter = 0
-    while reader.has_next():
-        reader.next()
-        row_counter += 1
+    with archive.get_reader() as reader:
+        for row in reader:
+            row_counter += 1
     assert reader.next() is None
-    reader.close()
     assert row_counter == 1
     assert archive.get_schema().at_version(version=version1) == ['A', 'B']
     # Re-create the archive without replacing the files.
@@ -91,11 +86,11 @@ def test_archive_rollback(archives, tmpdir):
     assert not archive.is_empty()
     assert archive.primary_key() == [0]
     assert archive.get_schema().at_version(version=version1) == ['A', 'B']
-    while reader.has_next():
-        reader.next()
-        row_counter += 1
+    row_counter = 0
+    with archive.get_reader() as reader:
+        for row in reader:
+            row_counter += 1
     assert reader.next() is None
-    reader.close()
     assert row_counter == 1
 
 

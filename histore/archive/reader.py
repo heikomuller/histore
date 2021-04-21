@@ -10,7 +10,7 @@ from typing import Callable, List, Optional, Tuple
 
 import pandas as pd
 
-from histore.document.base import Document, DocumentIterator, RowIndex, DataRow
+from histore.document.base import Document, DocumentIterator, RowIndex, DataRow, document_to_df
 from histore.document.schema import Column
 from histore.document.sort import SortEngine
 
@@ -44,21 +44,10 @@ class ArchiveReader(metaclass=ABCMeta):
         raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def has_next(self):
-        """Test if the reader has more rows to read. If True the next() method
-        will return the next row. Otherwise, the next() method will return
-        None.
-
-        Returns
-        -------
-        bool
-        """
-        raise NotImplementedError()  # pragma: no cover
-
-    @abstractmethod
     def next(self):
-        """Read the next row in the dataset archive. Returns None if the end of
-        the archive rows has been reached.
+        """Read the next row in the dataset archive.
+
+        Returns None if the end of the archive rows has been reached.
 
         Returns
         -------
@@ -101,17 +90,6 @@ class SnapshotIterator(DocumentIterator):
             self.reader.close()
             self.reader = None
 
-    def has_next(self) -> bool:
-        """Test if the iterator has more rows to read. If the result is True
-        then the next() method will return the next row. Otherwise, the next()
-        method will raise a StopIteration error.
-
-        Returns
-        -------
-        bool
-        """
-        return self.reader.has_next()
-
     def next(self) -> Tuple[int, RowIndex, DataRow]:
         """Read the next row in the document.
 
@@ -124,12 +102,13 @@ class SnapshotIterator(DocumentIterator):
         tuple of int, histore.document.base.RowIndex, histore.document.base.DataRow
         """
         """Return next row from the archive reader."""
-        while self.reader.has_next():
-            row = self.reader.next()
+        row = self.reader.next()
+        while row is not None:
             if row.timestamp.contains(self.version):
                 pos, vals = row.at_version(self.version, self.colids)
                 rowidx = row.rowid if self.is_keyed else row.key.value
                 return pos, rowidx, vals
+            row = self.reader.next()
         self.close()
         raise StopIteration()
 
@@ -194,11 +173,7 @@ class SnapshotReader(Document):
         -------
         pd.DataFrame
         """
-        data, index = list(), list()
-        for rowid, row in self.iterrows():
-            index.append(rowid)
-            data.append(row)
-        return pd.DataFrame(data=data, index=index, columns=self.columns, dtype=object)
+        return document_to_df(self)
 
     def sorted(self, keys: List[int], buffersize: Optional[float] = None) -> Document:
         """Sort the document rows based on the values in the key columns.
@@ -234,5 +209,8 @@ def row_stream(reader):
     -------
     histore.archive.row.ArchiveRow
     """
-    while reader.has_next():
-        yield reader.next()
+    while True:
+        row = reader.next()
+        if row is None:
+            break
+        yield row

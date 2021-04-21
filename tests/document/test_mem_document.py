@@ -55,8 +55,8 @@ def test_error_read_after_close(document):
         pass
     document.close()
     with document.open() as reader:
-        with pytest.raises(TypeError):
-            reader.has_next()
+        with pytest.raises(StopIteration):
+            next(reader)
     document.close()
 
 

@@ -57,23 +57,16 @@ class JsonReader(object):
         else:
             self.fin = None
 
+    def __iter__(self):
+        """Return object for row iteration."""
+        return self
+
     def close(self):
         """Release all reseources that are associated with the reader."""
         self.buffer = None
         if self.fin is not None:
             self.fin.close()
         self.fin = None
-
-    def has_next(self) -> bool:
-        """The next row for the reader is the current buffer value.
-
-        If the buffer is empty the end of the file has been reached.
-
-        Returns
-        -------
-        bool
-        """
-        return self.buffer is not None
 
     def __next__(self) -> Any:
         """Read the next row in the file.
@@ -138,21 +131,14 @@ class JsonIterator(DocumentIterator):
             decoder=decoder
         )
         # Skip the column name row.
-        if self.reader.has_next():
+        try:
             next(self.reader)
+        except StopIteration:
+            pass
 
     def close(self):
         """Close the associated Json reader."""
         self.reader.close()
-
-    def has_next(self) -> bool:
-        """Test if the iterator has more rows to read.
-
-        Returns
-        -------
-        bool
-        """
-        return self.reader.has_next()
 
     def next(self) -> Tuple[int, RowIndex, DataRow]:
         """Read the next row in the document.

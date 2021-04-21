@@ -74,18 +74,6 @@ class DocumentIterator(metaclass=ABCMeta):
         raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
-    def has_next(self) -> bool:
-        """Test if the iterator has more rows to read. If the result is True
-        then the next() method will return the next row. Otherwise, the next()
-        method will raise a StopIteration error.
-
-        Returns
-        -------
-        bool
-        """
-        raise NotImplementedError()  # pragma: no cover
-
-    @abstractmethod
     def next(self) -> Tuple[int, RowIndex, DataRow]:
         """Read the next row in the document.
 
@@ -192,3 +180,24 @@ class InputDescriptor:
     valid_time: Optional[datetime] = None
     # Optional metadata defining the action that created the snapshot.
     action: Optional[Dict] = None
+
+
+# -- Helper Functions ---------------------------------------------------------
+
+def document_to_df(doc: Document) -> pd.DataFrame:
+    """Create data frame from the document rows.
+
+    Parameters
+    ----------
+    doc: histore.document.base.Document
+        Input document.
+
+    Returns
+    -------
+    pd.DataFrame
+    """
+    data, index = list(), list()
+    for rowid, row in doc.iterrows():
+        index.append(rowid)
+        data.append(row)
+    return pd.DataFrame(data=data, index=index, columns=doc.columns, dtype=object)
