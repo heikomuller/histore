@@ -180,27 +180,25 @@ class Archive(object):
             pipeline.append((op, version, columns))
         # Iterate over rows and apply the operator to those that belong to the
         # modified snapshot.
-        reader = self.reader()
         writer = self.store.get_writer()
         if validate:
             writer = ValidatingArchiveWriter(writer=writer)
-        while reader.has_next():
-            row = reader.next()
-            if row.timestamp.contains(origin):
-                pos, vals = row.at_version(version=origin, columns=origin_colids)
-                for op, version, snapshot_colids in pipeline:
-                    vals = op.eval(rowid=row.rowid, row=vals)
-                    if vals is not None:
-                        # Merge the archive row and the modified document row.
-                        row = row.merge(
-                            values={colid: val for colid, val in zip(snapshot_colids, vals)},
-                            pos=pos,
-                            version=version
-                        )
-                    else:
-                        break
-            writer.write_archive_row(row)
-        reader.close()
+        with self.reader() as reader:
+            for row in reader:
+                if row.timestamp.contains(origin):
+                    pos, vals = row.at_version(version=origin, columns=origin_colids)
+                    for op, version, snapshot_colids in pipeline:
+                        vals = op.eval(rowid=row.rowid, row=vals)
+                        if vals is not None:
+                            # Merge the archive row and the modified document row.
+                            row = row.merge(
+                                values={colid: val for colid, val in zip(snapshot_colids, vals)},
+                                pos=pos,
+                                version=version
+                            )
+                        else:
+                            break
+                writer.write_archive_row(row)
         # Commit all changes to the associated archive store. Make sure to
         # unwrapt the writer if validating.
         if validate:
@@ -250,14 +248,12 @@ class Archive(object):
         colids = [c.colid for c in columns]
         # Get the row values and their position.
         rows = list()
-        reader = self.reader()
-        while reader.has_next():
-            row = reader.next()
-            if row.timestamp.contains(version):
-                pos, vals = row.at_version(version, colids, raise_error=False)
-                rowidx = row.rowid if is_keyed else row.key.value
-                rows.append((rowidx, pos, vals))
-        reader.close()
+        with self.reader() as reader:
+            for row in reader:
+                if row.timestamp.contains(version):
+                    pos, vals = row.at_version(version, colids, raise_error=False)
+                    rowidx = row.rowid if is_keyed else row.key.value
+                    rows.append((rowidx, pos, vals))
         # Sort rows in ascending order.
         rows.sort(key=lambda r: r[1])
         # Create document for the retrieved snapshot.
@@ -280,7 +276,7 @@ class Archive(object):
 
         Parameters
         ----------
-        doc: histore.archive.base.InputDocument.
+        doc: histore.archive.base.InputDocument, or string
             Input document representing the dataset snapshot that is being
             merged into the archive.
         descriptor: histore.document.base.InputDescriptor, default=None
@@ -388,15 +384,13 @@ class Archive(object):
                 schema_diff.add(col_prov)
         # Get changes in dataset rows.
         rows_diff = prov.rows()
-        reader = self.reader()
         row_count = 0
-        while reader.has_next():
-            row = reader.next()
-            row_prov = row.diff(original_version, new_version)
-            if row_prov is not None:
-                rows_diff.add(row_prov)
-            row_count += 1
-        reader.close()
+        with self.reader() as reader:
+            for row in reader:
+                row_prov = row.diff(original_version, new_version)
+                if row_prov is not None:
+                    rows_diff.add(row_prov)
+                row_count += 1
         return prov
 
     def is_empty(self) -> bool:
@@ -443,7 +437,6 @@ class Archive(object):
             row = row.rollback(version)
             if row is not None:
                 writer.write_archive_row(row)
-        reader.close()
         # Commit the rolledback archive to the associated archive store.
         self.store.rollback(
             schema=self.schema().rollback(version=version),
@@ -664,7 +657,10 @@ def get_key_columns(columns: DocumentSchema, primary_key: PrimaryKey) -> List[in
 
 
 def to_document(doc: InputDocument) -> Document:
-    """Ensure that a given input document is an instance of class Document .
+    """Ensure that a given input document is an instance of class Document.
+
+    For file names and pandas data frame inputs the repsective document is
+    returned.
 
     Parameters
     ----------

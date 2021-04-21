@@ -19,6 +19,15 @@ class ArchiveReader(metaclass=ABCMeta):
     """Reader for rows in a dataset archive. Reads rows in ascending order of
     their identifier.
     """
+    def __enter__(self) -> DocumentIterator:
+        """Enter method for the context manager."""
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> bool:
+        """Close the document iterator when the context manager exits."""
+        self.close()
+        return False
+
     def __iter__(self):
         """Make the reader instance iterable by returning a generator that
         yields all rows.
