@@ -25,7 +25,7 @@ class FuncOp(DatasetOperator):
         )
         self.func = func
 
-    def eval(self, rowid, row):
+    def handle(self, rowid, row):
         return self.func(row)
 
 

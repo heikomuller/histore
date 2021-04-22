@@ -118,10 +118,10 @@ class Archive(object):
         self, operators: Union[DatasetOperator, List[DatasetOperator]],
         origin: Optional[int] = None, validate: Optional[bool] = None
     ) -> List[Snapshot]:
-        """Apply a given operator o a sequence of operators on a snapshot in
+        """Apply a given operator or a sequence of operators on a snapshot in
         the archive.
 
-        The resulting snapshot(s) will directly merged into the archive. This
+        The resulting snapshot(s) will directly be merged into the archive. This
         method allows to update data in an archive directly without the need
         to checkout the snapshot first and then commit the modified version(s).
 
@@ -188,7 +188,7 @@ class Archive(object):
                 if row.timestamp.contains(origin):
                     pos, vals = row.at_version(version=origin, columns=origin_colids)
                     for op, version, snapshot_colids in pipeline:
-                        vals = op.eval(rowid=row.rowid, row=vals)
+                        vals = op.handle(rowid=row.rowid, row=vals)
                         if vals is not None:
                             # Merge the archive row and the modified document row.
                             row = row.merge(

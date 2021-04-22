@@ -46,7 +46,7 @@ class DatasetOperator(InputDescriptor, metaclass=ABCMeta):
         self.columns = columns
 
     @abstractmethod
-    def eval(self, row: DataRow) -> DataRow:
+    def handle(self, rowid: int, row: DataRow) -> DataRow:
         """Evaluate the operator on the given row.
 
         Returns the processed row. If the result is None this signals that the
@@ -54,7 +54,13 @@ class DatasetOperator(InputDescriptor, metaclass=ABCMeta):
 
         Parameters
         -----------
+        rowid: int
+            Unique row identifier
         row: list
             List of values in the row.
+
+        Returns
+        -------
+        list
         """
         raise NotImplementedError()  # pragma: no cover
