@@ -10,14 +10,14 @@
 import pytest
 
 from histore.archive.row import ArchiveRow
-from histore.archive.timestamp import Timestamp, TimeInterval
+from histore.archive.timestamp import SingleVersion, Timestamp, TimeInterval
 from histore.archive.value import MultiVersionValue, SingleVersionValue
 from histore.key import NumberKey, StringKey
 
 
 def test_compare_row_keys():
     """Test comparing row keys."""
-    ts = Timestamp(version=1)
+    ts = SingleVersion(version=1)
     pos = SingleVersionValue(value=0, timestamp=ts)
     row = ArchiveRow(
         rowid=0,
@@ -56,7 +56,7 @@ def test_extend_archive_row():
     """Test extending the timestampes for archive rows relative to a given
     version of origin.
     """
-    ts = Timestamp(version=1)
+    ts = SingleVersion(version=1)
     pos = SingleVersionValue(value=0, timestamp=ts)
     row = ArchiveRow(
         rowid=0,
@@ -69,7 +69,7 @@ def test_extend_archive_row():
         '<ArchiveRow (',
         '\tid=0',
         '\tkey=0',
-        '\ttimestamp=[1]',
+        '\ttimestamp=[[1]]',
         '\tpos=(0 [1])',
         '\tvalues={})>'
     ])
@@ -101,7 +101,7 @@ def test_extend_archive_row():
 
 def test_merge_archive_rows():
     """Test merging cell values into an archive row."""
-    ts = Timestamp(version=1)
+    ts = SingleVersion(version=1)
     # First version []
     row = ArchiveRow(
         rowid=0,
@@ -114,7 +114,7 @@ def test_merge_archive_rows():
     assert pos == 2
     assert len(values) == 0
     # Second version ['A', 1, 'a']
-    ts = Timestamp(version=2)
+    ts = SingleVersion(version=2)
     row = row.merge(pos=1, values={1: 'A', 2: 1, 3: 'a'}, version=2)
     pos, values = row.at_version(version=2, columns=[1, 2, 3])
     assert pos == 1
@@ -153,11 +153,11 @@ def test_row_provenance():
             values=[
                 SingleVersionValue(
                     value=1,
-                    timestamp=Timestamp(intervals=TimeInterval(1, 3))
+                    timestamp=Timestamp(intervals=[TimeInterval(1, 3)])
                 ),
                 SingleVersionValue(
                     value=2,
-                    timestamp=Timestamp(intervals=TimeInterval(4, 5))
+                    timestamp=Timestamp(intervals=[TimeInterval(4, 5)])
                 )
             ]
         ),
@@ -170,16 +170,16 @@ def test_row_provenance():
                 values=[
                     SingleVersionValue(
                         value='X',
-                        timestamp=Timestamp(intervals=TimeInterval(1, 3))
+                        timestamp=Timestamp(intervals=[TimeInterval(1, 3)])
                     ),
                     SingleVersionValue(
                         value='Y',
-                        timestamp=Timestamp(intervals=TimeInterval(4, 5))
+                        timestamp=Timestamp(intervals=[TimeInterval(4, 5)])
                     )
                 ]
             )
         }),
-        timestamp=Timestamp(intervals=TimeInterval(1, 5))
+        timestamp=Timestamp(intervals=[TimeInterval(1, 5)])
     )
     assert row.diff(0, 0) is None
     assert row.diff(0, 1).is_insert()
@@ -211,33 +211,33 @@ def test_row_rollback():
             values=[
                 SingleVersionValue(
                     value=1,
-                    timestamp=Timestamp(intervals=TimeInterval(1, 3))
+                    timestamp=Timestamp(intervals=[TimeInterval(1, 3)])
                 ),
                 SingleVersionValue(
                     value=2,
-                    timestamp=Timestamp(intervals=TimeInterval(4, 5))
+                    timestamp=Timestamp(intervals=[TimeInterval(4, 5)])
                 )
             ]
         ),
         cells=dict({
             1: SingleVersionValue(
                 value='A',
-                timestamp=Timestamp(intervals=TimeInterval(3, 4))
+                timestamp=Timestamp(intervals=[TimeInterval(3, 4)])
             ),
             2: MultiVersionValue(
                 values=[
                     SingleVersionValue(
                         value='X',
-                        timestamp=Timestamp(intervals=TimeInterval(1, 3))
+                        timestamp=Timestamp(intervals=[TimeInterval(1, 3)])
                     ),
                     SingleVersionValue(
                         value='Y',
-                        timestamp=Timestamp(intervals=TimeInterval(4, 5))
+                        timestamp=Timestamp(intervals=[TimeInterval(4, 5)])
                     )
                 ]
             )
         }),
-        timestamp=Timestamp(intervals=TimeInterval(1, 5))
+        timestamp=Timestamp(intervals=[TimeInterval(1, 5)])
     )
     row = row.rollback(version=4)
     assert len(row.cells) == 2

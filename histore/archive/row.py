@@ -17,7 +17,7 @@ from histore.key import KeyValue
 from histore.archive.provenance.base import ProvOp
 from histore.archive.provenance.row import DeleteRow, InsertRow, UpdateRow
 from histore.archive.value import ArchiveValue, SingleVersionValue
-from histore.archive.timestamp import Timestamp
+from histore.archive.timestamp import SingleVersion, Timestamp
 
 
 class ArchiveRow(object):
@@ -259,7 +259,7 @@ class ArchiveRow(object):
             else:
                 cell = SingleVersionValue(
                     value=value,
-                    timestamp=Timestamp(version=version)
+                    timestamp=SingleVersion(version=version)
                 )
             history[colid] = cell
         # For missing columns add them as they are (e.g., if the column

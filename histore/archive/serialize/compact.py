@@ -16,7 +16,7 @@ are dictionaries.
 from typing import Any, List, Optional
 
 from histore.archive.row import ArchiveRow
-from histore.archive.timestamp import TimeInterval, Timestamp
+from histore.archive.timestamp import Timestamp
 from histore.archive.value import ArchiveValue, MultiVersionValue, SingleVersionValue
 from histore.archive.serialize.default import DefaultSerializer
 
@@ -178,42 +178,6 @@ class CompactSerializer(DefaultSerializer):
             columns,
             values
         ]
-
-    def deserialize_timestamp(self, obj: List) -> Timestamp:
-        """Get timestamp instance from serialization.
-
-        Parameters
-        ----------
-        obj: list
-            Serialized timestamp that is a list of 2-dimensional lists
-            representing the time intervals.
-
-        Returns
-        -------
-        histore.archive.timestamp.Timestamp
-        """
-        intervals = list()
-        for i in obj:
-            interval = TimeInterval(i) if isinstance(i, int) else TimeInterval(start=i[0], end=i[1])
-            intervals.append(interval)
-        return Timestamp(intervals=intervals)
-
-    def serialize_timestamp(self, ts: Timestamp) -> List:
-        """Get serialization for atimestamp object.
-
-        A timestamp is serialized as a list of integers or lists that contain
-        the start and end version of the time interval.
-
-        Parameters
-        ----------
-        ts: histore.archive.timestamp.Timestamp
-            Archive timestamp object is a list of time intervals.
-
-        Returns
-        -------
-        list
-        """
-        return [[i.start, i.end] if i.start != i.end else i.start for i in ts.intervals]
 
     def deserialize_value(self, obj: Any, ts: Timestamp) -> ArchiveValue:
         """Get timestamped value object from a serialization object. Expects a

@@ -12,7 +12,7 @@ from typing import Dict, List, Optional, Union
 from histore.archive.row import ArchiveRow
 from histore.archive.schema import ArchiveColumn
 from histore.archive.snapshot import Snapshot
-from histore.archive.timestamp import TimeInterval, Timestamp
+from histore.archive.timestamp import Timestamp
 from histore.archive.value import ArchiveValue, MultiVersionValue, SingleVersionValue
 from histore.archive.serialize.base import ArchiveSerializer
 
@@ -242,8 +242,7 @@ class DefaultSerializer(ArchiveSerializer):
         -------
         histore.archive.timestamp.Timestamp
         """
-        intervals = [TimeInterval(start=i[0], end=i[1]) for i in obj]
-        return Timestamp(intervals=intervals)
+        return Timestamp(intervals=obj)
 
     def serialize_timestamp(self, ts: Timestamp) -> List:
         """Get serialization for atimestamp object. A timestamp is serialized
@@ -259,7 +258,7 @@ class DefaultSerializer(ArchiveSerializer):
         -------
         list
         """
-        return [[interval.start, interval.end] for interval in ts.intervals]
+        return ts.intervals
 
     def deserialize_value(self, obj: Union[Dict, List], ts: Timestamp) -> ArchiveValue:
         """Get timestamped value object from a serialization object. Expects a

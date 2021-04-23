@@ -14,7 +14,7 @@ from typing import Dict, List, Optional, Tuple
 
 from histore.archive.provenance.base import ProvOp
 from histore.archive.provenance.column import DeleteColumn, InsertColumn, UpdateColumn
-from histore.archive.timestamp import Timestamp
+from histore.archive.timestamp import SingleVersion, Timestamp
 from histore.archive.value import SingleVersionValue
 from histore.document.schema import Column, DocumentSchema
 
@@ -393,7 +393,7 @@ def create_column(colid: int, name: str, pos: int, version: int) -> ArchiveColum
     -------
     histore.archive.schema.ArchiveColumn
     """
-    ts = Timestamp(version=version)
+    ts = SingleVersion(version=version)
     return ArchiveColumn(
         identifier=colid,
         name=SingleVersionValue(value=name, timestamp=ts),

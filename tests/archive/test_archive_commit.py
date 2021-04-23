@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 
 from histore.archive.base import Archive
-from histore.archive.timestamp import Timestamp, TimeInterval
+from histore.archive.timestamp import SingleVersion, Timestamp, TimeInterval
 from histore.archive.store.fs.base import ArchiveFileStore
 from histore.archive.store.mem.base import VolatileArchiveStore
 
@@ -161,11 +161,11 @@ def validate_keyed_rowindex_archive(reader):
 def validate_unkeyed_rowindex_archive(reader):
     rows = {row.rowid: row for row in reader}
     assert len(rows) == 5
-    ts = Timestamp(intervals=TimeInterval(0, 4))
+    ts = Timestamp(intervals=[TimeInterval(0, 4)])
     for i in range(3):
         assert rows[i].timestamp.is_equal(ts)
-    assert rows[3].timestamp.is_equal(Timestamp(intervals=TimeInterval(0, 2)))
-    assert rows[4].timestamp.is_equal(Timestamp(version=3))
+    assert rows[3].timestamp.is_equal(Timestamp(intervals=[TimeInterval(0, 2)]))
+    assert rows[4].timestamp.is_equal(SingleVersion(version=3))
     assert rows[0].cells[0].value == 'Alice'
     assert rows[1].cells[0].value == 'Bob'
     assert rows[2].cells[0].value == 'Claire'

@@ -10,10 +10,8 @@
 from pathlib import Path
 
 import os
-import pytest
 
 from histore.archive.store.fs.base import ArchiveFileStore
-from histore.archive.store.fs.reader import ArchiveFileReader
 
 
 def test_archive_commit(archives, tmpdir):

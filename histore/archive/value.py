@@ -17,7 +17,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Any, List, Optional
 
 from histore.archive.provenance.value import UpdateValue
-from histore.archive.timestamp import Timestamp
+from histore.archive.timestamp import SingleVersion, Timestamp
 
 
 class ArchiveValue(metaclass=ABCMeta):
@@ -183,7 +183,7 @@ class SingleVersionValue(ArchiveValue):
         -------
         string
         """
-        return '({} [{}])'.format(self.value, str(self.timestamp))
+        return '({} {})'.format(self.value, str(self.timestamp))
 
     def at_version(self, version, raise_error=True):
         """Get value for the given version. If the given version is not
@@ -283,7 +283,7 @@ class SingleVersionValue(ArchiveValue):
         # Return a multi-valued object.
         return MultiVersionValue(values=[
             SingleVersionValue(value=self.value, timestamp=self.timestamp),
-            SingleVersionValue(value=value, timestamp=Timestamp(version=version))
+            SingleVersionValue(value=value, timestamp=SingleVersion(version=version))
         ])
 
     def rollback(self, version: int) -> ArchiveValue:
@@ -426,7 +426,7 @@ class MultiVersionValue(ArchiveValue):
         # If the value did not exist in any prior version we need to add it to
         # the cell history.
         if not existed:
-            ts = Timestamp(version=version)
+            ts = SingleVersion(version=version)
             cell_history.append(SingleVersionValue(value=value, timestamp=ts))
         return MultiVersionValue(values=cell_history)
 

@@ -10,7 +10,7 @@ object and the way in which archives are managed and maintained.
 """
 
 from abc import ABCMeta, abstractmethod
-from typing import List, Optional
+from typing import List
 
 from histore.archive.reader import ArchiveReader
 from histore.archive.schema import ArchiveSchema

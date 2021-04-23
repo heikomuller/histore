@@ -11,7 +11,7 @@ from abc import ABCMeta, abstractmethod
 
 from histore.key import NumberKey
 from histore.archive.row import ArchiveRow
-from histore.archive.timestamp import Timestamp
+from histore.archive.timestamp import SingleVersion
 from histore.archive.value import SingleVersionValue
 from histore.document.row import DocumentRow
 
@@ -61,7 +61,7 @@ class ArchiveWriter(metaclass=ABCMeta):
         """
         # Create a new archive row with unique row identifier for the given
         # document row.
-        ts = Timestamp(version=version)
+        ts = SingleVersion(version=version)
         cells = dict()
         for colid, value in row.values.items():
             cells[colid] = SingleVersionValue(value=value, timestamp=ts, has_timestamp=False)
