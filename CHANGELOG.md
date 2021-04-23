@@ -77,3 +77,4 @@
 * Remove option for partial merge.
 * Rename type-hint ``Schema`` to ``DocumentSchema``.
 * Add empty document class ``histore.document.mem.Schema``.
+* Change format of serialized archive JSON files.

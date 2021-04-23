@@ -43,11 +43,9 @@ class JsonWriter(object):
             Encoder used when writing archive rows as JSON objects to file.
         """
         # Use the default JSONEncoder if no encoder is given
-        self.encoder = encoder if encoder is not None else DefaultEncoder
+        self.encoder = encoder  # if encoder is not None else DefaultEncoder
         # Open output file for writing.
         self.fout = util.outputstream(filename, compression=compression)
-        # Write buffer to keep track of the last row that is being written.
-        self.buffer = None
 
     def __enter__(self) -> JsonWriter:
         """Enter method for the context manager."""
@@ -62,10 +60,6 @@ class JsonWriter(object):
         """Write the last row to the output file and close the output array and
         the output file.
         """
-        # Write last row in to output buffer.
-        self.write()
-        # Close Json array and the output file.
-        self.fout.writeline(']')
         self.fout.close()
 
     def write(self, row: Optional[Any] = None):
@@ -79,17 +73,7 @@ class JsonWriter(object):
             internal buffer and the previous row is being written to the
             output file.
         """
-        # Depending on whether there is a previous row in the buffer we either
-        # output that row or open the output array.
-        if self.buffer is not None:
-            line = json.dumps(self.buffer, cls=self.encoder)
-            if row is not None:
-                line += ','
-        else:
-            line = '['
-        self.fout.writeline(line)
-        # Buffer the given row
-        self.buffer = row
+        self.fout.write('{}\n'.format(json.dumps(row, cls=self.encoder)))
 
 
 # -- Helper classes -----------------------------------------------------------

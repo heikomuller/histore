@@ -12,7 +12,7 @@ from datetime import datetime
 from dateutil.parser import isoparse
 from dateutil.tz import UTC
 from importlib import import_module
-from typing import List, Optional
+from typing import IO, Iterator, List, Optional, Union
 
 import errno
 import gzip
@@ -144,18 +144,7 @@ class IOStream(metaclass=ABCMeta):
         self.f.close()
 
     @abstractmethod
-    def readline(self):  # pragma: no cover
-        """Read sting line from input file. The returned line is stripped of
-        any leading or trailing whitespace characters.
-
-        Returns
-        ----------
-        string
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def writeline(self, line):  # pragma: no cover
+    def write(self, line):  # pragma: no cover
         """Write sting line to output file.
 
         Parameters
@@ -178,17 +167,7 @@ class GZipFile(IOStream):
         """
         super(GZipFile, self).__init__(f)
 
-    def readline(self):
-        """Read sting line from input file. The returned line is stripped of
-        any leading or trailing whitespace characters.
-
-        Returns
-        ----------
-        string
-        """
-        return self.f.readline().decode('utf8').strip()
-
-    def writeline(self, line):
+    def write(self, line):
         """Write sting line to output file.
 
         Parameters
@@ -197,7 +176,6 @@ class GZipFile(IOStream):
             Output line that is bein written.
         """
         self.f.write(str.encode(line, 'utf8'))
-        self.f.write(b'\n')
 
 
 class PlainTextFile(IOStream):
@@ -212,17 +190,7 @@ class PlainTextFile(IOStream):
         """
         super(PlainTextFile, self).__init__(f)
 
-    def readline(self):
-        """Read sting line from input file. The returned line is stripped of
-        any leading or trailing whitespace characters.
-
-        Returns
-        ----------
-        string
-        """
-        return self.f.readline().strip()
-
-    def writeline(self, line):
+    def write(self, line):
         """Write sting line to output file.
 
         Parameters
@@ -231,7 +199,6 @@ class PlainTextFile(IOStream):
             Output line that is bein written.
         """
         self.f.write(line)
-        self.f.write('\n')
 
 
 def cleardir(directory):
@@ -277,7 +244,7 @@ def createdir(directory, abs=False):
         return directory
 
 
-def inputstream(filename, compression: Optional[str] = None) -> IOStream:
+def inputstream(filename: Union[str, IO], compression: Optional[str] = None) -> Iterator[str]:
     """Open the given file for input. The compression mode string determines
     which compression algorithm is being used (or no compression if None).
 
@@ -291,9 +258,24 @@ def inputstream(filename, compression: Optional[str] = None) -> IOStream:
     histore.util.IOStream
     """
     if compression is None:
-        return PlainTextFile(open(filename, 'r') if isinstance(filename, str) else filename)
+        f = open(filename, 'r') if isinstance(filename, str) else filename
+
+        def file_iterator(f: IO):
+            """Turn an open file handle into an iterator."""
+            for line in f:
+                yield line
+
+        return file_iterator(f)
     elif compression == 'gzip':
-        return GZipFile(gzip.open(filename, 'rb'))
+        f = gzip.open(filename, 'rb')
+
+        def file_iterator(f: IO):
+            """Turn an open file handle into an iterator."""
+            for line in f:
+                yield line.decode('utf8')
+
+        return file_iterator(f)
+
     raise ValueError('unknown compression mode {}'.format(compression))
 
 

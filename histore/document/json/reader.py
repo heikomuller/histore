@@ -41,19 +41,11 @@ class JsonReader(object):
         compression: string, default=None
             String representing the compression mode for the output file.
         decoder: func, default=None
-            Custom decoder function when reading archive rows from file. If not
-            given, the default decoder will be used.
+            Custom decoder function when reading archive rows from file.
         """
-        self.decoder = decoder if decoder is not None else default_decoder
-        self.buffer = None
+        self.decoder = decoder  # if decoder is not None else default_decoder
         if os.path.isfile(filename):
             self.fin = util.inputstream(filename, compression=compression)
-            # Read the first two lines in the input file. The first line is
-            # expected to be '['. The second line is either ']' (for an empty
-            # file) or it contains the first object.
-            if self.fin.readline() != '[':
-                raise ValueError('invalid input file {}'.format(filename))
-            next(self)
         else:
             self.fin = None
 
@@ -63,9 +55,6 @@ class JsonReader(object):
 
     def close(self):
         """Release all reseources that are associated with the reader."""
-        self.buffer = None
-        if self.fin is not None:
-            self.fin.close()
         self.fin = None
 
     def __next__(self) -> Any:
@@ -78,28 +67,10 @@ class JsonReader(object):
         -------
         any
         """
-        # The return value is the current buffer value.
-        result = self.buffer
-        # Read the next line. If the line equals the closing array bracket the
-        # end of the archive has been reached. If the reader has been closed
-        # the file handle is None and an AttributeError will occur.
         try:
-            line = self.fin.readline()
-        except AttributeError:
-            # Raise error to signal that the end of the file has been reached.
+            return json.loads(next(self.fin), object_hook=self.decoder)
+        except TypeError:
             raise StopIteration()
-        if line == ']':
-            # The end of the archive was reached. Close the input file.
-            self.close()
-        else:
-            # Remove trailing comma for list array elements before the final
-            # element.
-            if line.endswith(','):
-                line = line[:-1]
-            # Decode and deserialize the read object.
-            self.buffer = json.loads(line, object_hook=self.decoder)
-        # Return the previous buffer value as the result.
-        return result
 
 
 class JsonIterator(DocumentIterator):

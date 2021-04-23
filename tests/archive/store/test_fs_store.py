@@ -99,12 +99,3 @@ def test_init_store(archives, tmpdir):
     Path(os.path.join(tmpdir, 'rows.dat')).touch()
     Path(os.path.join(tmpdir, 'b.json')).touch()
     ArchiveFileStore(basedir=tmpdir, replace=True)
-
-
-def test_read_invalid_file(tmpdir):
-    """Test error when attempting to read an invalid file."""
-    filename = os.path.join(tmpdir, 'rows.dat')
-    with open(filename, 'wt') as f:
-        f.write('invalid\n')
-    with pytest.raises(ValueError):
-        ArchiveFileReader(filename=filename)

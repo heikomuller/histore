@@ -67,15 +67,6 @@ def test_read_empty_file(tmpdir):
     reader.close()
 
 
-def test_read_from_invalid_file(tmpdir):
-    """Test reading from an non existing file."""
-    filename = os.path.join(tmpdir, 'output.json')
-    with open(filename, 'wt') as f:
-        f.write('{}\n')
-    with pytest.raises(ValueError):
-        JsonReader(filename=filename)
-
-
 @pytest.mark.parametrize('compression', ['gzip', None])
 def test_read_write_document(compression, tmpdir):
     """Test reading and writing a Json document."""
@@ -84,8 +75,8 @@ def test_read_write_document(compression, tmpdir):
         ['Alice', 23, 178.67, util.to_datetime('2020-01-15')],
         ['Bob', 43, 165.30, util.to_datetime('2020-03-31')]
     ]
-    with JsonWriter(filename=filename, compression=compression) as writer:
+    with JsonWriter(filename=filename, compression=compression, encoder=DefaultEncoder) as writer:
         for row in input:
             writer.write(row)
-    rows = [row for row in JsonReader(filename=filename, compression=compression)]
+    rows = [row for row in JsonReader(filename=filename, compression=compression, decoder=default_decoder)]
     assert rows == input
