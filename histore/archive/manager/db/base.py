@@ -60,6 +60,10 @@ class DBArchiveManager(ArchiveManager):
         if basedir is None:
             basedir = config.BASEDIR()
         self.basedir = basedir
+        if create:
+            # Clear all files in the base directory if it exists.
+            if os.path.isdir(self.basedir):
+                util.cleardir(self.basedir)
         # Initialize the database connector.
         if db is None:
             db = DB(connect_url=config.DBCONNECT())
@@ -67,9 +71,6 @@ class DBArchiveManager(ArchiveManager):
         if create:
             # Create a fresh database instance.
             db.init()
-            # Clear all files in the base directory if it exists.
-            if os.path.isdir(self.basedir):
-                util.cleardir(self.basedir)
         # Create the base directory (if it does not exist).
         util.createdir(basedir)
 
