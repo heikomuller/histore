@@ -62,8 +62,8 @@ class Column(str):
 ColumnRef = Union[int, str]
 # Reference to one or more columns in a dataset schema.
 Columns = Union[ColumnRef, List[ColumnRef]]
-# The schema of a dataset is a list of column names.
-Schema = List[str]
+# The schema of a document (dataset) is a list of column names.
+DocumentSchema = List[Union[str, Column]]
 
 
 # -- Helper methods -----------------------------------------------------------
@@ -90,14 +90,14 @@ def as_list(columns: Columns) -> List[Union[int, str, Column]]:
         return columns
 
 
-def column_index(schema: Schema, columns: Columns):
+def column_index(schema: DocumentSchema, columns: Columns):
     """Get the list of column index positions in a given schema (list of
     column names). Columns are either specified by name or by index position.
     The result is a list of column index positions.
 
     Raises errors if invalid columns positions or unknown column names are
-
     provided.
+
     Parameters
     ----------
     schema: list(string)
@@ -108,6 +108,7 @@ def column_index(schema: Schema, columns: Columns):
     Returns
     -------
     (list, list)
+
     Raises
     ------
     ValueError
@@ -116,7 +117,7 @@ def column_index(schema: Schema, columns: Columns):
     return colidx
 
 
-def column_ref(schema: Schema, column: ColumnRef) -> Tuple[str, int]:
+def column_ref(schema: DocumentSchema, column: ColumnRef) -> Tuple[str, int]:
     """Get the column name and index position for a referenced column in the
     given schema. Columns may be referenced by their name or index. This
     function returns both, the name and the index of the referenced column.
@@ -165,7 +166,7 @@ def column_ref(schema: Schema, column: ColumnRef) -> Tuple[str, int]:
     return colname, colidx
 
 
-def select_clause(schema: Schema, columns: Columns) -> Tuple[List[str], List[int]]:
+def select_clause(schema: DocumentSchema, columns: Columns) -> Tuple[List[str], List[int]]:
     """Get the list of column name objects and index positions in a data frame
     for list of columns that are specified either by name or by index position.
 
@@ -201,3 +202,33 @@ def select_clause(schema: Schema, columns: Columns) -> Tuple[List[str], List[int
         column_names.append(colname)
         column_index.append(colidx)
     return column_names, column_index
+
+
+def to_schema(columns: Columns) -> List[Column]:
+    """Convert a list of column names to a list of column objects.
+
+    If all column names are already of type Column no changes will occur. If
+    the given list contains a mix of types an error is raised.
+
+    Parameters
+    ----------
+    columns: list of string
+        List of column names.
+
+    Returns
+    -------
+    list of histore.document.schema.Column
+    """
+    has_col = False
+    has_str = False
+    result = list()
+    for i, col in enumerate(as_list(columns)):
+        if isinstance(col, Column):
+            result.append(col)
+            has_col = True
+        else:
+            result.append(Column(colid=i, name=col, colidx=i))
+            has_str = True
+    if has_col and has_str:
+        raise ValueError('invalid column list')
+    return result

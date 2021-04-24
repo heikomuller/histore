@@ -13,9 +13,9 @@ from histore.archive.schema import ArchiveSchema
 def test_rollback_schema():
     """Test rollback for an archive schema."""
     schema = ArchiveSchema()
-    schema, _, _ = schema.merge(columns=['Name', 'Age', 'Salary'], version=1)
-    schema, _, _ = schema.merge(columns=['Name', 'Salary'], version=2, origin=1)
-    schema, _, _ = schema.merge(columns=['Name', 'Salary', 'Height'], version=3, origin=2)
+    schema, _ = schema.merge(columns=['Name', 'Age', 'Salary'], version=1)
+    schema, _ = schema.merge(columns=['Name', 'Salary'], version=2, origin=1)
+    schema, _ = schema.merge(columns=['Name', 'Salary', 'Height'], version=3, origin=2)
     assert schema.at_version(0) == []
     assert schema.at_version(1) == ['Name', 'Age', 'Salary']
     assert schema.at_version(2) == ['Name', 'Salary']

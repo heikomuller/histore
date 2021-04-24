@@ -5,14 +5,14 @@
 # The History Store (histore) is released under the Revised BSD License. See
 # file LICENSE for full license details.
 
-"""Unit tests for to test that type inference is switched off when checking out
+"""Unit tests to ensure that type inference is switched off when checking out
 a dataset snapshot as a data frame (issue #24).
 """
 
 import pandas as pd
 
 from histore.archive.base import Archive
-from histore.document.mem.dataframe import DataFrameDocument
+from histore.document.df import DataFrameDocument
 
 
 def test_data_frame_checkout():

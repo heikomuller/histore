@@ -15,6 +15,7 @@ from setuptools import setup, find_packages
 
 install_requires = [
     'future',
+    'appdirs>=1.4.4',
     'pandas>=1.0.0',
     'jsonschema>=3.2.0',
     'python-dateutil',
@@ -38,7 +39,8 @@ dev_require = ['flake8', 'python-language-server'] + tests_require
 extras_require = {
     'docs': [
         'Sphinx',
-        'sphinx-rtd-theme'
+        'sphinx-rtd-theme',
+        'sphinxcontrib-apidoc'
     ],
     'tests': tests_require,
     'dev': dev_require

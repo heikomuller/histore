@@ -17,7 +17,7 @@ from abc import ABCMeta, abstractmethod
 from typing import Any, List, Optional
 
 from histore.archive.provenance.value import UpdateValue
-from histore.archive.timestamp import Timestamp
+from histore.archive.timestamp import SingleVersion, Timestamp
 
 
 class ArchiveValue(metaclass=ABCMeta):
@@ -159,7 +159,7 @@ class SingleVersionValue(ArchiveValue):
     """Single archive value that has never changed over to history of the
     dataset that contains it.
     """
-    def __init__(self, value: Any, timestamp: Timestamp):
+    def __init__(self, value: Any, timestamp: Timestamp, has_timestamp: Optional[bool] = True):
         """Initialize the archived value and the timestamp.
 
         Parameters
@@ -168,9 +168,13 @@ class SingleVersionValue(ArchiveValue):
             Scalar value.
         timestamp: histore.archive.timestamp.Timestamp
             Timestamp of the archived value.
+        has_timestamp: bool, default=True
+            If False it can be assumed that the value timestamp is the same as
+            the timestamp for he parent.
         """
         self.value = value
         self.timestamp = timestamp
+        self.has_timestamp = has_timestamp
 
     def __repr__(self):
         """Unambiguous string representation of the single version value.
@@ -179,7 +183,7 @@ class SingleVersionValue(ArchiveValue):
         -------
         string
         """
-        return '({} [{}])'.format(self.value, str(self.timestamp))
+        return '({} {})'.format(self.value, str(self.timestamp))
 
     def at_version(self, version, raise_error=True):
         """Get value for the given version. If the given version is not
@@ -279,7 +283,7 @@ class SingleVersionValue(ArchiveValue):
         # Return a multi-valued object.
         return MultiVersionValue(values=[
             SingleVersionValue(value=self.value, timestamp=self.timestamp),
-            SingleVersionValue(value=value, timestamp=Timestamp(version=version))
+            SingleVersionValue(value=value, timestamp=SingleVersion(version=version))
         ])
 
     def rollback(self, version: int) -> ArchiveValue:
@@ -422,7 +426,7 @@ class MultiVersionValue(ArchiveValue):
         # If the value did not exist in any prior version we need to add it to
         # the cell history.
         if not existed:
-            ts = Timestamp(version=version)
+            ts = SingleVersion(version=version)
             cell_history.append(SingleVersionValue(value=value, timestamp=ts))
         return MultiVersionValue(values=cell_history)
 

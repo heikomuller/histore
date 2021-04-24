@@ -9,42 +9,7 @@
 
 import pytest
 
-from histore.archive.timestamp import TimeInterval, Timestamp
-
-
-def test_interval():
-    """Test interval initialization, containment and overlap."""
-    # Test contains
-    i1 = TimeInterval(start=0, end=10)
-    assert i1.contains(interval=TimeInterval(1))
-    assert i1.contains(interval=TimeInterval(10))
-    assert i1.contains(interval=TimeInterval(start=0, end=5))
-    assert i1.contains(interval=TimeInterval(start=5, end=8))
-    assert i1.contains(interval=TimeInterval(start=9, end=10))
-    assert i1.contains(interval=TimeInterval(start=0, end=10))
-    assert not i1.contains(interval=TimeInterval(start=0, end=11))
-    assert not i1.contains(interval=TimeInterval(start=1, end=11))
-    # Test overlaps
-    i1 = TimeInterval(start=10, end=20)
-    assert not i1.overlap(interval=TimeInterval(start=1, end=5))
-    assert i1.overlap(interval=TimeInterval(start=0, end=10))
-    assert i1.overlap(interval=TimeInterval(start=5, end=15))
-    assert i1.overlap(interval=TimeInterval(start=5, end=25))
-    assert i1.overlap(interval=TimeInterval(start=10, end=20))
-    assert i1.overlap(interval=TimeInterval(start=15, end=25))
-    assert i1.overlap(interval=TimeInterval(start=19, end=25))
-    assert i1.overlap(interval=TimeInterval(start=20, end=25))
-    assert not i1.overlap(interval=TimeInterval(start=21, end=25))
-    with pytest.raises(ValueError):
-        i1.contains()
-    # String representation
-    assert str(i1) == '10-20'
-    assert str(TimeInterval(start=10)) == '10'
-    # Initialize
-    with pytest.raises(ValueError):
-        TimeInterval(start=10, end=9)
-    with pytest.raises(ValueError):
-        TimeInterval(start=-10, end=9)
+from histore.archive.timestamp import Timestamp, SingleVersion
 
 
 def test_timestamp_append():
@@ -71,33 +36,12 @@ def test_timestamp_append():
 
 def test_timestamp_contains():
     """Test contains function of timestamp."""
-    t = Timestamp([
-        TimeInterval(1, 5),
-        TimeInterval(7, 9),
-        TimeInterval(14, 16)
-    ])
-    for version in [1, 2, 3, 4, 5, 7, 8, 9, 14, 15, 16]:
+    t = Timestamp([[1, 5], [7, 9], 11, [14, 16], 18])
+    for version in [1, 2, 3, 4, 5, 7, 8, 9, 11, 14, 15, 16, 18]:
         assert t.contains(version=version)
-    for version in [0, 6, 10, 11, 12, 13, 17, 18]:
+    for version in [0, 6, 10, 12, 13, 17, 19]:
         assert not t.contains(version=version)
-
-
-def test_timestamp_from_string():
-    """Test generating timestamps from stings."""
-    t = Timestamp.from_string('5')
-    assert len(t.intervals) == 1
-    assert t.contains(5)
-    t = Timestamp.from_string('1,3,5')
-    assert len(t.intervals) == 3
-    for i in [1, 3, 5]:
-        assert t.contains(i)
-    t = Timestamp.from_string('1-3,5')
-    assert len(t.intervals) == 2
-    for i in [1, 2, 3, 5]:
-        assert t.contains(i)
-    with pytest.raises(ValueError):
-        Timestamp.from_string('1,3--5')
-        Timestamp.from_string('abc')
+    assert not Timestamp().contains(0)
 
 
 def test_timestamp_init():
@@ -105,82 +49,63 @@ def test_timestamp_init():
     t = Timestamp()
     assert t.is_empty()
     assert t.last_version() is None
-    t = Timestamp([TimeInterval(1), TimeInterval(3)])
+    t = Timestamp([1, 3])
     assert not t.is_empty()
     assert t.last_version() == 3
-    t = Timestamp(version=1)
+    t = SingleVersion(version=1)
     assert not t.is_empty()
     assert t.contains(version=1)
     assert not t.contains(version=0)
     assert t.last_version() == 1
-    with pytest.raises(ValueError):
-        Timestamp([TimeInterval(1, 3), TimeInterval(3, 4)])
-    with pytest.raises(ValueError):
-        Timestamp([TimeInterval(1, 3), TimeInterval(2, 3)])
-    with pytest.raises(ValueError):
-        Timestamp([TimeInterval(-1, 3), TimeInterval(2, 3)])
-    with pytest.raises(ValueError):
-        Timestamp([TimeInterval(-1)])
-    with pytest.raises(ValueError):
-        Timestamp(intervals=[TimeInterval(2, 3)], version=1)
 
 
 def test_timestamp_is_equal():
     """Test contains function of timestamp."""
-    t = Timestamp([
-        TimeInterval(1, 5),
-        TimeInterval(7, 9),
-        TimeInterval(14, 16)
-    ])
-    t1 = Timestamp([
-        TimeInterval(1, 5),
-        TimeInterval(7, 9),
-        TimeInterval(14, 16)
-    ])
-    t2 = Timestamp([
-        TimeInterval(1, 5),
-        TimeInterval(7, 9),
-        TimeInterval(14, 17)
-    ])
-    t3 = Timestamp([
-        TimeInterval(1, 5),
-        TimeInterval(7, 9),
-        TimeInterval(14, 16),
-        TimeInterval(18)
-    ])
-    t4 = Timestamp([TimeInterval(1, 5), TimeInterval(7, 9)])
+    t = Timestamp([[1, 5], [7, 9], 10, [14, 16]])
+    t1 = Timestamp([[1, 5], [7, 9], [10], [14, 16]])
+    t2 = Timestamp([[1, 5], [7, 9], [14, 17]])
+    t3 = Timestamp([[1, 5], [7, 9], [14, 16], [18]])
+    t4 = Timestamp([[1, 5], [7, 9], 12])
+    t5 = Timestamp([[1, 5], [7, 9], [12]])
     assert t.is_equal(t1)
     assert not t.is_equal(t2)
     assert not t.is_equal(t3)
     assert not t.is_equal(t4)
+    assert t4.is_equal(t5)
+    for ts in [t, t1, t2, t3, t4, t5]:
+        assert ts.is_equal(ts)
 
 
 @pytest.mark.parametrize(
-    'version,result',
+    'version,intervals',
     [
         (1, []),
-        (2, [(2, 2)]),
-        (4, [(2, 3)]),
-        (5, [(2, 3), (5, 5)]),
-        (7, [(2, 3), (5, 7)]),
-        (12, [(2, 3), (5, 7), (9, 11)])
+        (2, [2]),
+        (4, [[2, 3]]),
+        (5, [[2, 3], [5, 5]]),
+        (7, [[2, 3], [5, 7]]),
+        (8, [[2, 3], [5, 7]]),
+        (9, [[2, 3], [5, 7], 9]),
+        (11, [[2, 3], [5, 7], [9], [11]]),
+        (12, [[2, 3], [5, 7], [9], [11, 12]])
     ]
 )
-def test_timestamp_rollback(version, result):
+def test_timestamp_rollback(version, intervals):
     """Test removing versions from a timestamp."""
-    ts = Timestamp(intervals=[TimeInterval(2, 3), TimeInterval(5, 7), TimeInterval(9, 11)])
-    intervals = [TimeInterval(start=s, end=e) for s, e in result]
+    ts = Timestamp(intervals=[[2, 3], [5, 7], 9, [11, 12]])
     assert ts.rollback(version).is_equal(Timestamp(intervals=intervals))
+
+
+def test_timestamp_rollback_edge_cases():
+    """Test edge cases for timestamp rollback."""
+    assert Timestamp(intervals=[[2, 3]]).rollback(4).intervals == [[2, 3]]
+    assert Timestamp(intervals=[2, 3]).rollback(4).intervals == [2, 3]
 
 
 def test_timestamp_tostring():
     """Test timestamp string representation."""
-    t = Timestamp([
-        TimeInterval(1, 5),
-        TimeInterval(7, 9),
-        TimeInterval(14, 16)
-    ])
-    assert str(t) == '1-5,7-9,14-16'
-    t = Timestamp([TimeInterval(1, 5), TimeInterval(7), TimeInterval(14, 16)])
-    assert str(t) == '1-5,7,14-16'
-    assert str(Timestamp([TimeInterval(1)])) == '1'
+    t = Timestamp([[1, 5], [7, 9], [14, 16]])
+    assert str(t) == str([[1, 5], [7, 9], [14, 16]])
+    t = Timestamp([[1, 5], [7], [14, 16]])
+    assert str(t) == str([[1, 5], [7], [14, 16]])
+    assert str(SingleVersion(1)) == '[1]'

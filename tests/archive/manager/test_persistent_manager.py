@@ -17,9 +17,12 @@ from histore.archive.manager.db.base import DBArchiveManager
 from histore.archive.manager.db.database import DB, TEST_URL
 from histore.archive.manager.fs import FileSystemArchiveManager
 from histore.archive.manager.persist import PersistentArchiveManager
+from histore.archive.serialize.base import DEFAULT
+from histore.document.base import InputDescriptor
 from histore.document.schema import Column
 
 import histore.config as config
+import histore.util as util
 
 
 @pytest.mark.parametrize(
@@ -29,7 +32,7 @@ import histore.config as config
         (DBArchiveManager, dict({'db': DB(connect_url=TEST_URL)}))
     ]
 )
-def test_create_archive(ManagerCls, kwargs, tmpdir):
+def test_create_archive(ManagerCls, kwargs, dataset, tmpdir):
     """Test functionality of the persistent archive manager."""
     # -- Setup ----------------------------------------------------------------
     kwargs['basedir'] = str(tmpdir)
@@ -37,23 +40,36 @@ def test_create_archive(ManagerCls, kwargs, tmpdir):
     # -- Create empty manager instance ----------------------------------------
     manager = ManagerCls(**kwargs)
     assert len(manager.archives()) == 0
-    # -- Add irst archive -----------------------------------------------------
+    # -- Add first archive ----------------------------------------------------
+    now = util.utc_now()
     descriptor = manager.create(
         name='First archive',
         description='My first archive',
-        primary_key='SSN'
+        primary_key='SSN',
+        encoder='histore.tests.encode.TestEncoder',
+        decoder='histore.tests.encode.test_decoder',
+        serializer=DEFAULT,
+        doc=dataset,
+        snapshot=InputDescriptor(
+            valid_time=now,
+            description='First snapshot',
+            action={'x': 1}
+        )
     )
     assert descriptor.identifier() is not None
     assert descriptor.name() == 'First archive'
     assert descriptor.description() == 'My first archive'
-    assert descriptor.primary_key() == ['SSN']
+    assert descriptor.primary_key() == [0]
     assert len(manager.archives()) == 1
     descriptor = manager.list()[0]
     assert descriptor.identifier() is not None
     assert descriptor.name() == 'First archive'
     assert descriptor.description() == 'My first archive'
-    assert descriptor.primary_key() == ['SSN']
+    assert descriptor.primary_key() == [0]
     archive = manager.get(descriptor.identifier())
+    assert archive.snapshots()[0].valid_time == now
+    assert archive.snapshots()[0].description == 'First snapshot'
+    assert archive.snapshots()[0].action == {'x': 1}
     assert archive is not None
     with pytest.raises(ValueError):
         manager.get('unknown')
@@ -62,7 +78,24 @@ def test_create_archive(ManagerCls, kwargs, tmpdir):
     manager = ManagerCls(**kwargs)
     assert len(manager.archives()) == 1
     archive = manager.get(descriptor.identifier())
+    assert archive.store.primary_key() == [0]
     assert archive is not None
+    # -- Error when creating archive with same name.
+    with pytest.raises(ValueError):
+        manager.create(
+            name='First archive',
+            description='My first archive',
+            primary_key='SSN',
+            encoder='histore.tests.encode.TestEncoder',
+            decoder='histore.tests.encode.test_decoder',
+            serializer=DEFAULT,
+            doc=dataset,
+            snapshot=InputDescriptor(
+                valid_time=now,
+                description='First snapshot',
+                action={'x': 1}
+            )
+        )
     # Delete the archive
     manager.delete(descriptor.identifier())
     assert len(manager.archives()) == 0
@@ -70,6 +103,51 @@ def test_create_archive(ManagerCls, kwargs, tmpdir):
     # Error cases
     with pytest.raises(ValueError):
         manager.get(descriptor.identifier())
+
+
+@pytest.mark.parametrize(
+    'ManagerCls,kwargs',
+    [
+        (FileSystemArchiveManager, dict()),
+        (DBArchiveManager, dict({'db': DB(connect_url=TEST_URL)}))
+    ]
+)
+def test_create_archive_error(ManagerCls, kwargs, tmpdir):
+    """Test error when creating and archive with primary key but no initial
+    snapshot document.
+    """
+    # -- Setup ----------------------------------------------------------------
+    kwargs['basedir'] = str(tmpdir)
+    kwargs['create'] = True
+    manager = ManagerCls(**kwargs)
+    # -- Error for invalid parameters -----------------------------------------
+    with pytest.raises(ValueError):
+        manager.create(
+            name='First archive',
+            description='My first archive',
+            encoder='histore.tests.encode.TestEncoder',
+            decoder='histore.tests.encode.test_decoder',
+            serializer=DEFAULT,
+            primary_key='SSN'
+        )
+
+
+@pytest.mark.parametrize(
+    'ManagerCls,kwargs',
+    [
+        (FileSystemArchiveManager, dict()),
+        (DBArchiveManager, dict({'db': DB(connect_url=TEST_URL)}))
+    ]
+)
+def test_create_manager(ManagerCls, kwargs, tmpdir):
+    """Test creating an archive manager in a non-existing base directory."""
+    # -- Create empty manager instance ----------------------------------------
+    # -- Setup ----------------------------------------------------------------
+    basedir = os.path.join(tmpdir, 'archives')
+    kwargs['basedir'] = basedir
+    kwargs['create'] = True
+    ManagerCls(**kwargs)
+    assert os.path.isdir(basedir)
 
 
 @pytest.mark.parametrize(
@@ -94,7 +172,7 @@ def test_encoder_default(ManagerCls, kwargs, tmpdir):
     assert df.shape == (1, 1)
     assert df.iloc[0][0] == dt
     assert isinstance(df.iloc[0][0], datetime)
-    # DataFrane schema
+    # DataFrame schema
     for col in df.columns:
         assert isinstance(col, Column)
         assert col.colid >= 0
@@ -152,7 +230,7 @@ def test_manager_factory(tmpdir):
         (DBArchiveManager, dict({'db': DB(connect_url=TEST_URL)}))
     ]
 )
-def test_rename_archive(ManagerCls, kwargs, tmpdir):
+def test_rename_archive(ManagerCls, kwargs, dataset, tmpdir):
     """Test functionality of the persistent archive manager."""
     # -- Setup ----------------------------------------------------------------
     kwargs['basedir'] = str(tmpdir)
@@ -164,7 +242,8 @@ def test_rename_archive(ManagerCls, kwargs, tmpdir):
     arch_1 = manager.create(
         name='First archive',
         description='My first archive',
-        primary_key='SSN'
+        primary_key='SSN',
+        doc=dataset
     )
     arch_2 = manager.create(name='Second archive', description='Another one')
     # -- Reload the archive manager -------------------------------------------

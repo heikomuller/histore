@@ -25,16 +25,9 @@ class BufferedReader(ArchiveReader):
         # stream.
         self.read_index = 0
 
-    def has_next(self):
-        """Test if the reader has more rows to read. If True the next() method
-        will return the next row. Otherwise, the next() method will return
-        None.
-
-        Returns
-        -------
-        bool
-        """
-        return self.read_index < len(self.rows)
+    def close(self):
+        """Set row buffer to None."""
+        self.rows = None
 
     def next(self):
         """Read the next row in the dataset archive. Returns None if the end of
@@ -44,11 +37,12 @@ class BufferedReader(ArchiveReader):
         -------
         histore.archive.row.ArchiveRow
         """
-        # Return None if the reader has no more rows.
-        if not self.has_next():
-            return None
         # Get the next row that the read index points to. Advance the read
-        # index before returning that row..
-        row = self.rows[self.read_index]
-        self.read_index += 1
-        return row
+        # index before returning that row.
+        try:
+            row = self.rows[self.read_index]
+            self.read_index += 1
+            return row
+        except (IndexError, TypeError):
+            self.close()
+            return None

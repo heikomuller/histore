@@ -10,22 +10,43 @@
 import pytest
 
 from histore.archive.manager.mem import VolatileArchiveManager
+from histore.document.base import InputDescriptor
+
+import histore.util as util
 
 
-def test_volatile_archive_manager():
+def test_create_archive_manager():
+    """Test error when creating archive with primary key but no document."""
+    manager = VolatileArchiveManager()
+    with pytest.raises(ValueError):
+        manager.create(
+            name='First archive',
+            description='My first archive',
+            primary_key='SSN'
+        )
+
+
+def test_volatile_archive_manager(dataset):
     """Test functionality of the volatile archive manager."""
     manager = VolatileArchiveManager()
     assert len(manager.archives()) == 0
     # Create archive
+    now = util.utc_now()
     descriptor = manager.create(
         name='First archive',
         description='My first archive',
-        primary_key='SSN'
+        primary_key='SSN',
+        doc=dataset,
+        snapshot=InputDescriptor(
+            valid_time=now,
+            description='First snapshot',
+            action={'x': 1}
+        )
     )
     assert descriptor.identifier() is not None
     assert descriptor.name() == 'First archive'
     assert descriptor.description() == 'My first archive'
-    assert descriptor.primary_key() == ['SSN']
+    assert descriptor.primary_key() == [0]
     assert len(manager.archives()) == 1
     # Create archive with existing name.
     with pytest.raises(ValueError):
@@ -35,9 +56,12 @@ def test_volatile_archive_manager():
     assert descriptor.identifier() is not None
     assert descriptor.name() == 'First archive'
     assert descriptor.description() == 'My first archive'
-    assert descriptor.primary_key() == ['SSN']
+    assert descriptor.primary_key() == [0]
     archive = manager.get(descriptor.identifier())
     assert archive is not None
+    assert archive.snapshots()[0].valid_time == now
+    assert archive.snapshots()[0].description == 'First snapshot'
+    assert archive.snapshots()[0].action == {'x': 1}
     # Rename the archive.
     manager.rename(descriptor.identifier(), 'Some archive')
     assert manager.get_by_name('My first archive') is None

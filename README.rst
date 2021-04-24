@@ -45,34 +45,34 @@ Example using Volatile Archive
 
 Start by creating a new archive. For each archive, a optional primary key (list of column names) can be specified. If a primary key is given, the values in the key attributes are used as row keys when data set snapshots are merged into the archive. If no primary key is specified the row index of the data frame is used to match rows during the merge phase.
 
+For archives that have a primary key, the initial dataset snapshot (or at least the dataset schema) needs to be given when creating the archive.
+
 .. code-block:: python
 
    # Create a new archive that merges snapshots
    # based on a primary key attribute
 
    import histore as hs
-   archive = hs.Archive(primary_key='Name')
+   import pandas as pd
+
+  # First version
+   df = pd.DataFrame(
+       data=[['Alice', 32], ['Bob', 45], ['Claire', 27], ['Dave', 23]],
+       columns=['Name', 'Age']
+   )
+   archive = hs.Archive(doc=df, primary_key='Name', descriptor=hs.Descriptor('First snapshot'))
 
 
 Add the first two data set versions to the archive:
 
 .. code-block:: python
 
-   import pandas as pd
-
-   # First version
-   df = pd.DataFrame(
-       data=[['Alice', 32], ['Bob', 45], ['Claire', 27], ['Dave', 23]],
-       columns=['Name', 'Age']
-   )
-   archive.commit(df, description='First snapshot')
-
    # Second version: Change age for Alice and Bob
    df = pd.DataFrame(
        data=[['Alice', 33], ['Bob', 44], ['Claire', 27], ['Dave', 23]],
        columns=['Name', 'Age']
    )
-   archive.commit(df, description='Alice is 33 and Bob 44')
+   archive.commit(df, descriptor=hs.Descriptor('Alice is 33 and Bob 44'))
 
 
 List information about all snapshots in the archive. This also shows how to use the checkout method to retrieve a particular data set version:
@@ -114,7 +114,7 @@ To create persistent archive that maintains all data on disk use the ``Persisten
 
 .. code-block:: python
 
-   archive = hs.PersistentArchive(basedir='path/to/archive/dir', primary_key=['Name'])
+   archive = hs.PersistentArchive(basedir='path/to/archive/dir', create=True, doc=df, primary_key=['Name'])
 
 The persistent archive maintains the data set snapshots in two files that are created in the directory that is given as the ``basedir`` argument.
 

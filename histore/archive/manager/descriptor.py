@@ -9,10 +9,13 @@
 by an archive manager.
 """
 
+import json
 import jsonschema
 
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
+
+from histore.archive.serialize.base import ArchiveSerializer
 
 import histore.util as util
 
@@ -28,10 +31,18 @@ DESCRIPTOR_SCHEMA = {
         'description': {'type': 'string'},
         'primaryKey': {
             'type': 'array',
-            'items': {'type': 'string'}
+            'items': {'type': 'integer'}
         },
         'encoder': {'type': 'string'},
-        'decoder': {'type': 'string'}
+        'decoder': {'type': 'string'},
+        'serializer': {
+            'type': 'object',
+            'properties': {
+                'clspath': {'type': 'string'},
+                'kwargs': {'type': 'object'}
+            },
+            'required': ['clspath']
+        }
     },
     'required': ['id', 'createdAt']
 }
@@ -66,9 +77,9 @@ class ArchiveDescriptor(object):
     @staticmethod
     def create(
         identifier: Optional[str] = None, name: Optional[str] = None,
-        description: Optional[str] = None,
-        primary_key: Optional[Union[List[str], str]] = None,
-        encoder: Optional[str] = None, decoder: Optional[str] = None
+        primary_key: Optional[List[int]] = None, description: Optional[str] = None,
+        encoder: Optional[str] = None, decoder: Optional[str] = None,
+        serializer: Union[Dict, Callable] = None
     ):
         """Create a new archive descriptor object.
 
@@ -78,24 +89,30 @@ class ArchiveDescriptor(object):
             Unique archive identifier.
         name: string, default=None
             Descriptive name that is associated with the archive.
+        primary_key: list of int, default=None
+            Identifier(s) for column(s) that are used to generate keys for rows
+            in the archive.
         description: string, default=None
             Optional long description that is associated with the archive.
-        primary_key: string or list, default=None
-            Column(s) that are used to generate identifier for rows in the
-            archive.
         encoder: string, default=None
             Full package path for the Json encoder class that is used by the
             persistent archive.
         decoder: string, default=None
             Full package path for the Json decoder function that is used by the
+        serializer: dict or callable, default=None
+            Dictionary or callable that returns a dictionary that contains the
+            specification for the serializer. The serializer specification is
+            a dictionary with the following elements:
+            - ``clspath``: Full package target path for the serializer class
+            that is instantiated.
+            - ``kwargs`` : Additional arguments that are passed to the
+            constructor of the created serializer instance.
+            Only ``clspath`` is required.
 
         Returns
         -------
         histore.archive.manager.base.ArchiveDescriptor
         """
-        # Ensure that the primary key is a list
-        if primary_key is not None and not isinstance(primary_key, list):
-            primary_key = [primary_key]
         # Create a unique identifier for the new archive.
         if identifier is None:
             identifier = util.get_unique_identifier()
@@ -111,6 +128,8 @@ class ArchiveDescriptor(object):
             doc['encoder'] = encoder
         if decoder is not None:
             doc['decoder'] = decoder
+        if serializer is not None:
+            doc['serializer'] = serializer if isinstance(serializer, dict) else serializer()
         return ArchiveDescriptor(doc)
 
     def created_at(self) -> datetime:
@@ -122,14 +141,14 @@ class ArchiveDescriptor(object):
         """
         return util.to_datetime(self.doc.get('createdAt'))
 
-    def decoder(self) -> str:
-        """Get package path for Json decoder used by persistent archives.
+    def decoder(self) -> Callable:
+        """Get Json decoder function used by persistent archives.
 
         Returns
         -------
-        string
+        callable
         """
-        return self.doc.get('decoder')
+        return decoder_from_string(self.doc.get('decoder'))
 
     def description(self) -> str:
         """Get archive description. If the value is not set in the descriptor
@@ -141,14 +160,14 @@ class ArchiveDescriptor(object):
         """
         return self.doc.get('description', '')
 
-    def encoder(self) -> str:
-        """Get package path for Json encoder used by persistent archives.
+    def encoder(self) -> json.JSONEncoder:
+        """Get Json encoder used by persistent archives.
 
         Returns
         -------
-        string
+        json.JSONEncoder
         """
-        return self.doc.get('encoder')
+        return encoder_from_string(self.doc.get('encoder'))
 
     def identifier(self) -> str:
         """Get the unique archive identifier value.
@@ -169,12 +188,12 @@ class ArchiveDescriptor(object):
         """
         return self.doc.get('name', self.identifier())
 
-    def primary_key(self) -> List[str]:
-        """Get list of primary key attributes.
+    def primary_key(self) -> List[int]:
+        """Get list of primary key attribute identifier(s).
 
         Returns
         -------
-        list(string)
+        list of int
         """
         return self.doc.get('primaryKey')
 
@@ -187,3 +206,61 @@ class ArchiveDescriptor(object):
             New archive name.
         """
         self.doc['name'] = name
+
+    def serializer(self) -> ArchiveSerializer:
+        """Get an instance of the serializer that is used for the archive.
+
+        Returns
+        -------
+        histore.archive.serialize.base.ArchiveSerializer
+        """
+        return serializer_from_dict(self.doc.get('serializer'))
+
+
+# -- Helper Functions ---------------------------------------------------------
+
+def decoder_from_string(decoder: str) -> Callable:
+    """Get Json decoder function from package path string.
+
+    Parameters
+    ----------
+    decoder: string, default=None
+        Full package path for the Json decoder function that is used by the
+        persistent archive.
+
+    Returns
+    -------
+    callable
+    """
+    return util.import_obj(decoder) if decoder else None
+
+
+def encoder_from_string(encoder: str) -> json.JSONEncoder:
+    """Get Json encoder from package path string.
+
+    Parameters
+    ----------
+    encoder: string
+        Full package path for the Json encoder class that is used by the
+        persistent archive. May be None.
+
+    Returns
+    -------
+    json.JSONEncoder
+    """
+    return util.import_obj(encoder) if encoder else None
+
+
+def serializer_from_dict(doc: Dict) -> ArchiveSerializer:
+    """Get an instance of an archive serializer from a dictionary serialization.
+
+    Parameters
+    ----------
+    doc: dict
+        Dictionary serialization for archive serializer. May be None.
+
+    Returns
+    -------
+    histore.archive.serialize.base.ArchiveSerializer
+    """
+    return util.import_obj(doc['clspath'])(**doc.get('kwargs', {})) if doc is not None else None

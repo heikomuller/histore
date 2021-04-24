@@ -9,6 +9,9 @@ from sqlalchemy import Integer, String, Text
 from sqlalchemy import Column, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+from sqlalchemy.types import TypeDecorator, Unicode
+
+import json
 
 from histore.archive.manager.descriptor import ArchiveDescriptor
 
@@ -20,6 +23,24 @@ import histore.util as util
 """Base class for all database tables."""
 
 Base = declarative_base()
+
+
+class JsonObject(TypeDecorator):
+    """Decorator for objects that are stored as serialized JSON strings."""
+
+    impl = Unicode
+
+    def process_literal_param(self, value, dialect):
+        """Expects a JSON serializable object."""
+        if value is not None:
+            return json.dumps(value)
+
+    process_bind_param = process_literal_param
+
+    def process_result_value(self, value, dialect):
+        """Create JSON object from string serialization."""
+        if value is not None:
+            return json.loads(value)
 
 
 class Archive(Base):
@@ -37,6 +58,7 @@ class Archive(Base):
     description = Column(Text)
     encoder = Column(String(1024))
     decoder = Column(String(1024))
+    serializer = Column(JsonObject)
 
     # -- Relationships --------------------------------------------------------
     keyspec = relationship(
@@ -53,17 +75,15 @@ class Archive(Base):
         histore.archive.manager.descriptor.ArchiveDescriptor
         """
         # Create list of promary key columns (if defined).
-        if self.keyspec:
-            pk = [k.name for k in sorted(self.keyspec, key=lambda x: x.pos)]
-        else:
-            pk = None
+        pk = [k.colid for k in sorted(self.keyspec, key=lambda x: x.pos)] if self.keyspec else None
         return ArchiveDescriptor.create(
             identifier=self.archive_id,
             name=self.name,
             description=self.description,
             primary_key=pk,
             encoder=self.encoder,
-            decoder=self.decoder
+            decoder=self.decoder,
+            serializer=self.serializer
         )
 
 
@@ -79,7 +99,7 @@ class ArchiveKey(Base):
         ForeignKey('archive.archive_id'),
         primary_key=True
     )
-    name = Column(String(1024), primary_key=True)
+    colid = Column(Integer, primary_key=True)
     pos = Column(Integer, primary_key=True)
 
     # -- Relationships --------------------------------------------------------

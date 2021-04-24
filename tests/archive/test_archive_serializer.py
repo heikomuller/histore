@@ -9,14 +9,14 @@
 
 import pytest
 
-from histore.key.base import NumberKey, StringKey
+from histore.key import NumberKey, StringKey
 from histore.archive.row import ArchiveRow
 from histore.archive.schema import ArchiveColumn
 from histore.archive.snapshot import Snapshot
-from histore.archive.value import (
-    MultiVersionValue, SingleVersionValue
-)
-from histore.archive.timestamp import Timestamp, TimeInterval
+from histore.archive.value import MultiVersionValue, SingleVersionValue
+from histore.archive.timestamp import SingleVersion, Timestamp, TimeInterval
+from histore.archive.serialize.base import SERIALIZER
+from histore.archive.serialize.compact import CompactSerializer
 from histore.archive.serialize.default import DefaultSerializer
 
 import histore.util as util
@@ -33,7 +33,7 @@ def test_invalid_label():
 def test_serialize_column():
     """Test (de-)serialization of archive schema columns."""
     serializer = DefaultSerializer()
-    ts = Timestamp(version=1)
+    ts = SingleVersion(version=1)
     column = ArchiveColumn(
         identifier=0,
         name=SingleVersionValue(value='A', timestamp=ts),
@@ -48,10 +48,11 @@ def test_serialize_column():
     assert column.timestamp.is_equal(ts)
 
 
-def test_serialize_row():
+@pytest.mark.parametrize('serializer_cls', [DefaultSerializer, CompactSerializer])
+def test_serialize_row(serializer_cls):
     """Test (de-)serialization of archive rows."""
-    serializer = DefaultSerializer()
-    ts = Timestamp(intervals=TimeInterval(start=1, end=5))
+    serializer = serializer_cls()
+    ts = Timestamp(intervals=[TimeInterval(start=1, end=5)])
     pos = SingleVersionValue(value=0, timestamp=ts)
     key = (NumberKey(0), StringKey('A'))
     cells = {
@@ -59,11 +60,11 @@ def test_serialize_row():
         1: MultiVersionValue(values=[
             SingleVersionValue(
                 value='A',
-                timestamp=Timestamp(intervals=TimeInterval(start=1, end=3))
+                timestamp=Timestamp(intervals=[TimeInterval(start=1, end=3)])
             ),
             SingleVersionValue(
                 value='B',
-                timestamp=Timestamp(intervals=TimeInterval(start=4, end=5))
+                timestamp=Timestamp(intervals=[TimeInterval(start=4, end=5)])
             )
         ])
     }
@@ -74,6 +75,71 @@ def test_serialize_row():
     assert row.pos.value == 0
     assert len(row.cells) == 2
     assert row.key == key
+
+
+def test_serialize_row_compact():
+    """Test row serialization for the compact serializer."""
+    serializer = CompactSerializer()
+    ts = SingleVersion(version=0)
+
+    def single(value):
+        return SingleVersionValue(value=value, timestamp=ts, has_timestamp=False)
+
+    row = ArchiveRow(
+        rowid=1,
+        key=NumberKey(2),
+        pos=single(3),
+        cells={
+            1: single('a'),
+            3: single('c'),
+            5: single('e'),
+            4: single('f'),
+            8: single('h'),
+            10: single('j'),
+            11: single('k')
+        },
+        timestamp=ts
+    )
+    doc = serializer.serialize_row(row)
+    assert doc[4] == [1, [3, 5], 8, [10, 11]]
+    assert doc[5] == ['a', 'c', 'f', 'e', 'h', 'j', 'k']
+    row = serializer.deserialize_row(doc)
+    assert len(row.cells) == 7
+    assert row.cells[3].value == 'c'
+
+    def single_ts(value):
+        return SingleVersionValue(
+            value=value,
+            timestamp=SingleVersion(version=1),
+            has_timestamp=True
+        )
+
+    row = ArchiveRow(
+        rowid=1,
+        key=NumberKey(2),
+        pos=single_ts(3),
+        cells={
+            1: single_ts('a'),
+            3: single_ts('c'),
+            5: single_ts('e'),
+            4: single_ts('f'),
+            12: single_ts('l'),
+            10: single_ts('j'),
+            11: single_ts('k')
+        },
+        timestamp=ts
+    )
+    doc = serializer.serialize_row(row)
+    assert doc[4] == [1, [3, 5], [10, 12]]
+    assert doc[5] == [
+        {'t': [1], 'v': 'a'},
+        {'t': [1], 'v': 'c'},
+        {'t': [1], 'v': 'f'},
+        {'t': [1], 'v': 'e'},
+        {'t': [1], 'v': 'j'},
+        {'t': [1], 'v': 'k'},
+        {'t': [1], 'v': 'l'}
+    ]
 
 
 def test_serialize_snapshot():
@@ -88,15 +154,6 @@ def test_serialize_snapshot():
     assert s.valid_time == snapshot.valid_time
     assert s.transaction_time == snapshot.transaction_time
     assert s.description == snapshot.description
-    # For completeness, test deserializing a snapshot object without
-    # description element.
-    snapshot.description = None
-    obj = serializer.serialize_snapshot(snapshot)
-    s = serializer.deserialize_snapshot(obj)
-    assert s.version == snapshot.version
-    assert s.valid_time == snapshot.valid_time
-    assert s.transaction_time == snapshot.transaction_time
-    assert s.description == ''
     # -- Snapshot with description --------------------------------------------
     snapshot = Snapshot(0, valid_time=vt, description='First snapshot')
     obj = serializer.serialize_snapshot(snapshot)
@@ -107,45 +164,47 @@ def test_serialize_snapshot():
     assert s.description == snapshot.description
 
 
-def test_serialize_timestamp():
+@pytest.mark.parametrize('serializer_cls', [DefaultSerializer, CompactSerializer])
+def test_serialize_timestamp(serializer_cls):
     """Test (de-)serialization of timestamp objects."""
-    serializer = DefaultSerializer()
+    serializer = serializer_cls()
     ts = serializer.deserialize_timestamp([[1, 2], [4, 6], [8, 8]])
     for v in [1, 2, 4, 5, 6, 8]:
         assert ts.contains(v)
     for v in [0, 3, 7, 9]:
         assert not ts.contains(v)
     obj = serializer.serialize_timestamp(ts)
-    assert obj == [[1, 2], [4, 6], [8, 8]]
+    ts = serializer.deserialize_timestamp(obj)
+    assert ts.is_equal(Timestamp([TimeInterval(start=1, end=2), TimeInterval(start=4, end=6), TimeInterval(8)]))
     ts = serializer.deserialize_timestamp(obj)
     for v in [1, 2, 4, 5, 6, 8]:
         assert ts.contains(v)
     for v in [0, 3, 7, 9]:
         assert not ts.contains(v)
-    with pytest.raises(ValueError):
-        serializer.deserialize_timestamp([[1, 2], [3, 6], [8, 8]])
 
 
-def test_serialize_value():
+@pytest.mark.parametrize('serializer_cls', [DefaultSerializer, CompactSerializer])
+def test_serialize_value(serializer_cls):
     """Test (de-)serialization of timestamped values."""
-    serializer = DefaultSerializer()
+    serializer = serializer_cls()
     # -- Single version value -------------------------------------------------
-    ts = Timestamp(version=1)
+    ts = SingleVersion(version=1)
     value = SingleVersionValue(value=1, timestamp=ts)
     obj = serializer.serialize_value(value=value, ts=ts)
     value = serializer.deserialize_value(obj=obj, ts=ts)
-    assert value.timestamp.is_equal(Timestamp(version=1))
+    assert value.timestamp.is_equal(SingleVersion(version=1))
+    assert value.value == 1
+    obj = serializer.serialize_value(value=value, ts=SingleVersion(version=2))
+    value = serializer.deserialize_value(obj=obj, ts=ts)
+    assert value.timestamp.is_equal(SingleVersion(version=1))
     assert value.value == 1
     ts = ts.append(2)
     obj = serializer.serialize_value(value=value, ts=ts)
     value = serializer.deserialize_value(obj=obj, ts=ts)
-    assert value.timestamp.is_equal(Timestamp(version=1))
+    assert value.timestamp.is_equal(SingleVersion(version=1))
     assert value.value == 1
-    # Error case for invalid object
-    with pytest.raises(ValueError):
-        serializer.deserialize_value(obj='A', ts=ts)
     # -- Multi-version value --------------------------------------------------
-    value = SingleVersionValue(value=1, timestamp=Timestamp(version=1))
+    value = SingleVersionValue(value=1, timestamp=SingleVersion(version=1))
     value = value.merge(value='A', version=2)
     obj = serializer.serialize_value(value=value, ts=ts)
     value = serializer.deserialize_value(obj=obj, ts=ts)
@@ -156,3 +215,8 @@ def test_serialize_value():
         else:
             assert v.timestamp.contains(2)
             assert v.value == 'A'
+
+
+def test_serializer_specification():
+    """Test helper functions to generate serializer specifications."""
+    assert SERIALIZER(clspath='x') == {'clspath': 'x'}

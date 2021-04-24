@@ -13,13 +13,9 @@ import click
 import os
 import sys
 
-from histore import PersistentArchiveManager
-from histore.cli.archive import (
-    create_archive, delete_archive, list_archives, rename_archive
-)
-from histore.cli.snapshot import (
-    checkout_snapshot, commit_snapshot, list_snapshots
-)
+from histore.archive.manager.persist import PersistentArchiveManager
+from histore.cli.archive import create_archive, delete_archive, list_archives, rename_archive
+from histore.cli.snapshot import checkout_snapshot, commit_snapshot, list_snapshots
 
 import histore.config as config
 

@@ -14,24 +14,26 @@ different files are created.
 - rows.dat: Data fie containing the archive rows.
 """
 
+from typing import Callable, List, Optional
+
 import json
 import os
 import shutil
 
-from datetime import datetime
-from typing import Dict, Optional
-
 from histore.archive.schema import ArchiveSchema
-from histore.archive.serialize.default import DefaultSerializer
+from histore.archive.serialize.default import ArchiveSerializer, DefaultSerializer
 from histore.archive.snapshot import SnapshotListing
 from histore.archive.store.base import ArchiveStore
-from histore.archive.store.fs.reader import ArchiveFileReader, default_decoder
-from histore.archive.store.fs.writer import ArchiveFileWriter, DefaultEncoder
+from histore.archive.store.fs.reader import ArchiveFileReader
+from histore.archive.store.fs.writer import ArchiveFileWriter
+from histore.document.json.reader import default_decoder
+from histore.document.json.writer import DefaultEncoder
 
 import histore.util as util
 
 
 """Element labels for metadata serialization."""
+META_PRIMARYKEY = 'primaryKey'
 META_SCHEMA = 'schema'
 META_SNAPSHOTS = 'snapshots'
 META_ROWCOUNT = 'rowcount'
@@ -43,8 +45,10 @@ class ArchiveFileStore(ArchiveStore):
     faster access.
     """
     def __init__(
-        self, basedir, replace=False, serializer=None, compression=None,
-        encoder=None, decoder=None
+        self, basedir: str, primary_key: Optional[List[int]] = None,
+        replace: Optional[bool] = False, serializer: Optional[ArchiveSerializer] = None,
+        compression: Optional[str] = None, encoder: Optional[json.JSONEncoder] = None,
+        decoder: Optional[Callable] = None
     ):
         """Initialize the archive archive components.
 
@@ -53,10 +57,12 @@ class ArchiveFileStore(ArchiveStore):
         basedir: string
             Path to the base directory for archive files. If the directory does
             not exist it will be created.
+        primary_key: list of int, default=None
+            List of identifier for primary key columns.
         replace: boolean, default=False
             Do not read existing files in the base directory to initialize the
             archive. Treat the archive as being empty instead if True.
-        serializer: histore.archive.serialize.ArchiveSerializer, default=None
+        serializer: histore.archive.serialize.base.ArchiveSerializer, default=None
             Implementation of the archive serializer interface that is used to
             serialize rows that are written to file.
         compression: string, default=None
@@ -68,6 +74,7 @@ class ArchiveFileStore(ArchiveStore):
             Custom decoder function when reading archive rows from file.
         """
         self.basedir = util.createdir(basedir)
+        self._primary_key = primary_key
         self.serializer = serializer if serializer else DefaultSerializer()
         self.compression = compression
         self.encoder = encoder if encoder is not None else DefaultEncoder
@@ -84,16 +91,23 @@ class ArchiveFileStore(ArchiveStore):
                 doc = json.load(f, object_hook=self.decoder)
             # Deserialize schema columns.
             columns = list()
-            for c in doc[META_SCHEMA]:
+            for c in doc.get(META_SCHEMA, []):
                 columns.append(self.serializer.deserialize_column(c))
             self.schema = ArchiveSchema(columns=columns)
             # Deserialize snapshot descriptors
             snapshots = list()
-            for s in doc[META_SNAPSHOTS]:
+            for s in doc.get(META_SNAPSHOTS, []):
                 snapshots.append(self.serializer.deserialize_snapshot(s))
             self.snapshots = SnapshotListing(snapshots=snapshots)
             # Deserialize row counter.
-            self.row_counter = doc[META_ROWCOUNT]
+            self.row_counter = doc.get(META_ROWCOUNT, 0)
+            # Overwrite primary key if it is present in the metadata file.
+            if self._primary_key:
+                doc[META_PRIMARYKEY] = self._primary_key
+                with open(self.tmpmetafile, 'w') as f:
+                    json.dump(doc, f, cls=self.encoder)
+            else:
+                self._primary_key = doc[META_PRIMARYKEY]
         else:
             # Create an empty archive.
             self.schema = ArchiveSchema()
@@ -103,53 +117,35 @@ class ArchiveFileStore(ArchiveStore):
             for f in [self.datafile, self.metafile]:
                 if os.path.isfile(f):
                     os.remove(f)
+            # Write primary key to metadata file.
+            with open(self.metafile, 'w') as f:
+                json.dump({META_PRIMARYKEY: self._primary_key}, f)
 
     def commit(
-        self, schema: ArchiveSchema, writer: ArchiveFileWriter, version: int,
-        valid_time: Optional[datetime] = None, description: Optional[str] = None,
-        action: Optional[Dict] = None
+        self, schema: ArchiveSchema, writer: ArchiveFileWriter,
+        snapshots: SnapshotListing
     ):
-        """Commit a new version of the dataset archive. The modified components
-        of the archive are given as the three arguments of this method.
+        """Commit an updated dataset archive.
 
-        Returns the handle for the newly created snapshot.
+        The modified components of the archive are given as the three
+        arguments of this method.
 
         Parameters
         ----------
         schema: histore.archive.schema.ArchiveSchema
             Schema history for the new archive version.
-        writer: histore.archive.writer.ArchiveWriter
+        writer: histore.archive.store.fs.writer.ArchiveFileWriter
             Instance of the archive writer class returned by this store that
             was used to output the rows of the new archive version.
-        version: int
-            Unique version identifier for the new snapshot.
-        valid_time: datetime.datetime, default=None
-            Timestamp when the snapshot was first valid. A snapshot is valid
-            until the valid time of the next snapshot in the archive.
-        description: string, default=None
-            Optional user-provided description for the snapshot.
-        action: dict, default=None
-            Optional metadata defining the action that created the snapshot.
-
-        Returns
-        -------
-        histore.archive.snapshot.Snapshot
+        snapshots: histore.archive.snapshot.SnapshotListing
+            Snapshot listing for the modified archive.
         """
-        # Get an updated shapshot listing.
-        snapshots = self.snapshots.append(
-            version=version,
-            valid_time=valid_time,
-            description=description,
-            action=action
-        )
         # Materialize the modified archive.
         self._write(schema=schema, writer=writer, snapshots=snapshots)
         # Update the cached objects
         self.schema = schema
         self.snapshots = snapshots
         self.row_counter = writer.row_counter
-        # Return handle for the new snapshot.
-        return snapshots.last_snapshot()
 
     def is_empty(self) -> bool:
         """True if the archive does not contain any snapshots yet.
@@ -192,7 +188,7 @@ class ArchiveFileStore(ArchiveStore):
         """
         return self.snapshots
 
-    def get_writer(self) -> ArchiveFileWriter:
+    def get_writer(self, validate: Optional[bool] = None) -> ArchiveFileWriter:
         """Get a a new archive buffer to maintain rows for a new archive
         version.
 
@@ -209,6 +205,17 @@ class ArchiveFileStore(ArchiveStore):
             compression=self.compression,
             encoder=self.encoder
         )
+
+    def primary_key(self) -> List[int]:
+        """Get the list of identifier for the primary key column(s).
+
+        Returns None if the archive is not keyed by a primary key.
+
+        Returns
+        -------
+        list of int
+        """
+        return self._primary_key
 
     def rollback(self, schema: ArchiveSchema, writer: ArchiveFileWriter, version: int):
         """Store the archive after it has been rolled back to a previous
@@ -252,7 +259,8 @@ class ArchiveFileStore(ArchiveStore):
         doc = {
             META_SCHEMA: [encoder.serialize_column(c) for c in schema],
             META_SNAPSHOTS: [encoder.serialize_snapshot(s) for s in snapshots],
-            META_ROWCOUNT: writer.row_counter
+            META_ROWCOUNT: writer.row_counter,
+            META_PRIMARYKEY: self._primary_key
         }
         with open(self.tmpmetafile, 'w') as f:
             json.dump(doc, f, cls=self.encoder)

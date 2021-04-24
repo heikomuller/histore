@@ -11,6 +11,7 @@ sessions as well as to create a fresh database.
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm.session import Session
 
 from typing import Optional
 
@@ -43,6 +44,7 @@ class DB(object):
         ------
         flowserv.error.MissingConfigurationError
         """
+        self.web_app = web_app
         # Ensure that the connection URL is set.
         if echo:
             import logging
@@ -52,6 +54,13 @@ class DB(object):
             self._session = scoped_session(sessionmaker(bind=self._engine))
         else:
             self._session = sessionmaker(bind=self._engine)
+
+    def close(self):
+        """Remove sessions from the scoped session maker if in web application
+        mode.
+        """
+        if self.web_app:
+            self._session.remove()
 
     def init(self):
         """Create all tables in the database model schema."""
@@ -76,7 +85,7 @@ class SessionScope(object):
     """Context manager for providing transactional scope around a series of
     database operations.
     """
-    def __init__(self, session):
+    def __init__(self, session: Session):
         """Initialize the database session.
 
         Parameters

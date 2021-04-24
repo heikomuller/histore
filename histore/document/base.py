@@ -6,86 +6,98 @@
 # file LICENSE for full license details.
 
 """Documents are wrappers around different forms of snapshots that may be
-committed to an archive.
+committed to an archive. A document primarily serves two purposes: (1) it
+contains the document schema (a list of column names), and (2) it supports
+reading the document rows.
 """
 
+from __future__ import annotations
 from abc import ABCMeta, abstractmethod
-from typing import Iterator, List, Tuple, Union
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 
-from histore.document.schema import Schema
+import pandas as pd
+
+from histore.document.schema import DocumentSchema
 
 
 """Type aliases."""
-# Primary key of a dataset.
-PrimaryKey = Union[str, List[str]]
-
-
-# -- Input reader -------------------------------------------------------------
-
-class DataIterator(metaclass=ABCMeta):
-    """Abstract class for iterators over rows in a data frame. Data frame
-    iterators are also context managers and iterators. Therefore, in addition
-    to the header method, implementations are expected to implement (i) the
-    __enter__ and __exit__ methods for a context manager, and (ii) the __iter__
-    and __next__ method for Python iterators.
-    """
-    pass
-
-
-class DataReader(metaclass=ABCMeta):
-    """Reader for data streams. Provides the functionality to open the stream
-    for reading. Dataset reader should be able to read the same dataset
-    multiple times.
-    """
-    def __init__(self, columns: Schema):
-        """Initialize the schema for the rows in this data stream iterator.
-
-        Parameters
-        ----------
-        columns: list of string
-            Schema for data stream rows.
-        """
-        self.columns = columns
-
-    def iterrows(self) -> Iterator[Tuple[int, List]]:
-        """Simulate the iterrows() function of a pandas DataFrame as it is used
-        in openclean. Returns an iterator that yields pairs of row identifier
-        and value list for each row in the streamed data frame.
-
-        Returns
-        -------
-        iterator
-        """
-        with self.open() as f:
-            for rowid, row in f:
-                yield rowid, row
-
-    @abstractmethod
-    def open(self) -> DataIterator:
-        """Open the data stream to get a iterator for the rows in the dataset.
-
-        Returns
-        -------
-        openclean.data.stream.base.DatasetIterator
-        """
-        raise NotImplementedError()  # pragma: no cover
+# Scalar values and dataset rows.
+Scalar = Union[int, float, str, datetime]
+DataRow = List[Scalar]
+RowIndex = Union[Scalar, Tuple[Scalar, ...]]
 
 
 # -- Input Documents ----------------------------------------------------------
 
-class Document(metaclass=ABCMeta):
-    """The document interface provides access to a document reader. The reader
-    is expected to give access to a document that is sorted in ascending order
-    of the row key that is used by an archive during merge.
+class DocumentIterator(metaclass=ABCMeta):
+    """Iterator over rows in a document. Each row is represented as a list of
+    cell values for the document columns. Cell values are expected to be scalar
+    values. In addition to the cell values, for each row the iterator provides
+    access to the row position in the document (starting at 0) and the row
+    index. The row index is used as the row key when merging documents into
+    archives that are not keyed by a primary key.
+
+    For most external documents the row position and the row index will be the
+    same value. Documents that represent ``pandas.DataFrame`` objects, on the
+    other hand, will use the value from the data frame index for each row as
+    the returned row index.
     """
-    def __init__(self, columns):
-        """Initialize the object properties. The abstract document class
-        maintains a list of column names in the document schema. Columns may
-        either be represented by strings or by instances of the Column class.
+    def __enter__(self) -> DocumentIterator:
+        """Enter method for the context manager."""
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> bool:
+        """Close the document iterator when the context manager exits."""
+        self.close()
+        return False
+
+    def __iter__(self) -> DocumentIterator:
+        """Return object for row iteration."""
+        return self
+
+    def __next__(self) -> Tuple[int, RowIndex, DataRow]:
+        """Return next row from the iterator.
+
+        Raises a StopIteration error when the end of the document is reached.
+
+        Returns
+        -------
+        tuple of int, histore.document.base.RowIndex, histore.document.base.DataRow
+        """
+        return self.next()
+
+    @abstractmethod
+    def close(self):
+        """Release all resources that are held by the iterator."""
+        raise NotImplementedError()  # pragma: no cover
+
+    @abstractmethod
+    def next(self) -> Tuple[int, RowIndex, DataRow]:
+        """Read the next row in the document.
+
+        Returns the row position, row index and the list of cell values for each
+        of the document columns. Raises a StopIteration error if an attempt is
+        made to read past the end of the document.
+
+        Returns
+        -------
+        tuple of int, histore.document.base.RowIndex, histore.document.base.DataRow
+        """
+        raise NotImplementedError()  # pragma: no cover
+
+
+class Document(metaclass=ABCMeta):
+    """The abstract document class maintains the document schema and provides
+    access to the document rows via a document iterator.
+    """
+    def __init__(self, columns: DocumentSchema):
+        """Initialize the document schema.
 
         Parameters
         ----------
-        columns: list
+        columns: list of string
             List of column names. The number of values in each document row is
             expected to be the same as the number of columns and the order of
             values in each row is expected to correspond to their respective
@@ -94,57 +106,142 @@ class Document(metaclass=ABCMeta):
         self.columns = columns
 
     @abstractmethod
-    def close(self):  # pragma: no cover
-        """Signal that the archive merger is done with reading the document.
+    def close(self):
+        """Signal that processing of the document is finished.
+
         Any resources that were created by the document (e.g., temporary files)
         can be released.
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
+
+    def iterrows(self) -> Iterator[Tuple[RowIndex, DataRow]]:
+        """Simulate the iterrows() function of a pandas DataFrame.
+
+        Returns an iterator that yields pairs of row index and row value lists
+        for each row in the streamed data frame.
+
+        Returns
+        -------
+        iterator
+        """
+        with self.open() as f:
+            for _, rowidx, row in f:
+                yield rowidx, row
 
     @abstractmethod
-    def partial(self, reader):  # pragma: no cover
-        """Return a copy of the document that provides access to the set of
-        rows such that the document is considered a partial document. In a
-        partial document the rows are aligned with the position of the
-        corresponding row in the document origin. The original row order is
-        accessible via the given row position reader.
+    def open(self) -> DocumentIterator:
+        """Open the document to get a iterator for the rows in the document.
+
+        Returns
+        -------
+        histore.document.base.DocumentIterator
+        """
+        raise NotImplementedError()  # pragma: no cover
+
+    @abstractmethod
+    def to_df(self) -> pd.DataFrame:
+        """Create data frame from the document rows.
+
+        Returns
+        -------
+        pd.DataFrame
+        """
+        raise NotImplementedError()  # pragma: no cover
+
+    @abstractmethod
+    def sorted(self, keys: List[int], buffersize: Optional[float] = None) -> Document:
+        """Sort the document rows based on the values in the key columns.
+
+        Key columns are specified by their index position. Returns a new
+        document.
 
         Parameters
         ----------
-        reader: histore.archive.reader.RowPositionReader
-            Reader for row (key, position) tuples from the original
-            snapshot version.
+        keys: list of int
+            Index position of sort columns.
+        buffersize: float, default=None
+            Maximum size (in bytes) of file blocks that are kept in main-memory.
 
         Returns
         -------
         histore.document.base.Document
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
-    @abstractmethod
-    def reader(self, schema):  # pragma: no cover
-        """Get reader for data frame rows ordered by their row identifier. In
-        a partial document the row positions that are returned by the reader
-        are aligned with the positions of the corresponding rows in the
-        document of origin.
+
+class DefaultDocument(Document):
+    """Document that provides default implementation for the to_df() and
+    sorted() methods of the Document class.
+    """
+    def __init__(self, columns: DocumentSchema):
+        """Initialize the document schema.
 
         Parameters
         ----------
-        schema: list(histore.document.schema.Column)
-            List of columns in the document schema. Each column corresponds to
-            a column in the column list of this document (corresponding to
-            their position in the list). The schema columns provide the unique
-            column identifier that are required by the document reader to
-            generate document rows. An error is raised if the number of
-            elements in the schema does not match the number of columns in the
-            data frame.
+        columns: list of string
+            List of column names.
+        """
+        super(DefaultDocument, self).__init__(columns=columns)
+
+    def to_df(self) -> pd.DataFrame:
+        """Create data frame from the document rows.
 
         Returns
         -------
-        histore.document.reader.DocumentReader
-
-        Raises
-        ------
-        ValueError
+        pd.DataFrame
         """
-        raise NotImplementedError()
+        return document_to_df(self)
+
+    def sorted(self, keys: List[int], buffersize: Optional[float] = None) -> Document:
+        """Sort the document rows based on the values in the key columns.
+
+        Key columns are specified by their index position. Returns a new
+        document.
+
+        Parameters
+        ----------
+        keys: list of int
+            Index position of sort columns.
+        buffersize: float, default=None
+            Maximum size (in bytes) of file blocks that are kept in main-memory.
+
+        Returns
+        -------
+        histore.document.base.Document
+        """
+        from histore.document.sort import SortEngine
+        return SortEngine(buffersize=buffersize).sorted(doc=self, keys=keys)
+
+
+# -- Document descriptors -----------------------------------------------------
+
+@dataclass
+class InputDescriptor:
+    """Descriptor for archive snapshot input documents."""
+    # Optional user-provided description for the snapshot.
+    description: Optional[str] = ''
+    # Timestamp when the snapshot was first valid.
+    valid_time: Optional[datetime] = None
+    # Optional metadata defining the action that created the snapshot.
+    action: Optional[Dict] = None
+
+
+# -- Helper Functions ---------------------------------------------------------
+
+def document_to_df(doc: Document) -> pd.DataFrame:
+    """Create data frame from the document rows.
+
+    Parameters
+    ----------
+    doc: histore.document.base.Document
+        Input document.
+
+    Returns
+    -------
+    pd.DataFrame
+    """
+    data, index = list(), list()
+    for rowid, row in doc.iterrows():
+        index.append(rowid)
+        data.append(row)
+    return pd.DataFrame(data=data, index=index, columns=doc.columns, dtype=object)

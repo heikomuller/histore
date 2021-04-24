@@ -12,12 +12,34 @@ from datetime import datetime
 from dateutil.parser import isoparse
 from dateutil.tz import UTC
 from importlib import import_module
+from typing import IO, Iterator, List, Optional, Union
 
 import errno
 import gzip
 import os
 import shutil
 import uuid
+
+
+# -- CLI ----------------------------------------------------------------------
+
+def get_delimiter(delimiter):
+    """Get delimiter. Replace encodings for tabulator with tab character.
+
+    Parameters
+    ----------
+    delimiter: string
+        One-character used to separate fields.
+
+    Returns
+    -------
+    string
+    """
+    if delimiter is None:
+        return ','
+    if delimiter.lower() in ['tab', '\\t']:
+        return '\t'
+    return delimiter
 
 
 # -- Datetime -----------------------------------------------------------------
@@ -32,7 +54,7 @@ def current_time() -> str:
     return utc_now().isoformat()
 
 
-def to_datetime(timestamp):
+def to_datetime(timestamp: str) -> datetime:
     """Converts a timestamp string in ISO format into a datatime object in
     UTC timezone.
 
@@ -99,12 +121,85 @@ def import_obj(import_path):
     """
     pos = import_path.rfind('.')
     module_name = import_path[:pos]
-    class_name = import_path[pos+1:]
+    class_name = import_path[pos + 1:]
     module = import_module(module_name)
     return getattr(module, class_name)
 
 
 # -- I/O ----------------------------------------------------------------------
+
+class IOStream(metaclass=ABCMeta):
+    def __init__(self, f):
+        """Initialize the IO stream.
+
+        Parameters
+        ----------
+        f: FileObject
+            Open file object.
+        """
+        self.f = f
+
+    def close(self):
+        """Close the IO Stream."""
+        self.f.close()
+
+    @abstractmethod
+    def write(self, line):  # pragma: no cover
+        """Write sting line to output file.
+
+        Parameters
+        ----------
+        line: string
+            Output line that is bein written.
+        """
+        raise NotImplementedError()
+
+
+class GZipFile(IOStream):
+    """IO stream wrapper for gzip compressed files."""
+    def __init__(self, f):
+        """Initialize the IO stream.
+
+        Parameters
+        ----------
+        f: FileObject
+            Open file object.
+        """
+        super(GZipFile, self).__init__(f)
+
+    def write(self, line):
+        """Write sting line to output file.
+
+        Parameters
+        ----------
+        line: string
+            Output line that is bein written.
+        """
+        self.f.write(str.encode(line, 'utf8'))
+
+
+class PlainTextFile(IOStream):
+    """IO stream for plain text files."""
+    def __init__(self, f):
+        """Initialize the IO stream.
+
+        Parameters
+        ----------
+        f: FileObject
+            Open file object.
+        """
+        super(PlainTextFile, self).__init__(f)
+
+    def write(self, line):
+        """Write sting line to output file.
+
+        Parameters
+        ----------
+        line: string
+            Output line that is bein written.
+        """
+        self.f.write(line)
+
 
 def cleardir(directory):
     """Remove all files in the given directory.
@@ -149,7 +244,7 @@ def createdir(directory, abs=False):
         return directory
 
 
-def inputstream(filename, compression=None):
+def inputstream(filename: Union[str, IO], compression: Optional[str] = None) -> Iterator[str]:
     """Open the given file for input. The compression mode string determines
     which compression algorithm is being used (or no compression if None).
 
@@ -163,13 +258,28 @@ def inputstream(filename, compression=None):
     histore.util.IOStream
     """
     if compression is None:
-        return PlainTextFile(open(filename, 'r'))
+        f = open(filename, 'r') if isinstance(filename, str) else filename
+
+        def file_iterator(f: IO):
+            """Turn an open file handle into an iterator."""
+            for line in f:
+                yield line
+
+        return file_iterator(f)
     elif compression == 'gzip':
-        return GZipFile(gzip.open(filename, 'rb'))
+        f = gzip.open(filename, 'rb')
+
+        def file_iterator(f: IO):
+            """Turn an open file handle into an iterator."""
+            for line in f:
+                yield line.decode('utf8')
+
+        return file_iterator(f)
+
     raise ValueError('unknown compression mode {}'.format(compression))
 
 
-def outputstream(filename, compression=None):
+def outputstream(filename, compression: Optional[str] = None) -> IOStream:
     """Open the given file for output. The compression mode string determines
     which compression algorithm is being used (or no compression if None).
 
@@ -183,116 +293,30 @@ def outputstream(filename, compression=None):
     histore.util.IOStream
     """
     if compression is None:
-        return PlainTextFile(open(filename, 'w'))
+        return PlainTextFile(open(filename, 'w') if isinstance(filename, str) else filename)
     elif compression == 'gzip':
         return GZipFile(gzip.open(filename, 'wb'))
     raise ValueError('unknown compression mode {}'.format(compression))
 
 
-class IOStream(metaclass=ABCMeta):
-    def __init__(self, f):
-        """Initialize the IO stream.
+# -- Sorting ------------------------------------------------------------------
 
-        Parameters
-        ----------
-        f: FileObject
-            Open file object.
-        """
-        self.f = f
+def keyvalue(row: List, columns: List[int]):
+    """Get the sort key for a given row. From
+    https://github.com/richardpenman/csvsort/blob/master/__init__.py
 
-    def close(self):
-        """Close the IO Stream."""
-        self.f.close()
+    Parameters
+    ----------
+    row: list
+        List of cell values in a document row.
+    columns: list
+        List of index positions for sort columns.
 
-    @abstractmethod
-    def readline(self):  # pragma: no cover
-        """Read sting line from input file. The returned line is stripped of
-        any leading or trailing whitespace characters.
-
-        Returns
-        ----------
-        string
-        """
-        raise NotImplementedError()
-
-    @abstractmethod
-    def writeline(self, line):  # pragma: no cover
-        """Write sting line to output file.
-
-        Parameters
-        ----------
-        line: string
-            Output line that is bein written.
-        """
-        raise NotImplementedError()
-
-
-class GZipFile(IOStream):
-    """IO stream wrapper for gzip compressed files."""
-    def __init__(self, f):
-        """Initialize the IO stream.
-
-        Parameters
-        ----------
-        f: FileObject
-            Open file object.
-        """
-        super(GZipFile, self).__init__(f)
-
-    def readline(self):
-        """Read sting line from input file. The returned line is stripped of
-        any leading or trailing whitespace characters.
-
-        Returns
-        ----------
-        string
-        """
-        return self.f.readline().decode('utf8').strip()
-
-    def writeline(self, line):
-        """Write sting line to output file.
-
-        Parameters
-        ----------
-        line: string
-            Output line that is bein written.
-        """
-        self.f.write(str.encode(line, 'utf8'))
-        self.f.write(b'\n')
-
-
-class PlainTextFile(IOStream):
-    """IO stream for plain text files."""
-    def __init__(self, f):
-        """Initialize the IO stream.
-
-        Parameters
-        ----------
-        f: FileObject
-            Open file object.
-        """
-        super(PlainTextFile, self).__init__(f)
-
-    def readline(self):
-        """Read sting line from input file. The returned line is stripped of
-        any leading or trailing whitespace characters.
-
-        Returns
-        ----------
-        string
-        """
-        return self.f.readline().strip()
-
-    def writeline(self, line):
-        """Write sting line to output file.
-
-        Parameters
-        ----------
-        line: string
-            Output line that is bein written.
-        """
-        self.f.write(line)
-        self.f.write('\n')
+    Returns
+    -------
+    list
+    """
+    return [row[column] for column in columns]
 
 
 # -- Unique identifier --------------------------------------------------------

@@ -6,17 +6,24 @@
 Welcome to History Store for Data Frames's documentation!
 =========================================================
 
+.. figure:: ./graphics/logo.png
+   :align: center
+   :alt: History Store
+
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   readme
-   serialize
-   
+   source/readme
+   source/documents
+   source/serialize
 
-Indices and tables
-==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. _api-ref:
+
+..  toctree::
+   :maxdepth: 1
+   :caption: API Reference:
+
+   source/api/modules

@@ -9,17 +9,21 @@
 database.
 """
 
+from sqlalchemy.exc import SQLAlchemyError
+from typing import Callable, Dict, Optional, Union
+
 import os
 import shutil
 
-from sqlalchemy.exc import SQLAlchemyError
-from typing import Dict, List, Optional, Union
-
-from histore.archive.base import PersistentArchive
+from histore.archive.base import InputDocument, PrimaryKey, get_key_columns, to_document
+from histore.archive.base import Archive as PersistentArchive
 from histore.archive.manager.base import ArchiveManager
 from histore.archive.manager.db.database import DB
 from histore.archive.manager.db.model import Archive, ArchiveKey
 from histore.archive.manager.descriptor import ArchiveDescriptor
+from histore.archive.manager.descriptor import decoder_from_string, encoder_from_string, serializer_from_dict
+from histore.archive.store.fs.base import ArchiveFileStore
+from histore.document.base import InputDescriptor
 
 import histore.config as config
 import histore.util as util
@@ -56,6 +60,10 @@ class DBArchiveManager(ArchiveManager):
         if basedir is None:
             basedir = config.BASEDIR()
         self.basedir = basedir
+        if create:
+            # Clear all files in the base directory if it exists.
+            if os.path.isdir(self.basedir):
+                util.cleardir(self.basedir)
         # Initialize the database connector.
         if db is None:
             db = DB(connect_url=config.DBCONNECT())
@@ -63,11 +71,22 @@ class DBArchiveManager(ArchiveManager):
         if create:
             # Create a fresh database instance.
             db.init()
-            # Clear all files in the base directory if it exists.
-            if os.path.isdir(self.basedir):
-                util.cleardir(self.basedir)
         # Create the base directory (if it does not exist).
         util.createdir(basedir)
+
+    def _archive_dir(self, identifier: str) -> str:
+        """Get directory for archive with the given identifier.
+
+        Parameters
+        ----------
+        identifier: string
+            Unique archive identifier.
+
+        Returns
+        -------
+        string
+        """
+        return os.path.join(self.basedir, identifier)
 
     def archives(self) -> Dict[str, ArchiveDescriptor]:
         """Get dictionary of archive descriptors. The returned dictionary maps
@@ -84,12 +103,20 @@ class DBArchiveManager(ArchiveManager):
         return archives
 
     def create(
-        self, name: str = None, description: Optional[str] = None,
-        primary_key: Optional[Union[List[str], str]] = None,
-        encoder: Optional[str] = None, decoder: Optional[str] = None
+        self, name: Optional[str] = None, description: Optional[str] = None,
+        encoder: Optional[str] = None, decoder: Optional[str] = None,
+        serializer: Union[Dict, Callable] = None, doc: Optional[InputDocument] = None,
+        primary_key: Optional[PrimaryKey] = None, snapshot: Optional[InputDescriptor] = None,
+        sorted: Optional[bool] = False, buffersize: Optional[float] = None,
+        validate: Optional[bool] = False
     ) -> ArchiveDescriptor:
-        """Create a new archive object. Raises a ValueError if an archive with
-        the given name exists.
+        """Create a new archive object under a given unique name.
+
+        For archives that are keyed by a primary key, the input document for
+        the first dataset snapshot  has to be provided. This snapshot will be
+        loaded into the archive.
+
+        Raises a ValueError if an archive with the given name exists.
 
         Parameters
         ----------
@@ -97,14 +124,37 @@ class DBArchiveManager(ArchiveManager):
             Descriptive name that is associated with the archive.
         description: string, default=None
             Optional long description that is associated with the archive.
-        primary_key: string or list, default=None
-            Column(s) that are used to generate identifier for rows in the
-            archive.
         encoder: string, default=None
             Full package path for the Json encoder class that is used by the
             persistent archive.
         decoder: string, default=None
             Full package path for the Json decoder function that is used by the
+            persistent archive.
+        serializer: dict or callable, default=None
+            Dictionary or callable that returns a dictionary that contains the
+            specification for the serializer. The serializer specification is
+            a dictionary with the following elements:
+            - ``clspath``: Full package target path for the serializer class
+            that is instantiated.
+            - ``kwargs`` : Additional arguments that are passed to the
+            constructor of the created serializer instance.
+            Only ``clspath`` is required.
+        doc: histore.archive.base.InputDocument, default=None
+            Input document representing the initial dataset snapshot that is
+            being loaded into the archive.
+        primary_key: string or list, default=None
+            Column(s) that are used to generate identifier for snapshot rows.
+        snapshot: histore.document.base.InputDescriptor, default=None
+            Optional metadata for the created snapshot.
+        sorted: bool, default=False
+            Flag indicating if the document is sorted by the optional primary
+            key attributes. Ignored if the archive is not keyed.
+        buffersize: float, default=None
+            Maximum size (in bytes) for the memory buffer when sorting the
+            input document.
+        validate: bool, default=False
+            Validate that the resulting archive is in proper order before
+            committing the action.
 
         Returns
         -------
@@ -114,19 +164,46 @@ class DBArchiveManager(ArchiveManager):
         ------
         ValueError
         """
+        # Get serializer dictionary if a function was given.
+        serializer = serializer() if serializer is not None and callable(serializer) else serializer
+        # Create an unique identifier for the new archive.
+        identifier = util.get_unique_identifier()
         try:
             with self.db.session() as session:
                 archive = Archive(
+                    archive_id=identifier,
                     name=name,
                     description=description,
                     encoder=encoder,
-                    decoder=decoder
+                    decoder=decoder,
+                    serializer=serializer
                 )
+                # Load initial snapshot if given.
+                if doc is not None:
+                    doc = to_document(doc)
+                    # Get the expected identifier for the primary key columns.
+                    primary_key = get_key_columns(columns=doc.columns, primary_key=primary_key)
+                    store = ArchiveFileStore(
+                        basedir=self._archive_dir(identifier),
+                        replace=True,
+                        serializer=serializer_from_dict(serializer),
+                        encoder=encoder_from_string(encoder),
+                        decoder=decoder_from_string(decoder),
+                        primary_key=primary_key
+                    )
+                    arch = PersistentArchive(store=store)
+                    arch.commit(
+                        doc=doc,
+                        descriptor=snapshot,
+                        sorted=sorted,
+                        buffersize=buffersize,
+                        validate=validate
+                    )
+                elif primary_key is not None:
+                    raise ValueError('missing snapshot document')
                 if primary_key is not None:
-                    if isinstance(primary_key, str):
-                        primary_key = [primary_key]
-                    for pos, colname in enumerate(primary_key):
-                        key = ArchiveKey(name=colname, pos=pos)
+                    for pos, colid in enumerate(primary_key):
+                        key = ArchiveKey(colid=colid, pos=pos)
                         archive.keyspec.append(key)
                 session.add(archive)
                 session.commit()
@@ -151,9 +228,8 @@ class DBArchiveManager(ArchiveManager):
             if archive is None:
                 return
             # Remove the archive base directory and the entry in the database.
-            archdir = os.path.join(self.basedir, identifier)
-            if os.path.isdir(archdir):
-                shutil.rmtree(archdir)
+            archdir = self._archive_dir(identifier)
+            shutil.rmtree(archdir)
             session.delete(archive)
 
     def get(self, identifier: str) -> PersistentArchive:
@@ -183,25 +259,15 @@ class DBArchiveManager(ArchiveManager):
                 raise ValueError('unknown archive {}'.format(identifier))
             # Get the archive descriptor and close the database connection.
             desc = archive.descriptor()
-        archdir = os.path.join(self.basedir, identifier)
-        primary_key = desc.primary_key()
-        # Load JSONEncoder class if encoder is contained in the descriptor.
-        if desc.encoder() is not None:
-            encoder = util.import_obj(desc.encoder())
-        else:
-            encoder = None
-        # Load the corresponding Json decoder function if a decoder is
-        # contained in the descriptor.
-        if desc.decoder() is not None:
-            decoder = util.import_obj(desc.decoder())
-        else:
-            decoder = None
-        return PersistentArchive(
-            basedir=archdir,
-            primary_key=primary_key,
-            encoder=encoder,
-            decoder=decoder
+        store = ArchiveFileStore(
+            basedir=self._archive_dir(identifier),
+            replace=False,
+            serializer=desc.serializer(),
+            encoder=desc.encoder(),
+            decoder=desc.decoder(),
+            primary_key=desc.primary_key()
         )
+        return PersistentArchive(store=store)
 
     def rename(self, identifier: str, name: str):
         """Rename the specified archive. Raises a ValueError if the identifier

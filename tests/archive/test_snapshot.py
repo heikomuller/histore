@@ -10,6 +10,7 @@
 import pytest
 
 from histore.archive.snapshot import Snapshot, SnapshotListing
+from histore.document.base import InputDescriptor
 
 import histore.util as util
 
@@ -27,8 +28,10 @@ def test_append_snapshots():
     assert str(s).startswith('<Snapshot')
     snapshots = snapshots.append(
         version=snapshots.next_version(),
-        description='some text',
-        action={'command': 'X'}
+        descriptor=InputDescriptor(
+            description='some text',
+            action={'command': 'X'}
+        )
     )
     s = snapshots.last_snapshot()
     assert s.version == 1

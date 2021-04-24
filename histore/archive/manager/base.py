@@ -8,13 +8,14 @@
 """Abstract class for managers that maintain a set of archives."""
 
 from abc import ABCMeta, abstractmethod
-from typing import Dict, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 
-from histore.archive.base import Archive
+from histore.archive.base import Archive, InputDocument, PrimaryKey
 from histore.archive.manager.descriptor import ArchiveDescriptor
+from histore.document.base import InputDescriptor
 
 
-class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
+class ArchiveManager(metaclass=ABCMeta):
     """The manager for archives implements a factory pattern for creating and
     accessing different types of archives. The type of archive (e.g. persistent
     or volatile is implementaiton dependent. Matdata about each archive is
@@ -29,7 +30,7 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         -------
         dict(string: histore.archive.manager.descriptor.ArchiveDescriptor)
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def contains(self, identifier: str) -> bool:
         """Returns True if an archive with the given identifier exists.
@@ -48,11 +49,19 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
     @abstractmethod
     def create(
         self, name: Optional[str] = None, description: Optional[str] = None,
-        primary_key: Optional[Union[List[str], str]] = None,
-        encoder: Optional[str] = None, decoder: Optional[str] = None
+        encoder: Optional[str] = None, decoder: Optional[str] = None,
+        serializer: Union[Dict, Callable] = None, doc: Optional[InputDocument] = None,
+        primary_key: Optional[PrimaryKey] = None, snapshot: Optional[InputDescriptor] = None,
+        sorted: Optional[bool] = False, buffersize: Optional[float] = None,
+        validate: Optional[bool] = False
     ) -> ArchiveDescriptor:
-        """Create a new archive object. Raises a ValueError if an archive with
-        the given name exists.
+        """Create a new archive object under a given unique name.
+
+        For archives that are keyed by a primary key, the input document for
+        the first dataset snapshot  has to be provided. This snapshot will be
+        loaded into the archive.
+
+        Raises a ValueError if an archive with the given name exists.
 
         Parameters
         ----------
@@ -60,15 +69,37 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
             Descriptive name that is associated with the archive.
         description: string, default=None
             Optional long description that is associated with the archive.
-        primary_key: string or list, default=None
-            Column(s) that are used to generate identifier for rows in the
-            archive.
         encoder: string, default=None
             Full package path for the Json encoder class that is used by the
             persistent archive.
         decoder: string, default=None
             Full package path for the Json decoder function that is used by the
             persistent archive.
+        serializer: dict or callable, default=None
+            Dictionary or callable that returns a dictionary that contains the
+            specification for the serializer. The serializer specification is
+            a dictionary with the following elements:
+            - ``clspath``: Full package target path for the serializer class
+            that is instantiated.
+            - ``kwargs`` : Additional arguments that are passed to the
+            constructor of the created serializer instance.
+            Only ``clspath`` is required.
+        doc: histore.archive.base.InputDocument, default=None
+            Input document representing the initial dataset snapshot that is
+            being loaded into the archive.
+        primary_key: string or list, default=None
+            Column(s) that are used to generate identifier for snapshot rows.
+        snapshot: histore.document.base.InputDescriptor, default=None
+            Optional metadata for the created snapshot.
+        sorted: bool, default=False
+            Flag indicating if the document is sorted by the optional primary
+            key attributes. Ignored if the archive is not keyed.
+        buffersize: float, default=None
+            Maximum size (in bytes) for the memory buffer when sorting the
+            input document.
+        validate: bool, default=False
+            Validate that the resulting archive is in proper order before
+            committing the action.
 
         Returns
         -------
@@ -78,7 +109,7 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         ------
         ValueError
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
     def delete(self, identifier: str):
@@ -89,7 +120,7 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         identifier: string
             Unique archive identifier
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     @abstractmethod
     def get(self, identifier: str) -> Archive:
@@ -109,7 +140,7 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         ------
         ValueError
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
     def get_by_name(self, name: str) -> ArchiveDescriptor:
         """Get descriptor for the archive with the given name. If no archive
@@ -154,4 +185,4 @@ class ArchiveManager(metaclass=ABCMeta):  # pragma: no cover
         ------
         ValueError
         """
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover

@@ -18,7 +18,7 @@ class TestEncoder(json.JSONEncoder):
         """Convert datatime to dictionary."""
         if isinstance(obj, datetime):
             return {'$dt': obj.isoformat()}
-        return obj.value  # Assumes histore.key.base.KeyValue
+        return obj.value  # Assumes histore.key.KeyValue
 
 
 def test_decoder(obj):

@@ -10,12 +10,12 @@
 import pytest
 
 from histore.archive.value import MultiVersionValue, SingleVersionValue
-from histore.archive.timestamp import Timestamp, TimeInterval
+from histore.archive.timestamp import SingleVersion, Timestamp, TimeInterval
 
 
 def test_cell_history():
     """Test adding values to the history of a dataset row cell."""
-    cell = SingleVersionValue(value=1, timestamp=Timestamp(version=1))
+    cell = SingleVersionValue(value=1, timestamp=SingleVersion(version=1))
     assert cell.at_version(version=1) == 1
     assert cell.is_single_version()
     assert not cell.is_multi_version()
@@ -31,7 +31,7 @@ def test_cell_history():
     assert prov is not None
     assert prov.old_value == 1
     assert prov.new_value is None
-    cell = SingleVersionValue(value=1, timestamp=Timestamp(version=1))
+    cell = SingleVersionValue(value=1, timestamp=SingleVersion(version=1))
     cell = cell.merge(value='1', version=2)
     assert len(cell.values) == 2
     assert cell.at_version(version=1) == 1
@@ -53,7 +53,7 @@ def test_cell_history():
 
 def test_extend_cell_value_timestamp():
     """Test extending the timestamp of a cell value."""
-    cell = SingleVersionValue(value=1, timestamp=Timestamp(version=1))
+    cell = SingleVersionValue(value=1, timestamp=SingleVersion(version=1))
     cell = cell.extend(version=2, origin=1)
     assert not cell.timestamp.contains(0)
     assert cell.timestamp.contains(1)
@@ -84,7 +84,7 @@ def test_rollback_multi_value():
     value = MultiVersionValue([
         SingleVersionValue(
             value=1,
-            timestamp=Timestamp(intervals=[TimeInterval(start=1, end=3)])
+            timestamp=Timestamp(intervals=[TimeInterval(start=2, end=3)])
         ),
         SingleVersionValue(
             value=2,
@@ -99,6 +99,18 @@ def test_rollback_multi_value():
     value = value.rollback(2)
     assert isinstance(value, SingleVersionValue)
     assert value.value == 1
+    # -- Rollback to version that did not contain the value -------------------
+    value = MultiVersionValue([
+        SingleVersionValue(
+            value=1,
+            timestamp=Timestamp(intervals=[TimeInterval(start=2, end=3)])
+        ),
+        SingleVersionValue(
+            value=2,
+            timestamp=Timestamp(intervals=[TimeInterval(start=4, end=5)])
+        )
+    ])
+    assert value.rollback(1) is None
 
 
 def test_rollback_single_value():
@@ -113,3 +125,23 @@ def test_rollback_single_value():
     assert value.timestamp.contains(2)
     assert not value.timestamp.contains(3)
     assert value.rollback(0) is None
+
+
+def test_value_repr():
+    """Test string representations for archive values."""
+    value = SingleVersionValue(
+        value=1,
+        timestamp=Timestamp(intervals=[TimeInterval(start=1, end=3)])
+    )
+    assert str(value) == '(1 [[1, 3]])'
+    value = MultiVersionValue([
+        SingleVersionValue(
+            value=1,
+            timestamp=Timestamp(intervals=[TimeInterval(start=2, end=3)])
+        ),
+        SingleVersionValue(
+            value=2,
+            timestamp=Timestamp(intervals=[TimeInterval(start=4, end=5)])
+        )
+    ])
+    assert str(value) == '((1 [[2, 3]]), (2 [[4, 5]]))'

@@ -9,7 +9,7 @@
 are maintained in environment variables.
 """
 
-from pathlib import Path
+from appdirs import user_cache_dir
 
 import os
 
@@ -34,7 +34,7 @@ def BASEDIR() -> str:
     value = os.environ.get(ENV_HISTORE_BASEDIR)
     if value is None or value == '':  # pragma: no cover
         # Use the default value if the environment variable is not set.
-        value = os.path.join(str(Path.home()), '.histore')
+        value = os.path.join(user_cache_dir(appname=__name__.split('.')[0]), '.histore')
     return value
 
 
@@ -63,7 +63,7 @@ def SORTBUFFER() -> float:
         # buffer is at least 1MB.
         import psutil
         mem = psutil.virtual_memory()
-        value = max(mem.available / (1024 * 1024 * 2), 1.0)
+        value = max(mem.available / 2, 1024 * 1024)
     else:
         value = float(value)
     return value

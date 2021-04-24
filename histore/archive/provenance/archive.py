@@ -33,10 +33,8 @@ class SnapshotDiff(object):
         schema: histore.archive.provenance.base.Provenance
         rows: histore.archive.provenance.base.Provenance
         """
-        if schema is None:
-            schema = Provenance(descriptor=SchemaProvDescribe())
-        if rows is None:
-            rows = Provenance(descriptor=RowProvDescribe())
+        schema = Provenance(descriptor=SchemaProvDescribe()) if schema is None else schema
+        rows = Provenance(descriptor=RowProvDescribe()) if rows is None else rows
         self.prov = {
             PROV_SCHEMA: schema,
             PROV_ROWS: rows

@@ -10,7 +10,9 @@ position of the row in the dataset, and a list of cell values for all dataset
 columns.
 """
 
-from histore.key.base import KeyValue
+from typing import Dict, Tuple, Union
+
+from histore.key import KeyValue
 
 
 class DocumentRow(object):
@@ -21,7 +23,7 @@ class DocumentRow(object):
     not unique) indicating new rows for which unique identifier need to be
     generated.
     """
-    def __init__(self, key, pos, values):
+    def __init__(self, key: Union[KeyValue, Tuple[KeyValue, ...]], pos: int, values: Dict):
         """Initialize the row identifier, the index positions, and the cell
         values. Cell values are provided as a dictionary that maps column
         identifier (from the dataset archive schema) to cell values.

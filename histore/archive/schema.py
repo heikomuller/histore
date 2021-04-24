@@ -9,19 +9,14 @@
 timestamped names and positions.
 """
 from __future__ import annotations
+from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
 
 from histore.archive.provenance.base import ProvOp
 from histore.archive.provenance.column import DeleteColumn, InsertColumn, UpdateColumn
-from histore.archive.timestamp import Timestamp
+from histore.archive.timestamp import SingleVersion, Timestamp
 from histore.archive.value import SingleVersionValue
-from histore.document.schema import Column
-
-
-"""Constant identifier for the three different schema matching modes."""
-MATCH_ID = 'idonly'
-MATCH_IDNAME = 'idname'
-MATCH_NAME = 'nameonly'
+from histore.document.schema import Column, DocumentSchema
 
 
 class ArchiveColumn(object):
@@ -94,9 +89,8 @@ class ArchiveColumn(object):
         - DeleteColumn: The column did exist in the original version but not in
           the new version.
         - UpdateColumn: Column updates can be comprised of two types of
-          changes:
-            (i) The column position changed
-            (ii) The column name changed
+          changes: (i) The column position changed, or (ii) the column name
+          changed.
 
         If the column has no changes between both versions the result is None.
 
@@ -250,38 +244,28 @@ class ArchiveSchema(object):
         # Sort columns based on their position and return a list of snapshot
         # columns.
         cols.sort(key=lambda x: x[2])
-        return [
-            Column(colid=id, name=name, colidx=pos) for id, name, pos in cols
-        ]
+        return [Column(colid=id, name=name, colidx=pos) for id, name, pos in cols]
 
     def merge(
-        self, columns: List[str], version: int, matching: Optional[str] = MATCH_IDNAME,
-        renamed: Optional[Dict] = None, renamed_to: Optional[bool] = True,
-        partial: Optional[bool] = False, origin: Optional[int] = None
-    ) -> Tuple[ArchiveSchema, List[Column], List[Column]]:
+        self, columns: DocumentSchema, version: int, origin: Optional[int] = None,
+        renamed: Optional[List[Tuple[str, str]]] = None
+    ) -> Tuple[ArchiveSchema, List[int]]:
         """Add the given snapshot columns to the schema history for a dataset.
+
         Expects a list of strings or identifiable column objects. If column
         objects are given their identifier must match an existing identifier
         in the schema and all identifier have to be unique. Column names that
-        are given as string-only are considered to be to be new columns.
+        are given as string-only are considered to be new columns.
 
-        If the column matching mode involves matching by name or if the partial
-        flag is True the version of origin has to be given as well. When
-        matching by name the columns in the given list are matched against
+        When matching by name the columns in the given list are matched against
         columns in the schema of the origin version. Columns that are unmatched
-        are considered new columns. If either the list of columns of the origin
+        are considered new columns. If the list of columns of the origin
         schema contains duplicate column names matching by name is not possible
         and an error is raised.
 
-        If the partial flag is true columns from the origin schema that are
-        not matched by columns in the given list (either by name or by their
-        identifier) are added to the resulting schema. An attempt is made to
-        keep the order of columns as close as possible to the order of columns
-        in the origin schema.
-
-        Returns a modified archive schema, a list of column objects
-        corresponding to the columns in the given list, and a list of column
-        objects from the original snapshot schema that were unmatched.
+        Returns the new archive schema and a list of column identifier for the
+        document columns. The order in the identifier list corresponds to the
+        order of columns in the document schema.
 
         Parameters
         ----------
@@ -290,145 +274,80 @@ class ArchiveSchema(object):
             either be strings of snapshot columns.
         version: int
             Identifier of the new version.
-        matching: string, default='idname'
-            Match mode for columns. Excepts one of three modes:
-            - idonly: The columns in the schema of the comitted data frame are
-            matched against columns in the archive schema by their identifier.
-            Assumes that columns in the data frame schema are instances of the
-            class histore.document.schema.Column.
-            - nameonly: Columns in the commited data frame schema are matched
-            by name against the columns in the schema of the snapshot that is
-            identified by origin.
-            - idname: Match columns of type histore.document.schema.Column
-            first against the columns in the archive schema. Match remaining
-            columns by name against the schema of the snapshot that is
-            identified by origin.
-        renamed: dict, default=None
-            Optional mapping of columns that have been renamed. Maps the new
-            column name to the original name.
-        renamed_to: bool, default=True
-            Flag that determines the semantics of the mapping in the renamed
-            dictionary. By default a mapping from the original column name
-            (i.e., the dictionary key) to the new column name (the dictionary
-            value) is assumed. If the flag is False a mapping from the new
-            column name to the original column name is assumed.
-        partial: bool, default=False
-            If True the list of columns is assumed partial. All columns from
-            the snapshot schema that is specified by origin that are not
-            matched by any column in the input list are added to the schema
-            for the new snapshot before merging the snapshot schema into the
-            archive.
-        origin: int, default=None
-            Version identifier of the original column against which the given
-            column list is matched.
+        origin: int
+            Identifier of the previos snapshot. This identifier is required
+            when matching columns by name.
+        renamed: list of tuple of str, str, default=None
+            Optional mapping of columns that have been renamed. Tuples contain
+            the old and the new columns name.
 
         Returns
         -------
-        histore.archive.schema.ArchiveSchema, list, list
+        histore.archive.schema.ArchiveSchema, list
 
         Raises
         ------
         ValueError
         """
-        # Initialize the original schema that is needed when matching by name
-        # or if a partial schema is given. Create mappings for column names to
-        # archive columns and column position as well as for column identifier
-        # to column and position.
-        if origin is not None:
-            orig_schema = self.at_version(origin)
-            archive_index, orig_index = column_index(
-                archive_schema=self.columns,
-                orig_schema=orig_schema
-            )
-        else:
-            orig_schema, archive_index = list(), dict()
-        # Get alignment of data frame columns with archive columns by column
-        # identifier. If matching is by name only we pass an empty dictionary
-        # as archive schema so that all columns are unmatched. the result is a
-        # list of tuples containing the data frame column and the matched
-        # archive column (or None if unmatched).
-        archive_cols = self.columns if matching != MATCH_NAME else dict()
-        matches = columnid_match(df_cols=columns, archive_cols=archive_cols)
-        if matching != MATCH_ID:
-            # Find matches for columns by name in the snapshot schema. Then
-            # modify the columns list by replacing entries with their
-            # matched schema columns (if matched).
-            matches = match_columns(
-                columns=matches,
-                schema_index=archive_index,
-                renamed=renamed,
-                renamed_to=renamed_to
-            )
-        # Create the new archive schema. Merge matched columns. Add columns
-        # in the data frame schema that are unmatched. Keep track of unmatched
-        # columns in the original schema.
-        arch_columns = dict()
-        matched_columns = list()
-        colids = max(self.columns) + 1 if len(self.columns) > 0 else 0
-        nextpos = len(orig_schema) if partial else 0
-        for i in range(len(matches)):
-            dfcol, archcol = matches[i]
-            name = str(dfcol)
-            if archcol is not None:
-                # The snapshot column was matched with an existing archive
-                # column. The name of these columns, however, may be different
-                # if the column was renamed. Merge the snapshot column into the
-                # matched archive column. Get the column position either from
-                # the origin index or the nextpos counter.
-                if partial:
-                    if archcol.identifier in orig_index:
-                        # Get column position. Then remove the matched column
-                        # from the index.
-                        _, pos = orig_index[archcol.identifier]
-                        del orig_index[archcol.identifier]
-                    else:
-                        pos = nextpos
-                        nextpos += 1
-                else:
-                    pos = i
-                # Create a new column object with the
-                # name from the new snapshot and the identifier from the
-                # original schema.
-                archcol = archcol.merge(name=name, pos=pos, version=version)
-                col = Column(colid=archcol.identifier, name=name)
+        # Initialize the result list of identifier for document columns.
+        document_columns = [None] * len(columns)
+        # Create type-dependent mappings for identifiable and non-identifiable
+        # columns. Identifiable columns are mapped to a tuple of position and
+        # columns. Non-identifiable columns are mapped from their name to their
+        # position in the document schema.
+        id_cols, name_cols = document_schema(columns)
+        # Create an index for the new schema columns.
+        schema = dict()
+        # Add identifiable columns to the new archive schema. Merge them with
+        # an existing column that has the same identifier.
+        for colid in id_cols:
+            pos, name = id_cols[colid]
+            if colid in self.columns:
+                col = self.columns[colid].merge(name=name, pos=pos, version=version)
             else:
-                # The snapshot column was not matched. Create a new column and
-                # add it to the archive. Append the column to a partial schema
-                # or use the original index as the column position.
-                if partial:
-                    pos = nextpos
-                    nextpos += 1
+                col = create_column(colid=colid, name=name, pos=pos, version=version)
+            schema[colid] = col
+            document_columns[pos] = colid
+        # Matched non-identifiable columns by name.
+        if name_cols:
+            # Create mapping of new names to old names for renamed columns.
+            renamed_to = {new: old for old, new in renamed} if renamed else dict()
+            # Create a mapping of column names in the schema of the previous
+            # snapshot to their column identifier. Note that column names are
+            # not necessarily unique. Thus, we map names to list of identifier.
+            # If a document column is mapped to a previous column with multiple
+            # identifier a ValueError is raised.
+            prev_schema = schema_mapping(self.at_version(origin)) if origin is not None else dict()
+            # Counter for new column identifier.
+            colids = list(id_cols.keys()) + list(self.columns.keys())
+            col_counter = max(colids) + 1 if colids else 0
+            # Match named columns. Columns that are unmatched are considered
+            # new columns.
+            for name, pos in name_cols.items():
+                colname = renamed_to.get(name, name)
+                matches = prev_schema.get(colname, [])
+                if len(matches) > 1:
+                    raise ValueError("cannot match '{}' to unique column".format(name))
+                if len(matches) == 1:
+                    # Found matching column.
+                    colid = matches[0]
+                    col = self.columns[colid].merge(name=name, pos=pos, version=version)
                 else:
-                    pos = i
-                ts = Timestamp(version=version)
-                archcol = ArchiveColumn(
-                    identifier=colids,
-                    name=SingleVersionValue(value=name, timestamp=ts),
-                    pos=SingleVersionValue(value=pos, timestamp=ts),
-                    timestamp=ts
-                )
-                nextpos += 1
-                col = Column(colid=colids, name=name)
-                colids += 1
-            if archcol.identifier in arch_columns:
-                raise ValueError('duplicate column %d' % archcol.identifier)
-            arch_columns[archcol.identifier] = archcol
-            matched_columns.append(col)
-        # Add original columns that are not in the modified schema
-        unmatched_columns = list()
-        for colid, archcol in self.columns.items():
-            if colid not in arch_columns:
-                if partial and colid in orig_index:
-                    # Missing column from a partial schema.
-                    dfcol, pos = orig_index[colid]
-                    col = str(dfcol)
-                    archcol = archcol.merge(name=col, pos=pos, version=version)
-                    unmatched_columns.append(dfcol)
-                arch_columns[colid] = archcol
-        # Return a modified archive schema, the resulting list of matched
-        # columns and the list of columns that remain unchanged.
-        schema = ArchiveSchema(columns=arch_columns)
-        return schema, matched_columns, unmatched_columns
+                    # Create a new column.
+                    colid = col_counter
+                    col = create_column(colid=colid, name=name, pos=pos, version=version)
+                    col_counter += 1
+                if colid in schema:
+                    # Raise an error if a archive column is matched to multiple
+                    # document columns.
+                    raise ValueError("multiple matches for {}".format(colid))
+                schema[colid] = col
+                document_columns[pos] = colid
+        # Add remaining un-matched archive columns to the new schema.
+        for colid, col in self.columns.items():
+            if colid not in schema:
+                schema[colid] = col
+        return ArchiveSchema(columns=list(schema.values())), document_columns
 
     def rollback(self, version: int) -> ArchiveSchema:
         """Rollback timestamps of the archive schema.
@@ -456,142 +375,85 @@ class ArchiveSchema(object):
 
 # -- Helper Methods -----------------------------------------------------------
 
-def columnid_match(df_cols: List[str], archive_cols: Dict[int, ArchiveColumn]) -> List:
-    """Match columns in the given data frame schema against columns in the
-    archive schema by their identifier. Returns a list of tuples where each
-    tuple contains the data frame column and the matched archive schema column.
-    If a data frame column is unmatched the second tuple value is None. The
-    order of elements in the result corresponds to the order of columns in the
-    input data frame schema.
+def create_column(colid: int, name: str, pos: int, version: int) -> ArchiveColumn:
+    """Create a new archive column object for a document schema column.
 
     Parameters
     ----------
-    df_cols: list
-        List of strings or column objects from a pandas data frame schema.
-    archive_cols: dict(histore.archive.schema.ArchiveColumn)
-        Dictionary of columns in the schema of a dataset archive.
+    colid: int
+        Unique column identifier.
+    name: str
+        Column name.
+    pos: int
+        Column positon in the document schema.
+    version: int
+        Snapshot version identifier.
 
     Returns
     -------
-    string or histore.document.schema.Column,
-    histore.archive.schema.ArchiveColumn or None
+    histore.archive.schema.ArchiveColumn
     """
-    alignment = list()
-    for pos in range(len(df_cols)):
-        dfcol = df_cols[pos]
-        if isinstance(dfcol, Column):
-            # Get archive column with the identifier if it exists.
-            alignment.append((dfcol, archive_cols.get(dfcol.colid)))
+    ts = SingleVersion(version=version)
+    return ArchiveColumn(
+        identifier=colid,
+        name=SingleVersionValue(value=name, timestamp=ts),
+        pos=SingleVersionValue(value=pos, timestamp=ts),
+        timestamp=ts
+    )
+
+
+def document_schema(columns: DocumentSchema) -> Tuple[Dict[int, Tuple[int, str]], Dict[str, int]]:
+    """Create type-dependent mappings for document schema columns.
+
+    For columns that are identifiable a mapping from the column identifier to
+    tuples of column objects and their index position is created. A ValueError
+    is raised if the identifier is not unique.
+
+    For columns that are not identifiable a second mapping is created that maps
+    their name to their index position. Raises a ValueError if the names of
+    non-identifiable columns are not unique.
+
+    Parameters
+    ----------
+    columns: list
+        List of column names in their original order. Column names can
+        either be strings of snapshot columns.
+
+    Returns
+    -------
+    tuple of dict, dict
+    """
+    id_cols, name_cols = dict(), dict()
+    for colpos, col in enumerate(columns):
+        if isinstance(col, Column):
+            colid = col.colid
+            if colid in id_cols:
+                raise ValueError("duplicate column identifier '{}'".format(colid))
+            id_cols[colid] = (colpos, col)
         else:
-            # Strings cannot be matched by column indentifier.
-            alignment.append((dfcol, None))
-    return alignment
+            if col in name_cols:
+                raise ValueError("duplicate column '{}'".format(col))
+            name_cols[col] = colpos
+    return id_cols, name_cols
 
 
-def match_columns(
-    columns: List[Tuple[str, ArchiveColumn]], schema_index: Dict[str, ArchiveColumn],
-    renamed: Optional[Dict[str, str]] = None, renamed_to: Optional[bool] = True
-) -> List[Column]:
-    """Compute matching of given list of 'id-aligned' columns to columns in the
-    given snapshot schema. Columns are matched by name. If either list contains
-    duplicate column names an error is raised.
+def schema_mapping(columns: List[Column]) -> Dict(str, List):
+    """Create a mapping of column names in the schema of the previous snapshot
+    to their column identifier.
 
-    Returns a list of tuples (column, match) where column is an element from
-    the list of columns and match is either an element from the schema or None
-    for unmatched columns. The order of elements in the result corresponds to
-    the order of elements in the column list.
+    Column names are mapped to lists of identifiers since column names do not
+    have to be unique.
 
     Parameters
     ----------
-    columns: list((string, histore.archive.schema.ArchiveColumn or None)
-        List of column names.
-    schema_index: dict(string: histore.archive.schema.ArchiveColumn)
-        Dictionary mapping of column names (in a snapshot schema) to their
-        respective archive column.
-    renamed: dict, default=None
-        Optional mapping of columns that have been renamed. Maps the new column
-        name to the original name.
-    renamed_to: bool, default=True
-        Flag that determines the semantics of the mapping in the renamed
-        dictionary. By default a mapping from the original column name (i.e.,
-        the dictionary key) to the new column name (the dictionary value) is
-        assumed. If the flag is False a mapping from the new column name to the
-        original column name is assumed.
+    columns: list of histore.document.schema.Column
+        Columns in a document schema.
 
     Returns
     -------
-    list(string, histore.document.schema.Column)
-
-    Raises
-    ------
-    ValueError
+    dict
     """
-    # Ensure that the semantics of the renamed mapping is from the new name to
-    # their original name. This makes it easier to lookup the column names in
-    # the new snapshot schema to find their original column name.
-    if renamed is None:
-        renamed_from = dict()
-    elif renamed_to:
-        # Flip mapping of renamed columns.
-        renamed_from = dict()
-        for key, val in renamed.items():
-            if val in renamed_from:
-                raise ValueError('multiple columns renamed to same name')
-            renamed_from[val] = key
-    else:
-        renamed_from = renamed
-    # Match column names against the schema index. Keep track if column names
-    # identifiy duplciates. Ensure that the result is a valid mapping where no
-    # two names from the column list have been mapped to the same schema
-    # element.
-    matches = list()
-    matched_schema_columns = set()
-    names = set()
-    for df_col, arch_col in columns:
-        if arch_col is not None:
-            matches.append((df_col, arch_col))
-            continue
-        name = str(df_col)
-        if name in names:
-            raise ValueError('duplicate column name %s' % (str(name)))
-        names.add(name)
-        # Find matching name in the schema index. Consider the fact that the
-        # column may have been renamed from an original column.
-        match = schema_index.get(renamed_from.get(name, name))
-        if match is not None:
-            if match.identifier in matched_schema_columns:
-                raise ValueError('multiple matches for %d' % match.colid)
-            matched_schema_columns.add(match.identifier)
-        matches.append((name, match))
-    return matches
-
-
-def column_index(
-    archive_schema: Dict[int, ArchiveColumn], orig_schema: List[Column]
-) -> Tuple[Dict[str, ArchiveColumn], Dict[int, Tuple[Column, int]]]:
-    """Create a mapping of names for the snapshot schema to their respective
-    column in the archive schema. In addition, a mapping of identifier for
-    columns in the snapshot schema to the column object at its schema position
-    is created. Returns a tuple with the name mapping and the column identifier
-    mapping.
-
-    Parameters
-    ----------
-    archive_schema: dict(int: histore.archive.schema.ArchiveColumn)
-        Dictionary mapping of column identifier to archive columns.
-    orig_schema: list(histore.document.schema.Column)
-        List of columns in a snapshot schema
-
-    Returns
-    -------
-    dict, dict
-    """
-    archive_index = dict()
-    orig_index = dict()
-    for pos in range(len(orig_schema)):
-        col = orig_schema[pos]
-        if col in archive_index:
-            raise ValueError('cannot match by name with duplicates')
-        archive_index[col] = archive_schema[col.colid]
-        orig_index[col.colid] = (col, pos)
-    return archive_index, orig_index
+    prev_schema = defaultdict(list)
+    for col in columns:
+        prev_schema[col].append(col.colid)
+    return prev_schema

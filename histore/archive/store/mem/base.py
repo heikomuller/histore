@@ -9,8 +9,7 @@
 memory. Archive information is not persisted.
 """
 
-from datetime import datetime
-from typing import Dict, Optional
+from typing import List, Optional
 
 from histore.archive.schema import ArchiveSchema
 from histore.archive.snapshot import SnapshotListing
@@ -23,57 +22,42 @@ class VolatileArchiveStore(ArchiveStore):
     """Archive store that keeps all archive related information in main memory.
     The store is volatile as no information is persisted on disk.
     """
-    def __init__(self):
-        """Initialize the archive archive components."""
+    def __init__(self, primary_key: Optional[List[int]] = None):
+        """Initialize the archive archive components.
+
+        Parameters
+        ----------
+        primary_key: list of int, default=None
+            List of identifier for primary key columns.
+        """
         self.rows = list()
         self.schema = ArchiveSchema()
         self.snapshots = SnapshotListing()
         self.row_counter = 0
+        self._primary_key = primary_key
 
     def commit(
-        self, schema: ArchiveSchema, writer: ArchiveBuffer, version: int,
-        valid_time: Optional[datetime] = None, description: Optional[str] = None,
-        action: Optional[Dict] = None
+        self, schema: ArchiveSchema, writer: ArchiveBuffer,
+        snapshots: SnapshotListing
     ):
-        """Commit a new version of the dataset archive. The modified components
-        of the archive are given as the three arguments of this method.
+        """Commit an updated dataset archive.
 
-        Returns the handle for the newly created snapshot.
+        The modified components of the archive are given as the three
+        arguments of this method.
 
         Parameters
         ----------
         schema: histore.archive.schema.ArchiveSchema
             Schema history for the new archive version.
-        writer: histore.archive.writer.ArchiveWriter
-            Instance of the archive writer class returned by this store that
-            was used to output the rows of the new archive version.
-        version: int
-            Unique version identifier for the new snapshot.
-        valid_time: datetime.datetime, default=None
-            Timestamp when the snapshot was first valid. A snapshot is valid
-            until the valid time of the next snapshot in the archive.
-        description: string, default=None
-            Optional user-provided description for the snapshot.
-        action: dict, default=None
-            Optional metadata defining the action that created the snapshot.
-
-        Returns
-        -------
-        histore.archive.snapshot.Snapshot
+        writer: histore.archive.store.mem.writer.ArchiveBuffer
+            Buffer containing the modified archive rows.
+        snapshots: histore.archive.snapshot.SnapshotListing
+            Snapshot listing for the modified archive.
         """
-        # Get an updated shapshot listing.
-        snapshots = self.snapshots.append(
-            version=version,
-            valid_time=valid_time,
-            description=description,
-            action=action
-        )
         self.rows = writer.rows
         self.schema = schema
         self.snapshots = snapshots
         self.row_counter = writer.row_counter
-        # Return handle for the new snapshot.
-        return snapshots.last_snapshot()
 
     def is_empty(self):
         """True if the archive does not contain any snapshots yet.
@@ -120,6 +104,17 @@ class VolatileArchiveStore(ArchiveStore):
         histore.archive.store.mem.ArchiveBuffer
         """
         return ArchiveBuffer(row_counter=self.row_counter)
+
+    def primary_key(self) -> List[int]:
+        """Get the list of identifier for the primary key column(s).
+
+        Returns None if the archive is not keyed by a primary key.
+
+        Returns
+        -------
+        list of int
+        """
+        return self._primary_key
 
     def rollback(self, schema: ArchiveSchema, writer: ArchiveBuffer, version: int):
         """Store the archive after it has been rolled back to a previous
