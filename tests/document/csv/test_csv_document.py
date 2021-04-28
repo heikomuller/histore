@@ -7,6 +7,8 @@
 
 """Unit tests for the in-memory document and document reader."""
 
+from pathlib import Path
+
 import os
 
 from histore.document.csv.base import CSVFile
@@ -35,6 +37,13 @@ def test_custom_header(tmpdir):
     with doc.open() as reader:
         rows = [row for _, _, row in reader]
     assert rows == [['A', 'B'], ['1', '2']]
+    # -- An empty document has an empty header.
+    empty_file = os.path.join(tmpdir, 'empty.csv')
+    Path(empty_file).touch()
+    doc = CSVFile(filename=empty_file)
+    assert doc.columns == []
+    doc = CSVFile(filename=empty_file, header=['X', 'Y'])
+    assert doc.columns == ['X', 'Y']
 
 
 def test_document_iterator():
