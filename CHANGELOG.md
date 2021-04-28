@@ -79,3 +79,8 @@
 * Add empty document class ``histore.document.mem.Schema``.
 * Change format of serialized archive JSON files.
 * Change internal representation of timestamps.
+
+
+### 0.4.1 - 2021-04-28
+
+* Handle empty CSV files properly.

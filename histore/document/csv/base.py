@@ -160,8 +160,13 @@ class CSVFile(ExternalDocument):
                 encoding=self.encoding,
                 none_is=self.none_is
             )
-            header = next(reader)
-            reader.close()
+            try:
+                header = next(reader)
+            except StopIteration:
+                # Empty file. The list of column nmaes is empty.
+                header = []
+            finally:
+                reader.close()
         super(CSVFile, self).__init__(
             columns=header,
             filename=filename,
